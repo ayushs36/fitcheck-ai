@@ -1,5 +1,9 @@
 # FitCheck AI
 
+## Live Demo
+
+https://fitcheck-ai-psi.vercel.app
+
 FitCheck AI is an AI-inspired fitness analytics and coaching platform built with Next.js, React, TypeScript, and Tailwind CSS.
 
 ## Features
