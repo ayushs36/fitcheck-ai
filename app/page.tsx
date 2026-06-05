@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 type Goal = "Cutting" | "Bulking" | "Maintaining";
 
@@ -36,9 +45,7 @@ export default function Home() {
 
   useEffect(() => {
     const savedLogs = localStorage.getItem(STORAGE_KEY);
-    if (savedLogs) {
-      setLogs(JSON.parse(savedLogs));
-    }
+    if (savedLogs) setLogs(JSON.parse(savedLogs));
   }, []);
 
   useEffect(() => {
@@ -54,9 +61,7 @@ export default function Home() {
   const last14Logs = sortedLogs.slice(-14);
 
   const average = (values: number[]) =>
-    values.length === 0
-      ? 0
-      : values.reduce((sum, value) => sum + value, 0) / values.length;
+    values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
 
   const latestLog = sortedLogs[sortedLogs.length - 1];
   const latestWeight = latestLog?.weight ?? entry.weight;
@@ -72,13 +77,10 @@ export default function Home() {
   const avgSteps = average(last7Logs.map((log) => log.steps));
 
   const first7Weight = last7Logs[0]?.weight ?? latestWeight;
-  const weeklyWeightChange =
-    last7Logs.length >= 2 ? latestWeight - first7Weight : 0;
+  const weeklyWeightChange = last7Logs.length >= 2 ? latestWeight - first7Weight : 0;
 
   const poundsToGoal =
-    sevenDayAverage > 0
-      ? sevenDayAverage - goalWeight
-      : latestWeight - goalWeight;
+    sevenDayAverage > 0 ? sevenDayAverage - goalWeight : latestWeight - goalWeight;
 
   const today = new Date();
   const targetDate = new Date(goalDate);
@@ -89,12 +91,9 @@ export default function Home() {
   );
 
   const weeksUntilGoal = daysUntilGoal / 7;
+  const requiredWeeklyLoss = weeksUntilGoal > 0 ? poundsToGoal / weeksUntilGoal : 0;
 
-  const requiredWeeklyLoss =
-    weeksUntilGoal > 0 ? poundsToGoal / weeksUntilGoal : 0;
-
-  const projectedWeeklyLoss =
-    weeklyWeightChange < 0 ? Math.abs(weeklyWeightChange) : 0;
+  const projectedWeeklyLoss = weeklyWeightChange < 0 ? Math.abs(weeklyWeightChange) : 0;
 
   const projectedGoalDate =
     projectedWeeklyLoss > 0 && poundsToGoal > 0
@@ -102,30 +101,28 @@ export default function Home() {
       : null;
 
   const currentPace = weeklyWeightChange < 0 ? Math.abs(weeklyWeightChange) : 0;
-
-  const projectedGoalDateText = projectedGoalDate
-    ? formatDate(projectedGoalDate)
-    : "Need more data";
+  const projectedGoalDateText = projectedGoalDate ? formatDate(projectedGoalDate) : "Need more data";
 
   let goalStatus = "Need more data";
 
   if (projectedGoalDate && goalDate) {
-    const projected = new Date(projectedGoalDate);
-    const target = new Date(goalDate);
-
     const differenceInDays =
-      (projected.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
+      (projectedGoalDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24);
 
-    if (differenceInDays < -3) {
-      goalStatus = "Ahead of schedule";
-    } else if (differenceInDays <= 7) {
-      goalStatus = "On track";
-    } else {
-      goalStatus = "Behind schedule";
-    }
+    if (differenceInDays < -3) goalStatus = "Ahead of schedule";
+    else if (differenceInDays <= 7) goalStatus = "On track";
+    else goalStatus = "Behind schedule";
   }
 
   const confidenceScore = Math.min(95, Math.max(30, logs.length * 8 + 30));
+
+  const chartData = sortedLogs.map((log) => ({
+    date: log.date.slice(5),
+    weight: log.weight,
+    calories: log.calories,
+    protein: log.protein,
+    steps: log.steps,
+  }));
 
   const proteinTargetMet = avgProtein >= 130;
   const stepTargetMet = avgSteps >= 10000;
@@ -189,20 +186,12 @@ AI Confidence Score: ${confidenceScore}%
       steps: 14000,
       workout: "",
     });
-
     setEditingId(null);
   }
 
   function saveLog() {
-    if (!entry.date) {
-      alert("Please enter a date.");
-      return;
-    }
-
-    if (entry.weight <= 0) {
-      alert("Please enter a valid weight.");
-      return;
-    }
+    if (!entry.date) return alert("Please enter a date.");
+    if (entry.weight <= 0) return alert("Please enter a valid weight.");
 
     const duplicateDate = logs.some(
       (log) => log.date === entry.date && log.id !== editingId
@@ -214,11 +203,7 @@ AI Confidence Score: ${confidenceScore}%
     }
 
     if (editingId) {
-      setLogs(
-        logs.map((log) =>
-          log.id === editingId ? { ...entry, id: editingId } : log
-        )
-      );
+      setLogs(logs.map((log) => (log.id === editingId ? { ...entry, id: editingId } : log)));
       resetEntry();
       return;
     }
@@ -254,104 +239,44 @@ AI Confidence Score: ${confidenceScore}%
           <h1 className="mt-1 text-4xl font-bold">FitCheck AI</h1>
           <p className="mt-2 max-w-3xl text-slate-600">
             Track weight, calories, protein, steps, workouts, moving averages,
-            goal pace, and rule-based coaching recommendations for cutting,
-            bulking, and maintaining.
+            goal pace, charts, and rule-based coaching recommendations.
           </p>
         </header>
 
         <section className="grid gap-6 lg:grid-cols-3">
           <section className="rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold">Daily Log</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Log your daily check-in. Your official weight is calculated using
-              your 7-day average.
-            </p>
 
             <div className="mt-5 space-y-4">
-              <Select
-                label="Goal"
-                value={goal}
-                onChange={(value) => setGoal(value as Goal)}
-                options={["Cutting", "Bulking", "Maintaining"]}
-              />
+              <Select label="Goal" value={goal} onChange={(value) => setGoal(value as Goal)} options={["Cutting", "Bulking", "Maintaining"]} />
 
-              <Input
-                label="Date"
-                type="date"
-                value={entry.date}
-                onChange={(value) => setEntry({ ...entry, date: value })}
-              />
+              <Input label="Date" type="date" value={entry.date} onChange={(value) => setEntry({ ...entry, date: value })} />
 
-              <NumberInput
-                label="Daily Scale Weight"
-                value={entry.weight}
-                onChange={(value) => setEntry({ ...entry, weight: value })}
-                suffix="lbs"
-              />
+              <NumberInput label="Daily Scale Weight" value={entry.weight} onChange={(value) => setEntry({ ...entry, weight: value })} suffix="lbs" />
 
-              <NumberInput
-                label="Goal Weight"
-                value={goalWeight}
-                onChange={setGoalWeight}
-                suffix="lbs"
-              />
+              <NumberInput label="Goal Weight" value={goalWeight} onChange={setGoalWeight} suffix="lbs" />
 
-              <Input
-                label="Goal Date"
-                type="date"
-                value={goalDate}
-                onChange={setGoalDate}
-              />
+              <Input label="Goal Date" type="date" value={goalDate} onChange={setGoalDate} />
 
-              <NumberInput
-                label="Calories"
-                value={entry.calories}
-                onChange={(value) => setEntry({ ...entry, calories: value })}
-                suffix="cal"
-              />
+              <NumberInput label="Calories" value={entry.calories} onChange={(value) => setEntry({ ...entry, calories: value })} suffix="cal" />
 
-              <NumberInput
-                label="Protein"
-                value={entry.protein}
-                onChange={(value) => setEntry({ ...entry, protein: value })}
-                suffix="g"
-              />
+              <NumberInput label="Protein" value={entry.protein} onChange={(value) => setEntry({ ...entry, protein: value })} suffix="g" />
 
-              <NumberInput
-                label="Steps"
-                value={entry.steps}
-                onChange={(value) => setEntry({ ...entry, steps: value })}
-                suffix="steps"
-              />
+              <NumberInput label="Steps" value={entry.steps} onChange={(value) => setEntry({ ...entry, steps: value })} suffix="steps" />
 
-              <Input
-                label="Workout"
-                type="text"
-                value={entry.workout}
-                onChange={(value) => setEntry({ ...entry, workout: value })}
-                placeholder="Push, Pull, Legs, Rest, Chest/Back..."
-              />
+              <Input label="Workout" type="text" value={entry.workout} onChange={(value) => setEntry({ ...entry, workout: value })} placeholder="Push, Pull, Legs, Rest..." />
 
-              <button
-                onClick={saveLog}
-                className="w-full rounded-2xl bg-black px-4 py-3 font-semibold text-white transition hover:bg-slate-800"
-              >
+              <button onClick={saveLog} className="w-full rounded-2xl bg-black px-4 py-3 font-semibold text-white">
                 {editingId ? "Update Log" : "Add Daily Log"}
               </button>
 
               {editingId && (
-                <button
-                  onClick={resetEntry}
-                  className="w-full rounded-2xl bg-slate-200 px-4 py-3 font-semibold"
-                >
+                <button onClick={resetEntry} className="w-full rounded-2xl bg-slate-200 px-4 py-3 font-semibold">
                   Cancel Edit
                 </button>
               )}
 
-              <button
-                onClick={clearAllLogs}
-                className="w-full rounded-2xl bg-red-100 px-4 py-3 font-semibold text-red-700"
-              >
+              <button onClick={clearAllLogs} className="w-full rounded-2xl bg-red-100 px-4 py-3 font-semibold text-red-700">
                 Clear All Logs
               </button>
             </div>
@@ -381,16 +306,55 @@ AI Confidence Score: ${confidenceScore}%
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Weight Trend Chart</h2>
+
+              {chartData.length === 0 ? (
+                <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+              ) : (
+                <div className="mt-5 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="weight" strokeWidth={3} dot />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
+
+              {chartData.length === 0 ? (
+                <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+              ) : (
+                <div className="mt-5 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="steps" strokeWidth={3} dot />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">AI Coach Report</h2>
 
               <div className="mt-4 space-y-3 text-slate-700">
                 <p>
-                  You are currently <strong>{goal.toLowerCase()}</strong>. Your
-                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>
+                  You are currently <strong>{goal.toLowerCase()}</strong>. Your latest weight is{" "}
+                  <strong>{latestWeight.toFixed(1)} lbs</strong>
                   {logs.length > 0 && (
                     <>
-                      , and your 7-day average is{" "}
-                      <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
+                      , and your 7-day average is <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
                     </>
                   )}
                   .
@@ -403,25 +367,17 @@ AI Confidence Score: ${confidenceScore}%
                 </p>
 
                 <p>
-                  Your current pace is about{" "}
-                  <strong>{currentPace.toFixed(1)} lbs/week</strong>. Based on your
-                  current trend, your projected goal date is{" "}
-                  <strong>{projectedGoalDateText}</strong>.
+                  Your current pace is about <strong>{currentPace.toFixed(1)} lbs/week</strong>.
+                  Projected goal date: <strong>{projectedGoalDateText}</strong>.
                 </p>
 
-                <p>
-                  Goal status: <strong>{goalStatus}</strong>
-                </p>
-
-                <p>
-                  AI confidence score: <strong>{confidenceScore}%</strong>
-                </p>
+                <p>Goal status: <strong>{goalStatus}</strong></p>
+                <p>AI confidence score: <strong>{confidenceScore}%</strong></p>
               </div>
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Weekly Report</h2>
-
               <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-sm text-slate-700">
                 {weeklyReport}
               </pre>
@@ -435,7 +391,6 @@ AI Confidence Score: ${confidenceScore}%
             <section className="grid gap-6 md:grid-cols-2">
               <section className="rounded-3xl bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-semibold">Agent Checks</h2>
-
                 <ul className="mt-4 space-y-2 text-slate-700">
                   <li>Data quality: {enoughData ? "✅ Enough logs" : "⚠️ Add more logs"}</li>
                   <li>Protein target: {proteinTargetMet ? "✅ Met" : "⚠️ Not met"}</li>
@@ -447,48 +402,12 @@ AI Confidence Score: ${confidenceScore}%
 
               <section className="rounded-3xl bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-semibold">Current Summary</h2>
-
                 <p className="mt-4 text-slate-700">
-                  You are currently <strong>{goal.toLowerCase()}</strong>. Your
-                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>
-                  {logs.length > 0 && (
-                    <>
-                      , and your 7-day average is{" "}
-                      <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
-                    </>
-                  )}
-                  . Your goal is <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
-                  <strong>{goalDate}</strong>.
+                  You are currently <strong>{goal.toLowerCase()}</strong>. Your latest weight is{" "}
+                  <strong>{latestWeight.toFixed(1)} lbs</strong>. Your goal is{" "}
+                  <strong>{goalWeight.toFixed(1)} lbs</strong> by <strong>{goalDate}</strong>.
                 </p>
               </section>
-            </section>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Weight Trend</h2>
-
-              <div className="mt-5 space-y-3">
-                {last7Logs.length === 0 ? (
-                  <p className="text-slate-500">No logs yet. Add your first log.</p>
-                ) : (
-                  last7Logs.map((log) => (
-                    <div key={log.id}>
-                      <div className="mb-1 flex justify-between text-sm">
-                        <span>{log.date}</span>
-                        <span>{log.weight} lbs</span>
-                      </div>
-
-                      <div className="h-3 rounded-full bg-slate-200">
-                        <div
-                          className="h-3 rounded-full bg-black"
-                          style={{
-                            width: `${Math.min(100, Math.max(5, (log.weight / 160) * 100))}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -521,17 +440,10 @@ AI Confidence Score: ${confidenceScore}%
                           <td className="p-2">{log.steps}</td>
                           <td className="p-2">{log.workout || "—"}</td>
                           <td className="flex gap-2 p-2">
-                            <button
-                              onClick={() => editLog(log)}
-                              className="rounded-lg bg-slate-200 px-3 py-1"
-                            >
+                            <button onClick={() => editLog(log)} className="rounded-lg bg-slate-200 px-3 py-1">
                               Edit
                             </button>
-
-                            <button
-                              onClick={() => deleteLog(log.id)}
-                              className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
-                            >
+                            <button onClick={() => deleteLog(log.id)} className="rounded-lg bg-red-100 px-3 py-1 text-red-700">
                               Delete
                             </button>
                           </td>
@@ -568,58 +480,26 @@ function getRecommendation({
   requiredWeeklyLoss: number;
   poundsToGoal: number;
 }) {
-  if (logsCount === 0) {
-    return "Add your first daily log to start generating personalized recommendations.";
-  }
+  if (logsCount === 0) return "Add your first daily log to start generating personalized recommendations.";
 
   if (goal === "Cutting") {
-    if (poundsToGoal <= 0) {
-      return "Goal reached. Consider moving into maintenance before deciding whether to lean bulk.";
-    }
-
-    if (avgProtein < 130) {
-      return "Protein is below target. Increase protein to better preserve muscle while cutting.";
-    }
-
-    if (avgSteps < 10000) {
-      return "Steps are below target. Increasing daily movement may help fat loss without lowering calories further.";
-    }
-
-    if (requiredWeeklyLoss > 2.25) {
-      return "Your goal pace is very aggressive. You may need near-perfect consistency, but avoid crash dieting or rebound cycles.";
-    }
-
-    if (weeklyWeightChange < -2) {
-      return "Weight is dropping quickly. Keep protein high and monitor workout strength, fatigue, and recovery.";
-    }
-
-    if (weeklyWeightChange >= -2 && weeklyWeightChange <= -0.5) {
-      return "Strong cutting trend. Your weight trend, protein, calories, and steps are aligned for steady fat loss.";
-    }
-
-    if (avgCalories > 2200) {
-      return "Calories are relatively high for cutting. If weight stalls, tighten calorie consistency first.";
-    }
-
-    return "Progress looks slow or flat. Focus on the 7-day average, consistency, and avoiding overreactions to daily scale changes.";
+    if (poundsToGoal <= 0) return "Goal reached. Consider moving into maintenance before deciding whether to lean bulk.";
+    if (avgProtein < 130) return "Protein is below target. Increase protein to better preserve muscle while cutting.";
+    if (avgSteps < 10000) return "Steps are below target. Increasing daily movement may help fat loss without lowering calories further.";
+    if (requiredWeeklyLoss > 2.25) return "Your goal pace is very aggressive. Avoid crash dieting or rebound cycles.";
+    if (weeklyWeightChange < -2) return "Weight is dropping quickly. Monitor strength, fatigue, and recovery.";
+    if (weeklyWeightChange >= -2 && weeklyWeightChange <= -0.5) return "Strong cutting trend. Your data is aligned for steady fat loss.";
+    if (avgCalories > 2200) return "Calories are relatively high for cutting. If weight stalls, tighten calorie consistency first.";
+    return "Progress looks slow or flat. Focus on the 7-day average and consistency.";
   }
 
   if (goal === "Bulking") {
-    if (weeklyWeightChange > 1) {
-      return "You are gaining quickly. Reduce calories slightly to keep the bulk leaner.";
-    }
-
-    if (weeklyWeightChange >= 0.25 && weeklyWeightChange <= 0.75) {
-      return "Controlled lean bulk pace. Keep training hard and gaining slowly.";
-    }
-
+    if (weeklyWeightChange > 1) return "You are gaining quickly. Reduce calories slightly to keep the bulk leaner.";
+    if (weeklyWeightChange >= 0.25 && weeklyWeightChange <= 0.75) return "Controlled lean bulk pace. Keep training hard and gaining slowly.";
     return "Bulk pace may be too slow. If strength and weight are not increasing, consider a small calorie increase.";
   }
 
-  if (Math.abs(weeklyWeightChange) <= 0.5) {
-    return "Maintenance looks stable. Keep calories consistent and focus on performance and recovery.";
-  }
-
+  if (Math.abs(weeklyWeightChange) <= 0.5) return "Maintenance looks stable. Keep calories consistent and focus on performance.";
   return "Maintenance is drifting. Adjust calories slightly if weight is moving more than expected.";
 }
 
@@ -632,79 +512,32 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function NumberInput({
-  label,
-  value,
-  onChange,
-  suffix,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  suffix?: string;
-}) {
+function NumberInput({ label, value, onChange, suffix }: { label: string; value: number; onChange: (value: number) => void; suffix?: string }) {
   return (
     <label className="block">
       <span className="text-sm text-slate-500">{label}</span>
       <div className="mt-1 flex items-center gap-2">
-        <input
-          className="w-full rounded-xl border p-2"
-          type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
+        <input className="w-full rounded-xl border p-2" type="number" value={value} onChange={(e) => onChange(Number(e.target.value))} />
         {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
       </div>
     </label>
   );
 }
 
-function Input({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
+function Input({ label, type, value, onChange, placeholder }: { label: string; type: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
   return (
     <label className="block">
       <span className="text-sm text-slate-500">{label}</span>
-      <input
-        className="mt-1 w-full rounded-xl border p-2"
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <input className="mt-1 w-full rounded-xl border p-2" type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }
 
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-}) {
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) {
   return (
     <label className="block">
       <span className="text-sm text-slate-500">{label}</span>
-      <select
-        className="mt-1 w-full rounded-xl border p-2"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
+      <select className="mt-1 w-full rounded-xl border p-2" value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((option) => (
           <option key={option}>{option}</option>
         ))}
