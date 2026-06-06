@@ -160,6 +160,67 @@ export default function Home() {
 
   const latestWorkoutExercises = latestLog?.exercises ?? [];
 
+  const workoutVolumes = sortedLogs.map((log) => ({
+    date: log.date,
+    volume: log.exercises.reduce(
+      (total, exercise) => total + calculateExerciseVolume(exercise),
+      0
+    ),
+  }));
+
+  const latestWorkoutVolume =
+    workoutVolumes[workoutVolumes.length - 1]?.volume ?? 0;
+
+  const previousWorkoutVolume =
+    workoutVolumes.length >= 2
+      ? workoutVolumes[workoutVolumes.length - 2].volume
+      : 0;
+
+  const volumeChange =
+    previousWorkoutVolume > 0
+      ? ((latestWorkoutVolume - previousWorkoutVolume) /
+          previousWorkoutVolume) *
+        100
+      : 0;
+
+  let strengthStatus = "Need more workout data";
+
+  if (workoutVolumes.length >= 2) {
+    if (volumeChange > 5) {
+      strengthStatus = "Strength/performance improving";
+    } else if (volumeChange < -10) {
+      strengthStatus = "Strength/performance dropping";
+    } else {
+      strengthStatus = "Strength/performance stable";
+    }
+  }
+
+  let strengthInsight =
+    "Log at least two workouts with exercises to analyze strength trends.";
+
+  if (goal === "Cutting" && strengthStatus === "Strength/performance stable") {
+    strengthInsight =
+      "Good sign: your strength appears stable while cutting, which suggests you may be preserving muscle well.";
+  } else if (
+    goal === "Cutting" &&
+    strengthStatus === "Strength/performance dropping"
+  ) {
+    strengthInsight =
+      "Strength appears to be dropping while cutting. Watch recovery, sleep, protein intake, and how aggressive your deficit is.";
+  } else if (
+    goal === "Bulking" &&
+    strengthStatus === "Strength/performance improving"
+  ) {
+    strengthInsight =
+      "Good lean bulk signal: strength is improving, which suggests your training and nutrition are supporting progress.";
+  } else if (
+    goal === "Bulking" &&
+    strengthStatus === "Strength/performance stable"
+  ) {
+    strengthInsight =
+      "Strength is stable during your bulk. Consider whether progressive overload is happening consistently.";
+  }
+
   const proteinTargetMet = avgProtein >= 130;
   const stepTargetMet = avgSteps >= 10000;
   const enoughData = logs.length >= 3;
@@ -170,19 +231,6 @@ export default function Home() {
       : weeklyWeightChange > 0.5
       ? "Gaining"
       : "Maintaining / Flat";
-
-  const paceStatus =
-    goal === "Cutting"
-      ? requiredWeeklyLoss <= 1.5
-        ? "Realistic"
-        : requiredWeeklyLoss <= 2.25
-        ? "Aggressive"
-        : "Very Aggressive"
-      : goal === "Bulking"
-      ? weeklyWeightChange <= 0.75
-        ? "Controlled"
-        : "Gaining Too Fast"
-      : "Stable";
 
   const weeklyReport = `
 Goal: ${goal}
@@ -199,6 +247,10 @@ Required Weekly Loss: ${requiredWeeklyLoss.toFixed(1)} lbs/week
 Projected Goal Date: ${projectedGoalDateText}
 Goal Status: ${goalStatus}
 Total Exercises Logged: ${totalExercises}
+Latest Workout Volume: ${latestWorkoutVolume.toFixed(0)}
+Previous Workout Volume: ${previousWorkoutVolume.toFixed(0)}
+Volume Change: ${volumeChange.toFixed(1)}%
+Strength Status: ${strengthStatus}
 AI Confidence Score: ${confidenceScore}%
 `;
 
@@ -212,6 +264,7 @@ AI Confidence Score: ${confidenceScore}%
     requiredWeeklyLoss,
     poundsToGoal,
     totalExercises,
+    strengthStatus,
   });
 
   function resetEntry() {
@@ -312,7 +365,8 @@ AI Confidence Score: ${confidenceScore}%
 
           <p className="mt-2 max-w-3xl text-slate-600">
             Track weight, calories, protein, steps, workouts, exercises, moving
-            averages, goal pace, charts, and AI-style coaching recommendations.
+            averages, goal pace, charts, strength analytics, and AI-style
+            coaching recommendations.
           </p>
         </header>
 
@@ -509,6 +563,9 @@ AI Confidence Score: ${confidenceScore}%
                 <Stat label="Weekly Change" value={`${weeklyWeightChange.toFixed(1)} lbs`} />
                 <Stat label="Trend" value={trend} />
                 <Stat label="Exercises Logged" value={`${totalExercises}`} />
+                <Stat label="Latest Workout Volume" value={`${latestWorkoutVolume.toFixed(0)}`} />
+                <Stat label="Volume Change" value={`${volumeChange.toFixed(1)}%`} />
+                <Stat label="Strength Status" value={strengthStatus} />
               </div>
             </section>
 
@@ -557,8 +614,8 @@ AI Confidence Score: ${confidenceScore}%
 
               <div className="mt-4 space-y-3 text-slate-700">
                 <p>
-                  You are currently <strong>{goal.toLowerCase()}</strong>. Your latest
-                  weight is <strong>{latestWeight.toFixed(1)} lbs</strong>
+                  You are currently <strong>{goal.toLowerCase()}</strong>. Your
+                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>
                   {logs.length > 0 && (
                     <>
                       , and your 7-day average is{" "}
@@ -596,6 +653,32 @@ AI Confidence Score: ${confidenceScore}%
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Strength Analytics</h2>
+
+              <div className="mt-4 space-y-3 text-slate-700">
+                <p>
+                  Latest workout volume:{" "}
+                  <strong>{latestWorkoutVolume.toFixed(0)}</strong>
+                </p>
+
+                <p>
+                  Previous workout volume:{" "}
+                  <strong>{previousWorkoutVolume.toFixed(0)}</strong>
+                </p>
+
+                <p>
+                  Volume change: <strong>{volumeChange.toFixed(1)}%</strong>
+                </p>
+
+                <p>
+                  Strength status: <strong>{strengthStatus}</strong>
+                </p>
+
+                <p>{strengthInsight}</p>
+              </div>
+            </section>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Weekly Report</h2>
               <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-sm text-slate-700">
                 {weeklyReport}
@@ -618,6 +701,7 @@ AI Confidence Score: ${confidenceScore}%
                   <li>Weight trend: {weeklyWeightChange < 0 ? "✅ Moving down" : "⚠️ Flat/increasing"}</li>
                   <li>Goal pace: {requiredWeeklyLoss <= 2 ? "✅ Manageable" : "⚠️ Aggressive"}</li>
                   <li>Workout detail: {totalExercises > 0 ? "✅ Exercises logged" : "⚠️ Add exercises"}</li>
+                  <li>Strength analysis: {workoutVolumes.length >= 2 ? "✅ Available" : "⚠️ Need 2 workouts"}</li>
                 </ul>
               </section>
 
@@ -716,6 +800,7 @@ function getRecommendation({
   requiredWeeklyLoss,
   poundsToGoal,
   totalExercises,
+  strengthStatus,
 }: {
   goal: Goal;
   logsCount: number;
@@ -726,6 +811,7 @@ function getRecommendation({
   requiredWeeklyLoss: number;
   poundsToGoal: number;
   totalExercises: number;
+  strengthStatus: string;
 }) {
   if (logsCount === 0) {
     return "Add your first daily log to start generating personalized recommendations.";
@@ -746,6 +832,10 @@ function getRecommendation({
 
     if (totalExercises === 0) {
       return "Start logging exercises so the coach can evaluate whether you are maintaining strength during your cut.";
+    }
+
+    if (strengthStatus === "Strength/performance dropping") {
+      return "Strength is dropping while cutting. Consider improving recovery, slightly increasing calories, or reducing training fatigue.";
     }
 
     if (requiredWeeklyLoss > 2.25) {
@@ -772,6 +862,10 @@ function getRecommendation({
       return "You are gaining quickly. Reduce calories slightly to keep the bulk leaner.";
     }
 
+    if (strengthStatus === "Strength/performance improving") {
+      return "Good lean bulk signal: strength is improving while bodyweight is moving up.";
+    }
+
     if (weeklyWeightChange >= 0.25 && weeklyWeightChange <= 0.75) {
       return "Controlled lean bulk pace. Keep training hard and gaining slowly.";
     }
@@ -784,6 +878,10 @@ function getRecommendation({
   }
 
   return "Maintenance is drifting. Adjust calories slightly if weight is moving more than expected.";
+}
+
+function calculateExerciseVolume(exercise: Exercise) {
+  return exercise.sets * exercise.reps * exercise.weight;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
