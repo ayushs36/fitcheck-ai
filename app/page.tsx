@@ -33,7 +33,7 @@ type LogEntry = {
 };
 
 const STORAGE_KEY = "fitcheck-logs-v1";
-
+const SETTINGS_KEY = "fitcheck-settings-v1";
 export default function Home() {
   const [goal, setGoal] = useState<Goal>("Cutting");
   const [goalWeight, setGoalWeight] = useState(130);
@@ -67,8 +67,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+  const savedSettings = localStorage.getItem(SETTINGS_KEY);
+
+  if (savedSettings) {
+    const settings = JSON.parse(savedSettings);
+
+    if (settings.goal) setGoal(settings.goal);
+    if (settings.goalWeight) setGoalWeight(settings.goalWeight);
+    if (settings.goalDate) setGoalDate(settings.goalDate);
+  }
+}, []);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
   }, [logs]);
+
+  useEffect(() => {
+  localStorage.setItem(
+    SETTINGS_KEY,
+    JSON.stringify({
+      goal,
+      goalWeight,
+      goalDate,
+    })
+  );
+}, [goal, goalWeight, goalDate]);
 
   const sortedLogs = useMemo(
     () => [...logs].sort((a, b) => a.date.localeCompare(b.date)),
