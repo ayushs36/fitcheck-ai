@@ -34,6 +34,7 @@ type LogEntry = {
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
+
 export default function Home() {
   const [goal, setGoal] = useState<Goal>("Cutting");
   const [goalWeight, setGoalWeight] = useState(130);
@@ -67,31 +68,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-  const savedSettings = localStorage.getItem(SETTINGS_KEY);
+    const savedSettings = localStorage.getItem(SETTINGS_KEY);
 
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings);
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
 
-    if (settings.goal) setGoal(settings.goal);
-    if (settings.goalWeight) setGoalWeight(settings.goalWeight);
-    if (settings.goalDate) setGoalDate(settings.goalDate);
-  }
-}, []);
+      if (settings.goal) setGoal(settings.goal);
+      if (settings.goalWeight) setGoalWeight(settings.goalWeight);
+      if (settings.goalDate) setGoalDate(settings.goalDate);
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
   }, [logs]);
 
   useEffect(() => {
-  localStorage.setItem(
-    SETTINGS_KEY,
-    JSON.stringify({
-      goal,
-      goalWeight,
-      goalDate,
-    })
-  );
-}, [goal, goalWeight, goalDate]);
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({
+        goal,
+        goalWeight,
+        goalDate,
+      })
+    );
+  }, [goal, goalWeight, goalDate]);
 
   const sortedLogs = useMemo(
     () => [...logs].sort((a, b) => a.date.localeCompare(b.date)),
@@ -119,6 +120,34 @@ export default function Home() {
   const avgProtein = average(last7Logs.map((log) => log.protein));
   const avgSteps = average(last7Logs.map((log) => log.steps));
 
+  const plateauDifference = Math.abs(sevenDayAverage - fourteenDayAverage);
+
+  let plateauStatus = "Need more data";
+
+  if (logs.length >= 14) {
+    if (plateauDifference <= 0.3) {
+      plateauStatus = "Potential plateau detected";
+    } else if (sevenDayAverage < fourteenDayAverage) {
+      plateauStatus = "Progress trending down";
+    } else {
+      plateauStatus = "Weight trending up";
+    }
+  }
+
+  let plateauRecommendation =
+    "Log at least 14 days of data to detect plateaus accurately.";
+
+  if (plateauStatus === "Potential plateau detected") {
+    plateauRecommendation =
+      "Your 7-day and 14-day averages are very close, which may indicate a plateau. Check calorie consistency, maintain protein, keep steps consistent, and reassess after several more days before making aggressive changes.";
+  } else if (plateauStatus === "Progress trending down") {
+    plateauRecommendation =
+      "Your 7-day average is below your 14-day average, which means progress is still moving in the right direction.";
+  } else if (plateauStatus === "Weight trending up") {
+    plateauRecommendation =
+      "Your 7-day average is above your 14-day average. Review recent calories, steps, sodium, carbs, and workout stress before assuming fat gain.";
+  }
+
   const first7Weight = last7Logs[0]?.weight ?? latestWeight;
   const weeklyWeightChange =
     last7Logs.length >= 2 ? latestWeight - first7Weight : 0;
@@ -137,6 +166,7 @@ export default function Home() {
   );
 
   const weeksUntilGoal = daysUntilGoal / 7;
+
   const requiredWeeklyLoss =
     weeksUntilGoal > 0 ? poundsToGoal / weeksUntilGoal : 0;
 
@@ -269,6 +299,9 @@ Current Pace: ${currentPace.toFixed(1)} lbs/week
 Required Weekly Loss: ${requiredWeeklyLoss.toFixed(1)} lbs/week
 Projected Goal Date: ${projectedGoalDateText}
 Goal Status: ${goalStatus}
+Plateau Status: ${plateauStatus}
+7v14 Average Difference: ${plateauDifference.toFixed(1)} lbs
+Plateau Recommendation: ${plateauRecommendation}
 Total Exercises Logged: ${totalExercises}
 Latest Workout Volume: ${latestWorkoutVolume.toFixed(0)}
 Previous Workout Volume: ${previousWorkoutVolume.toFixed(0)}
@@ -288,6 +321,7 @@ AI Confidence Score: ${confidenceScore}%
     poundsToGoal,
     totalExercises,
     strengthStatus,
+    plateauStatus,
   });
 
   function resetEntry() {
@@ -341,7 +375,9 @@ AI Confidence Score: ${confidenceScore}%
     );
 
     if (duplicateDate) {
-      alert("A log already exists for this date. Edit that log or choose another date.");
+      alert(
+        "A log already exists for this date. Edit that log or choose another date."
+      );
       return;
     }
 
@@ -388,8 +424,8 @@ AI Confidence Score: ${confidenceScore}%
 
           <p className="mt-2 max-w-3xl text-slate-600">
             Track weight, calories, protein, steps, workouts, exercises, moving
-            averages, goal pace, charts, strength analytics, and AI-style
-            coaching recommendations.
+            averages, goal pace, charts, strength analytics, plateau detection,
+            and AI-style coaching recommendations.
           </p>
         </header>
 
@@ -571,23 +607,67 @@ AI Confidence Score: ${confidenceScore}%
               <h2 className="text-2xl font-semibold">Dashboard</h2>
 
               <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <Stat label="Latest Weight" value={`${latestWeight.toFixed(1)} lbs`} />
-                <Stat label="7-Day Average" value={logs.length ? `${sevenDayAverage.toFixed(1)} lbs` : "No logs"} />
-                <Stat label="14-Day Average" value={logs.length ? `${fourteenDayAverage.toFixed(1)} lbs` : "No logs"} />
-                <Stat label="Goal Weight" value={`${goalWeight.toFixed(1)} lbs`} />
-                <Stat label="Pounds to Goal" value={`${poundsToGoal.toFixed(1)} lbs`} />
+                <Stat
+                  label="Latest Weight"
+                  value={`${latestWeight.toFixed(1)} lbs`}
+                />
+                <Stat
+                  label="7-Day Average"
+                  value={
+                    logs.length ? `${sevenDayAverage.toFixed(1)} lbs` : "No logs"
+                  }
+                />
+                <Stat
+                  label="14-Day Average"
+                  value={
+                    logs.length
+                      ? `${fourteenDayAverage.toFixed(1)} lbs`
+                      : "No logs"
+                  }
+                />
+                <Stat label="Plateau Status" value={plateauStatus} />
+                <Stat
+                  label="7v14 Avg Difference"
+                  value={`${plateauDifference.toFixed(1)} lbs`}
+                />
+                <Stat
+                  label="Goal Weight"
+                  value={`${goalWeight.toFixed(1)} lbs`}
+                />
+                <Stat
+                  label="Pounds to Goal"
+                  value={`${poundsToGoal.toFixed(1)} lbs`}
+                />
                 <Stat label="Goal Date" value={goalDate} />
                 <Stat label="Days Until Goal" value={`${daysUntilGoal} days`} />
-                <Stat label="Required Weekly Loss" value={`${requiredWeeklyLoss.toFixed(1)} lbs/week`} />
+                <Stat
+                  label="Required Weekly Loss"
+                  value={`${requiredWeeklyLoss.toFixed(1)} lbs/week`}
+                />
                 <Stat label="Projected Goal Date" value={projectedGoalDateText} />
-                <Stat label="Avg Calories" value={`${avgCalories.toFixed(0)} cal`} />
-                <Stat label="Avg Protein" value={`${avgProtein.toFixed(0)}g`} />
+                <Stat
+                  label="Avg Calories"
+                  value={`${avgCalories.toFixed(0)} cal`}
+                />
+                <Stat
+                  label="Avg Protein"
+                  value={`${avgProtein.toFixed(0)}g`}
+                />
                 <Stat label="Avg Steps" value={`${avgSteps.toFixed(0)}`} />
-                <Stat label="Weekly Change" value={`${weeklyWeightChange.toFixed(1)} lbs`} />
+                <Stat
+                  label="Weekly Change"
+                  value={`${weeklyWeightChange.toFixed(1)} lbs`}
+                />
                 <Stat label="Trend" value={trend} />
                 <Stat label="Exercises Logged" value={`${totalExercises}`} />
-                <Stat label="Latest Workout Volume" value={`${latestWorkoutVolume.toFixed(0)}`} />
-                <Stat label="Volume Change" value={`${volumeChange.toFixed(1)}%`} />
+                <Stat
+                  label="Latest Workout Volume"
+                  value={`${latestWorkoutVolume.toFixed(0)}`}
+                />
+                <Stat
+                  label="Volume Change"
+                  value={`${volumeChange.toFixed(1)}%`}
+                />
                 <Stat label="Strength Status" value={strengthStatus} />
               </div>
             </section>
@@ -596,7 +676,9 @@ AI Confidence Score: ${confidenceScore}%
               <h2 className="text-2xl font-semibold">Weight Trend Chart</h2>
 
               {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+                <p className="mt-4 text-slate-500">
+                  No logs yet. Add your first log.
+                </p>
               ) : (
                 <div className="mt-5 h-72">
                   <ResponsiveContainer width="100%" height="100%">
@@ -605,7 +687,12 @@ AI Confidence Score: ${confidenceScore}%
                       <XAxis dataKey="date" />
                       <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="weight" strokeWidth={3} dot />
+                      <Line
+                        type="monotone"
+                        dataKey="weight"
+                        strokeWidth={3}
+                        dot
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -616,7 +703,9 @@ AI Confidence Score: ${confidenceScore}%
               <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
 
               {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+                <p className="mt-4 text-slate-500">
+                  No logs yet. Add your first log.
+                </p>
               ) : (
                 <div className="mt-5 h-72">
                   <ResponsiveContainer width="100%" height="100%">
@@ -625,7 +714,12 @@ AI Confidence Score: ${confidenceScore}%
                       <XAxis dataKey="date" />
                       <YAxis />
                       <Tooltip />
-                      <Line type="monotone" dataKey="steps" strokeWidth={3} dot />
+                      <Line
+                        type="monotone"
+                        dataKey="steps"
+                        strokeWidth={3}
+                        dot
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -651,7 +745,8 @@ AI Confidence Score: ${confidenceScore}%
                 <p>
                   Your goal is <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
                   <strong>{goalDate}</strong>. You are currently{" "}
-                  <strong>{poundsToGoal.toFixed(1)} lbs</strong> away from your goal.
+                  <strong>{poundsToGoal.toFixed(1)} lbs</strong> away from your
+                  goal.
                 </p>
 
                 <p>
@@ -662,11 +757,16 @@ AI Confidence Score: ${confidenceScore}%
 
                 <p>
                   Latest workout included{" "}
-                  <strong>{latestWorkoutExercises.length}</strong> logged exercises.
+                  <strong>{latestWorkoutExercises.length}</strong> logged
+                  exercises.
                 </p>
 
                 <p>
                   Goal status: <strong>{goalStatus}</strong>
+                </p>
+
+                <p>
+                  Plateau status: <strong>{plateauStatus}</strong>
                 </p>
 
                 <p>
@@ -702,6 +802,33 @@ AI Confidence Score: ${confidenceScore}%
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Plateau Detection Agent</h2>
+
+              <div className="mt-4 space-y-3 text-slate-700">
+                <p>
+                  7-day average:{" "}
+                  <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
+                </p>
+
+                <p>
+                  14-day average:{" "}
+                  <strong>{fourteenDayAverage.toFixed(1)} lbs</strong>
+                </p>
+
+                <p>
+                  Difference:{" "}
+                  <strong>{plateauDifference.toFixed(1)} lbs</strong>
+                </p>
+
+                <p>
+                  Status: <strong>{plateauStatus}</strong>
+                </p>
+
+                <p>{plateauRecommendation}</p>
+              </div>
+            </section>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Weekly Report</h2>
               <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-sm text-slate-700">
                 {weeklyReport}
@@ -718,13 +845,39 @@ AI Confidence Score: ${confidenceScore}%
                 <h2 className="text-xl font-semibold">Agent Checks</h2>
 
                 <ul className="mt-4 space-y-2 text-slate-700">
-                  <li>Data quality: {enoughData ? "✅ Enough logs" : "⚠️ Add more logs"}</li>
-                  <li>Protein target: {proteinTargetMet ? "✅ Met" : "⚠️ Not met"}</li>
-                  <li>Step target: {stepTargetMet ? "✅ Met" : "⚠️ Not met"}</li>
-                  <li>Weight trend: {weeklyWeightChange < 0 ? "✅ Moving down" : "⚠️ Flat/increasing"}</li>
-                  <li>Goal pace: {requiredWeeklyLoss <= 2 ? "✅ Manageable" : "⚠️ Aggressive"}</li>
-                  <li>Workout detail: {totalExercises > 0 ? "✅ Exercises logged" : "⚠️ Add exercises"}</li>
-                  <li>Strength analysis: {workoutVolumes.length >= 2 ? "✅ Available" : "⚠️ Need 2 workouts"}</li>
+                  <li>
+                    Data quality:{" "}
+                    {enoughData ? "✅ Enough logs" : "⚠️ Add more logs"}
+                  </li>
+                  <li>
+                    Protein target:{" "}
+                    {proteinTargetMet ? "✅ Met" : "⚠️ Not met"}
+                  </li>
+                  <li>
+                    Step target: {stepTargetMet ? "✅ Met" : "⚠️ Not met"}
+                  </li>
+                  <li>
+                    Weight trend:{" "}
+                    {weeklyWeightChange < 0
+                      ? "✅ Moving down"
+                      : "⚠️ Flat/increasing"}
+                  </li>
+                  <li>
+                    Goal pace:{" "}
+                    {requiredWeeklyLoss <= 2 ? "✅ Manageable" : "⚠️ Aggressive"}
+                  </li>
+                  <li>
+                    Workout detail:{" "}
+                    {totalExercises > 0
+                      ? "✅ Exercises logged"
+                      : "⚠️ Add exercises"}
+                  </li>
+                  <li>
+                    Strength analysis:{" "}
+                    {workoutVolumes.length >= 2
+                      ? "✅ Available"
+                      : "⚠️ Need 2 workouts"}
+                  </li>
                 </ul>
               </section>
 
@@ -824,6 +977,7 @@ function getRecommendation({
   poundsToGoal,
   totalExercises,
   strengthStatus,
+  plateauStatus,
 }: {
   goal: Goal;
   logsCount: number;
@@ -835,6 +989,7 @@ function getRecommendation({
   poundsToGoal: number;
   totalExercises: number;
   strengthStatus: string;
+  plateauStatus: string;
 }) {
   if (logsCount === 0) {
     return "Add your first daily log to start generating personalized recommendations.";
@@ -859,6 +1014,10 @@ function getRecommendation({
 
     if (strengthStatus === "Strength/performance dropping") {
       return "Strength is dropping while cutting. Consider improving recovery, slightly increasing calories, or reducing training fatigue.";
+    }
+
+    if (plateauStatus === "Potential plateau detected") {
+      return "Potential plateau detected. Before reducing calories further, verify consistency with calories, steps, protein, sleep, and weigh-ins.";
     }
 
     if (requiredWeeklyLoss > 2.25) {
