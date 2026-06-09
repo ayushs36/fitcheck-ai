@@ -31,7 +31,18 @@ type LogEntry = {
   workout: string;
   exercises: Exercise[];
 };
-
+type GoalFeasibility = {
+  score: number;
+  verdict: string;
+  currentWeight: number;
+  goalWeight: number;
+  targetDate: string;
+  poundsRemaining: number;
+  daysRemaining: number;
+  currentLossRate: number;
+  requiredLossRate: number;
+  recommendation: string;
+};
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 
@@ -197,7 +208,79 @@ export default function Home() {
   }
 
   const confidenceScore = Math.min(95, Math.max(30, logs.length * 8 + 30));
+  const goalFeasibility: GoalFeasibility = useMemo(() => {
+    if (logs.length < 7) {
+      return {
+        score: 0,
+        verdict: "Need more data",
+        currentWeight: latestWeight,
+        goalWeight,
+        targetDate: goalDate,
+        poundsRemaining,
+        daysRemaining: daysUntilGoal,
+        currentLossRate: currentPace,
+        requiredLossRate: requiredWeeklyLoss,
+        recommendation:
+          "Log at least 7 days before using the Goal Feasibility Agent.",
+      };
+    }
 
+    let score = 100;
+
+    if (requiredWeeklyLoss <= 0) {
+      score = 100;
+    } else if (currentPace <= 0) {
+      score = 25;
+    } else {
+      score = Math.round(
+        Math.min(100, (currentPace / requiredWeeklyLoss) * 100)
+      );
+    }
+
+    let verdict = "Realistic";
+    let recommendation =
+      "Your goal is realistic if you maintain your current trend.";
+
+    if (score >= 90) {
+      verdict = "Very realistic";
+      recommendation =
+        "Your current pace is strong enough to reach your goal. Stay consistent.";
+    } else if (score >= 70) {
+      verdict = "Realistic";
+      recommendation =
+        "Your current trend gives you a realistic chance of reaching your goal.";
+    } else if (score >= 45) {
+      verdict = "Aggressive";
+      recommendation =
+        "Your goal is possible, but it may require tighter calorie consistency, steady steps, and strong protein intake.";
+    } else {
+      verdict = "Unlikely";
+      recommendation =
+        "Your current pace is not fast enough for this deadline. Consider extending the timeline or improving consistency.";
+    }
+
+    return {
+      score,
+      verdict,
+      currentWeight: latestWeight,
+      goalWeight,
+      targetDate: goalDate,
+      poundsRemaining,
+      daysRemaining: daysUntilGoal,
+      currentLossRate: currentPace,
+      requiredLossRate: requiredWeeklyLoss,
+      recommendation,
+    };
+  }, [
+    logs.length,
+    latestWeight,
+    goalWeight,
+    goalDate,
+    poundsRemaining,
+    daysUntilGoal,
+    currentPace,
+    requiredWeeklyLoss,
+  ]);
   const chartData = sortedLogs.map((log) => ({
     date: log.date.slice(5),
     weight: log.weight,
