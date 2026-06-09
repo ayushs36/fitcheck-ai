@@ -31,6 +31,7 @@ type LogEntry = {
   workout: string;
   exercises: Exercise[];
 };
+
 type GoalFeasibility = {
   score: number;
   verdict: string;
@@ -43,6 +44,7 @@ type GoalFeasibility = {
   requiredLossRate: number;
   recommendation: string;
 };
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 
@@ -168,6 +170,8 @@ export default function Home() {
       ? sevenDayAverage - goalWeight
       : latestWeight - goalWeight;
 
+  const poundsRemaining = Math.max(0, poundsToGoal);
+
   const today = new Date();
   const targetDate = new Date(goalDate);
 
@@ -208,6 +212,7 @@ export default function Home() {
   }
 
   const confidenceScore = Math.min(95, Math.max(30, logs.length * 8 + 30));
+
   const goalFeasibility: GoalFeasibility = useMemo(() => {
     if (logs.length < 7) {
       return {
@@ -281,6 +286,7 @@ export default function Home() {
     currentPace,
     requiredWeeklyLoss,
   ]);
+
   const chartData = sortedLogs.map((log) => ({
     date: log.date.slice(5),
     weight: log.weight,
@@ -908,6 +914,52 @@ AI Confidence Score: ${confidenceScore}%
                 </p>
 
                 <p>{plateauRecommendation}</p>
+              </div>
+            </section>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Goal Feasibility Agent</h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Day 13: Evaluates whether your goal is realistic based on your
+                current pace, required pace, and deadline.
+              </p>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Stat
+                  label="Feasibility Score"
+                  value={`${goalFeasibility.score}/100`}
+                />
+                <Stat label="Verdict" value={goalFeasibility.verdict} />
+                <Stat
+                  label="Current Weight"
+                  value={`${goalFeasibility.currentWeight.toFixed(1)} lbs`}
+                />
+                <Stat
+                  label="Goal Weight"
+                  value={`${goalFeasibility.goalWeight.toFixed(1)} lbs`}
+                />
+                <Stat
+                  label="Pounds Remaining"
+                  value={`${goalFeasibility.poundsRemaining.toFixed(1)} lbs`}
+                />
+                <Stat
+                  label="Days Remaining"
+                  value={`${goalFeasibility.daysRemaining} days`}
+                />
+                <Stat
+                  label="Current Loss Rate"
+                  value={`${goalFeasibility.currentLossRate.toFixed(1)} lbs/week`}
+                />
+                <Stat
+                  label="Required Loss Rate"
+                  value={`${goalFeasibility.requiredLossRate.toFixed(1)} lbs/week`}
+                />
+              </div>
+
+              <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
+                <p className="font-semibold">Recommendation</p>
+                <p className="mt-2">{goalFeasibility.recommendation}</p>
               </div>
             </section>
 
