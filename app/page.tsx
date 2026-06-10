@@ -121,7 +121,7 @@ export default function Home() {
       : values.reduce((sum, value) => sum + value, 0) / values.length;
 
   const latestLog = sortedLogs[sortedLogs.length - 1];
-  const latestWeight = latestLog?.weight ?? entry.weight;
+  const latestWeight = latestLog?.weight ?? 0;
 
   const sevenDayAverage =
     last7Logs.length > 0 ? average(last7Logs.map((log) => log.weight)) : 0;
@@ -165,10 +165,7 @@ export default function Home() {
   const weeklyWeightChange =
     last7Logs.length >= 2 ? latestWeight - first7Weight : 0;
 
-  const poundsToGoal =
-    sevenDayAverage > 0
-      ? sevenDayAverage - goalWeight
-      : latestWeight - goalWeight;
+  const poundsToGoal = latestWeight - goalWeight;
 
   const poundsRemaining = Math.max(0, poundsToGoal);
 
@@ -300,9 +297,12 @@ export default function Home() {
     0
   );
 
-  const latestWorkoutExercises = latestLog?.exercises ?? [];
+  const workoutLogs = sortedLogs.filter((log) => log.exercises.length > 0);
 
-  const workoutVolumes = sortedLogs.map((log) => ({
+  const latestWorkoutExercises =
+    workoutLogs[workoutLogs.length - 1]?.exercises ?? [];
+
+  const workoutVolumes = workoutLogs.map((log) => ({
     date: log.date,
     volume: log.exercises.reduce(
       (total, exercise) => total + calculateExerciseVolume(exercise),
@@ -338,29 +338,17 @@ export default function Home() {
   }
 
   let strengthInsight =
-    "Log at least two workouts with exercises to analyze strength trends.";
+    "Add at least 2 workout logs with exercises to track strength trends. Rest days are ignored for strength scoring.";
 
-  if (goal === "Cutting" && strengthStatus === "Strength/performance stable") {
+  if (strengthStatus === "Strength/performance improving") {
     strengthInsight =
-      "Good sign: your strength appears stable while cutting, which suggests you may be preserving muscle well.";
-  } else if (
-    goal === "Cutting" &&
-    strengthStatus === "Strength/performance dropping"
-  ) {
+      "Your latest workout volume is higher than your previous workout. This suggests your strength or performance is improving.";
+  } else if (strengthStatus === "Strength/performance dropping") {
     strengthInsight =
-      "Strength appears to be dropping while cutting. Watch recovery, sleep, protein intake, and how aggressive your deficit is.";
-  } else if (
-    goal === "Bulking" &&
-    strengthStatus === "Strength/performance improving"
-  ) {
+      "Your latest workout volume dropped compared to your previous workout. This may be normal if you trained a different muscle group, but watch recovery, sleep, calories, and fatigue.";
+  } else if (strengthStatus === "Strength/performance stable") {
     strengthInsight =
-      "Good lean bulk signal: strength is improving, which suggests your training and nutrition are supporting progress.";
-  } else if (
-    goal === "Bulking" &&
-    strengthStatus === "Strength/performance stable"
-  ) {
-    strengthInsight =
-      "Strength is stable during your bulk. Consider whether progressive overload is happening consistently.";
+      "Your workout volume is relatively stable. Rest days are not counted against your strength score.";
   }
 
   const proteinTargetMet = avgProtein >= 130;
@@ -374,12 +362,86 @@ export default function Home() {
       ? "Gaining"
       : "Maintaining / Flat";
 
-  const weeklyReport = `
+  const weeklyAIReview = useMemo(() => {
+    if (logs.length < 7) {
+      return {
+        title: "Need more data",
+        summary: "Log at least 7 days to unlock your Weekly AI Review.",
+        trend: "Not enough data",
+        mainAction:
+          "Keep logging saved daily entries for weight, calories, protein, steps, and workouts.",
+      };
+    }
+
+    let weeklyTrend = "Stable";
+    let mainAction = "Stay consistent with your current plan.";
+
+    if (weeklyWeightChange < -1.5) {
+      weeklyTrend = "Fast weight loss";
+      mainAction =
+        "Keep protein high and monitor energy, hunger, and workout performance.";
+    } else if (weeklyWeightChange < -0.5) {
+      weeklyTrend = "Steady fat loss";
+      mainAction =
+        "Continue your current calorie, protein, step, and training routine.";
+    } else if (weeklyWeightChange <= 0.3) {
+      weeklyTrend = "Slow movement / possible stall";
+      mainAction =
+        "Check calorie consistency, sodium, sleep, and steps before making changes.";
+    } else {
+      weeklyTrend = "Weight trending up";
+      mainAction =
+        "Review recent calories, sodium, carbs, and untracked meals before making a major adjustment.";
+    }
+
+    if (goalFeasibility.verdict === "Unlikely") {
+      mainAction =
+        "Your deadline may be too aggressive. Either improve consistency or extend the goal timeline.";
+    }
+
+    if (plateauStatus === "Potential plateau detected") {
+      mainAction =
+        "Watch the next 7 days closely. If the plateau continues, slightly reduce calories or increase steps.";
+    }
+
+    return {
+      title: "Weekly AI Review",
+      summary: `This week, your weight changed by ${weeklyWeightChange.toFixed(
+        1
+      )} lbs. You averaged ${avgCalories.toFixed(
+        0
+      )} calories, ${avgProtein.toFixed(0)}g protein, and ${avgSteps.toFixed(
+        0
+      )} steps. Your current goal status is ${goalStatus}.`,
+      trend: weeklyTrend,
+      mainAction,
+    };
+  }, [
+    logs.length,
+    weeklyWeightChange,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    goalStatus,
+    goalFeasibility.verdict,
+    plateauStatus,
+  ]);
+
+  const weeklyReport = useMemo(() => {
+    if (logs.length < 7) {
+      return "Log at least 7 days to unlock a weekly report.";
+    }
+
+    return `
+Weekly Report
+
 Goal: ${goal}
-7-Day Average Weight: ${sevenDayAverage.toFixed(1)} lbs
-14-Day Average Weight: ${fourteenDayAverage.toFixed(1)} lbs
+Current Weight: ${latestWeight.toFixed(1)} lbs
+7-Day Average: ${sevenDayAverage.toFixed(1)} lbs
+14-Day Average: ${fourteenDayAverage.toFixed(1)} lbs
 Goal Weight: ${goalWeight.toFixed(1)} lbs
 Pounds to Goal: ${poundsToGoal.toFixed(1)} lbs
+Days Until Goal: ${daysUntilGoal}
 Average Calories: ${avgCalories.toFixed(0)}
 Average Protein: ${avgProtein.toFixed(0)}g
 Average Steps: ${avgSteps.toFixed(0)}
@@ -389,55 +451,60 @@ Required Weekly Loss: ${requiredWeeklyLoss.toFixed(1)} lbs/week
 Projected Goal Date: ${projectedGoalDateText}
 Goal Status: ${goalStatus}
 Plateau Status: ${plateauStatus}
-7v14 Average Difference: ${plateauDifference.toFixed(1)} lbs
+Confidence Score: ${confidenceScore}/100
 Plateau Recommendation: ${plateauRecommendation}
-Total Exercises Logged: ${totalExercises}
-Latest Workout Volume: ${latestWorkoutVolume.toFixed(0)}
-Previous Workout Volume: ${previousWorkoutVolume.toFixed(0)}
-Volume Change: ${volumeChange.toFixed(1)}%
 Strength Status: ${strengthStatus}
-AI Confidence Score: ${confidenceScore}%
-`;
-
-  const recommendation = getRecommendation({
+Workout Volume Change: ${volumeChange.toFixed(1)}%
+    `.trim();
+  }, [
+    logs.length,
     goal,
-    logsCount: logs.length,
+    latestWeight,
+    sevenDayAverage,
+    fourteenDayAverage,
+    goalWeight,
+    poundsToGoal,
+    daysUntilGoal,
+    avgCalories,
     avgProtein,
     avgSteps,
-    avgCalories,
     weeklyWeightChange,
+    currentPace,
+    requiredWeeklyLoss,
+    projectedGoalDateText,
+    goalStatus,
+    plateauStatus,
+    confidenceScore,
+    plateauRecommendation,
+    strengthStatus,
+    volumeChange,
+  ]);
+
+  const recommendation = getCoachRecommendation({
+    goal,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    weeklyWeightChange,
+    currentPace,
     requiredWeeklyLoss,
     poundsToGoal,
-    totalExercises,
-    strengthStatus,
+    goalStatus,
     plateauStatus,
+    confidenceScore,
+    strengthStatus,
   });
 
-  function resetEntry() {
-    setEntry({
-      id: crypto.randomUUID(),
-      date: new Date().toISOString().slice(0, 10),
-      weight: latestWeight,
-      calories: 1850,
-      protein: 145,
-      steps: 12000,
-      workout: "",
-      exercises: [],
-    });
+  function addExerciseToEntry() {
+    if (!exercise.name.trim()) return;
 
-    setEditingId(null);
-  }
-
-  function addExercise() {
-    if (!exercise.name.trim()) {
-      alert("Please enter an exercise name.");
-      return;
-    }
-
-    setEntry({
-      ...entry,
-      exercises: [...entry.exercises, { ...exercise, id: crypto.randomUUID() }],
-    });
+    setEntry((current) => ({
+      ...current,
+      exercises: [
+        ...current.exercises,
+        { ...exercise, id: crypto.randomUUID() },
+      ],
+    }));
 
     setExercise({
       id: crypto.randomUUID(),
@@ -448,40 +515,39 @@ AI Confidence Score: ${confidenceScore}%
     });
   }
 
-  function deleteExercise(id: string) {
-    setEntry({
-      ...entry,
-      exercises: entry.exercises.filter((item) => item.id !== id),
-    });
+  function removeExerciseFromEntry(id: string) {
+    setEntry((current) => ({
+      ...current,
+      exercises: current.exercises.filter((item) => item.id !== id),
+    }));
   }
 
   function saveLog() {
-    if (!entry.date) return alert("Please enter a date.");
-    if (entry.weight <= 0) return alert("Please enter a valid weight.");
-
-    const duplicateDate = logs.some(
-      (log) => log.date === entry.date && log.id !== editingId
-    );
-
-    if (duplicateDate) {
-      alert(
-        "A log already exists for this date. Edit that log or choose another date."
-      );
-      return;
-    }
-
     if (editingId) {
-      setLogs(
-        logs.map((log) =>
+      setLogs((currentLogs) =>
+        currentLogs.map((log) =>
           log.id === editingId ? { ...entry, id: editingId } : log
         )
       );
-      resetEntry();
-      return;
+
+      setEditingId(null);
+    } else {
+      setLogs((currentLogs) => [
+        ...currentLogs,
+        { ...entry, id: crypto.randomUUID() },
+      ]);
     }
 
-    setLogs([...logs, { ...entry, id: crypto.randomUUID() }]);
-    resetEntry();
+    setEntry({
+      id: crypto.randomUUID(),
+      date: new Date().toISOString().slice(0, 10),
+      weight: entry.weight,
+      calories: entry.calories,
+      protein: entry.protein,
+      steps: entry.steps,
+      workout: "",
+      exercises: [],
+    });
   }
 
   function editLog(log: LogEntry) {
@@ -490,235 +556,246 @@ AI Confidence Score: ${confidenceScore}%
   }
 
   function deleteLog(id: string) {
-    setLogs(logs.filter((log) => log.id !== id));
+    setLogs((currentLogs) => currentLogs.filter((log) => log.id !== id));
   }
 
   function clearAllLogs() {
-    if (confirm("Delete all logs?")) {
-      setLogs([]);
-      localStorage.removeItem(STORAGE_KEY);
-      resetEntry();
-    }
+    setLogs([]);
   }
 
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Fitness Analytics Agent
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="rounded-3xl bg-white p-6 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
+            Fitness Progress
           </p>
-
           <h1 className="mt-1 text-4xl font-bold">FitCheck AI</h1>
-
-          <p className="mt-2 max-w-3xl text-slate-600">
-            Track weight, calories, protein, steps, workouts, exercises, moving
-            averages, goal pace, charts, strength analytics, plateau detection,
-            and AI-style coaching recommendations.
+          <p className="mt-3 max-w-3xl text-slate-600">
+            A fitness analytics dashboard that tracks weight, nutrition, steps,
+            workouts, trend progress, goal forecasting, plateau detection,
+            strength analytics, and coaching recommendations.
           </p>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-3">
+        <section className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
           <section className="rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold">Daily Log</h2>
 
-            <div className="mt-5 space-y-4">
-              <Select
+            <div className="mt-4 grid gap-4">
+              <SelectField
                 label="Goal"
                 value={goal}
                 onChange={(value) => setGoal(value as Goal)}
                 options={["Cutting", "Bulking", "Maintaining"]}
               />
 
-              <Input
-                label="Date"
-                type="date"
-                value={entry.date}
-                onChange={(value) => setEntry({ ...entry, date: value })}
-              />
-
-              <NumberInput
-                label="Daily Scale Weight"
+              <NumberField
+                label="Weight"
                 value={entry.weight}
-                onChange={(value) => setEntry({ ...entry, weight: value })}
-                suffix="lbs"
+                onChange={(value) =>
+                  setEntry((current) => ({ ...current, weight: value }))
+                }
               />
 
-              <NumberInput
+              <NumberField
+                label="Calories"
+                value={entry.calories}
+                onChange={(value) =>
+                  setEntry((current) => ({ ...current, calories: value }))
+                }
+              />
+
+              <NumberField
+                label="Protein"
+                value={entry.protein}
+                onChange={(value) =>
+                  setEntry((current) => ({ ...current, protein: value }))
+                }
+              />
+
+              <NumberField
+                label="Steps"
+                value={entry.steps}
+                onChange={(value) =>
+                  setEntry((current) => ({ ...current, steps: value }))
+                }
+              />
+
+              <NumberField
                 label="Goal Weight"
                 value={goalWeight}
                 onChange={setGoalWeight}
-                suffix="lbs"
               />
 
-              <Input
-                label="Goal Date"
-                type="date"
-                value={goalDate}
-                onChange={setGoalDate}
-              />
+              <label className="block text-sm font-medium text-slate-700">
+                Goal Date
+                <input
+                  className="mt-1 w-full rounded-xl border p-2"
+                  type="date"
+                  value={goalDate}
+                  onChange={(event) => setGoalDate(event.target.value)}
+                />
+              </label>
 
-              <NumberInput
-                label="Calories"
-                value={entry.calories}
-                onChange={(value) => setEntry({ ...entry, calories: value })}
-                suffix="cal"
-              />
+              <label className="block text-sm font-medium text-slate-700">
+                Date
+                <input
+                  className="mt-1 w-full rounded-xl border p-2"
+                  type="date"
+                  value={entry.date}
+                  onChange={(event) =>
+                    setEntry((current) => ({
+                      ...current,
+                      date: event.target.value,
+                    }))
+                  }
+                />
+              </label>
 
-              <NumberInput
-                label="Protein"
-                value={entry.protein}
-                onChange={(value) => setEntry({ ...entry, protein: value })}
-                suffix="g"
-              />
+              <label className="block text-sm font-medium text-slate-700">
+                Workout
+                <input
+                  className="mt-1 w-full rounded-xl border p-2"
+                  value={entry.workout}
+                  onChange={(event) =>
+                    setEntry((current) => ({
+                      ...current,
+                      workout: event.target.value,
+                    }))
+                  }
+                  placeholder="Push Day, Pull Day, Legs, Rest..."
+                />
+              </label>
+            </div>
 
-              <NumberInput
-                label="Steps"
-                value={entry.steps}
-                onChange={(value) => setEntry({ ...entry, steps: value })}
-                suffix="steps"
-              />
+            <div className="mt-6 rounded-2xl bg-slate-100 p-4">
+              <h3 className="font-semibold">Add Exercise</h3>
 
-              <Input
-                label="Workout"
-                type="text"
-                value={entry.workout}
-                onChange={(value) => setEntry({ ...entry, workout: value })}
-                placeholder="Push, Pull, Legs, Rest..."
-              />
+              <div className="mt-3 grid gap-3">
+                <input
+                  className="rounded-xl border p-2"
+                  placeholder="Exercise name"
+                  value={exercise.name}
+                  onChange={(event) =>
+                    setExercise((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                />
 
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <h3 className="font-semibold">Add Exercise</h3>
-
-                <div className="mt-3 space-y-3">
-                  <Input
-                    label="Exercise Name"
-                    type="text"
-                    value={exercise.name}
-                    onChange={(value) =>
-                      setExercise({ ...exercise, name: value })
-                    }
-                    placeholder="Bench Press"
-                  />
-
-                  <NumberInput
+                <div className="grid grid-cols-3 gap-3">
+                  <NumberField
                     label="Sets"
                     value={exercise.sets}
                     onChange={(value) =>
-                      setExercise({ ...exercise, sets: value })
+                      setExercise((current) => ({
+                        ...current,
+                        sets: value,
+                      }))
                     }
                   />
 
-                  <NumberInput
+                  <NumberField
                     label="Reps"
                     value={exercise.reps}
                     onChange={(value) =>
-                      setExercise({ ...exercise, reps: value })
+                      setExercise((current) => ({
+                        ...current,
+                        reps: value,
+                      }))
                     }
                   />
 
-                  <NumberInput
-                    label="Weight Used"
+                  <NumberField
+                    label="Weight"
                     value={exercise.weight}
                     onChange={(value) =>
-                      setExercise({ ...exercise, weight: value })
+                      setExercise((current) => ({
+                        ...current,
+                        weight: value,
+                      }))
                     }
-                    suffix="lbs"
                   />
-
-                  <button
-                    onClick={addExercise}
-                    className="w-full rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white"
-                  >
-                    Add Exercise
-                  </button>
                 </div>
 
-                <div className="mt-4">
-                  <p className="font-semibold">Exercises in This Log</p>
-
-                  {entry.exercises.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">
-                      No exercises added yet.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 text-sm">
-                      {entry.exercises.map((item) => (
-                        <li
-                          key={item.id}
-                          className="flex items-center justify-between rounded-xl bg-white p-3"
-                        >
-                          <span>
-                            {item.name} — {item.sets} x {item.reps} @{" "}
-                            {item.weight} lbs
-                          </span>
-
-                          <button
-                            onClick={() => deleteExercise(item.id)}
-                            className="text-red-600"
-                          >
-                            Delete
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                <button
+                  onClick={addExerciseToEntry}
+                  className="rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white"
+                >
+                  Add Exercise
+                </button>
               </div>
 
-              <button
-                onClick={saveLog}
-                className="w-full rounded-2xl bg-black px-4 py-3 font-semibold text-white"
-              >
-                {editingId ? "Update Log" : "Add Daily Log"}
-              </button>
+              {entry.exercises.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {entry.exercises.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-xl bg-white p-3 text-sm"
+                    >
+                      <span>
+                        {item.name}: {item.sets} x {item.reps} @ {item.weight}{" "}
+                        lbs
+                      </span>
 
-              {editingId && (
-                <button
-                  onClick={resetEntry}
-                  className="w-full rounded-2xl bg-slate-200 px-4 py-3 font-semibold"
-                >
-                  Cancel Edit
-                </button>
+                      <button
+                        onClick={() => removeExerciseFromEntry(item.id)}
+                        className="font-semibold text-red-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
-
-              <button
-                onClick={clearAllLogs}
-                className="w-full rounded-2xl bg-red-100 px-4 py-3 font-semibold text-red-700"
-              >
-                Clear All Logs
-              </button>
             </div>
+
+            <button
+              onClick={saveLog}
+              className="mt-6 w-full rounded-2xl bg-emerald-600 px-4 py-3 font-bold text-white"
+            >
+              {editingId ? "Update Log" : "Save Log"}
+            </button>
+
+            {editingId && (
+              <button
+                onClick={() => setEditingId(null)}
+                className="mt-3 w-full rounded-2xl bg-slate-200 px-4 py-3 font-bold text-slate-800"
+              >
+                Cancel Edit
+              </button>
+            )}
           </section>
 
-          <section className="space-y-6 lg:col-span-2">
+          <section className="space-y-6">
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Dashboard</h2>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <Stat
                   label="Latest Weight"
                   value={`${latestWeight.toFixed(1)} lbs`}
                 />
                 <Stat
                   label="7-Day Average"
-                  value={
-                    logs.length ? `${sevenDayAverage.toFixed(1)} lbs` : "No logs"
-                  }
+                  value={`${sevenDayAverage.toFixed(1)} lbs`}
                 />
                 <Stat
                   label="14-Day Average"
-                  value={
-                    logs.length
-                      ? `${fourteenDayAverage.toFixed(1)} lbs`
-                      : "No logs"
-                  }
+                  value={`${fourteenDayAverage.toFixed(1)} lbs`}
                 />
+                <Stat label="Avg Calories" value={avgCalories.toFixed(0)} />
+                <Stat label="Avg Protein" value={`${avgProtein.toFixed(0)}g`} />
+                <Stat label="Avg Steps" value={avgSteps.toFixed(0)} />
+                <Stat label="Trend" value={trend} />
                 <Stat label="Plateau Status" value={plateauStatus} />
                 <Stat
-                  label="7v14 Avg Difference"
-                  value={`${plateauDifference.toFixed(1)} lbs`}
+                  label="Confidence Score"
+                  value={`${confidenceScore}/100`}
                 />
+                <Stat label="Total Exercises" value={`${totalExercises}`} />
                 <Stat
                   label="Goal Weight"
                   value={`${goalWeight.toFixed(1)} lbs`}
@@ -733,28 +810,25 @@ AI Confidence Score: ${confidenceScore}%
                   label="Required Weekly Loss"
                   value={`${requiredWeeklyLoss.toFixed(1)} lbs/week`}
                 />
-                <Stat label="Projected Goal Date" value={projectedGoalDateText} />
                 <Stat
-                  label="Avg Calories"
-                  value={`${avgCalories.toFixed(0)} cal`}
+                  label="Projected Goal Date"
+                  value={projectedGoalDateText}
                 />
+                <Stat label="Goal Status" value={goalStatus} />
                 <Stat
-                  label="Avg Protein"
-                  value={`${avgProtein.toFixed(0)}g`}
+                  label="Current Pace"
+                  value={`${currentPace.toFixed(1)} lbs/week`}
                 />
-                <Stat label="Avg Steps" value={`${avgSteps.toFixed(0)}`} />
                 <Stat
                   label="Weekly Change"
                   value={`${weeklyWeightChange.toFixed(1)} lbs`}
                 />
-                <Stat label="Trend" value={trend} />
-                <Stat label="Exercises Logged" value={`${totalExercises}`} />
                 <Stat
                   label="Latest Workout Volume"
-                  value={`${latestWorkoutVolume.toFixed(0)}`}
+                  value={`${latestWorkoutVolume.toFixed(0)} lbs`}
                 />
                 <Stat
-                  label="Volume Change"
+                  label="Workout Volume Change"
                   value={`${volumeChange.toFixed(1)}%`}
                 />
                 <Stat label="Strength Status" value={strengthStatus} />
@@ -764,55 +838,43 @@ AI Confidence Score: ${confidenceScore}%
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Weight Trend Chart</h2>
 
-              {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">
-                  No logs yet. Add your first log.
-                </p>
-              ) : (
-                <div className="mt-5 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="weight"
-                        strokeWidth={3}
-                        dot
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              <div className="mt-4 h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="weight"
+                      strokeWidth={3}
+                      dot
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
 
-              {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">
-                  No logs yet. Add your first log.
-                </p>
-              ) : (
-                <div className="mt-5 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="steps"
-                        strokeWidth={3}
-                        dot
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              <div className="mt-4 h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="steps"
+                      strokeWidth={3}
+                      dot
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -820,28 +882,34 @@ AI Confidence Score: ${confidenceScore}%
 
               <div className="mt-4 space-y-3 text-slate-700">
                 <p>
-                  You are currently <strong>{goal.toLowerCase()}</strong>. Your
-                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>
-                  {logs.length > 0 && (
-                    <>
-                      , and your 7-day average is{" "}
-                      <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
-                    </>
-                  )}
-                  .
+                  You are currently in a <strong>{goal}</strong> phase.
                 </p>
 
                 <p>
-                  Your goal is <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
-                  <strong>{goalDate}</strong>. You are currently{" "}
+                  Your latest saved weight is{" "}
+                  <strong>{latestWeight.toFixed(1)} lbs</strong>. Your 7-day
+                  average is <strong>{sevenDayAverage.toFixed(1)} lbs</strong>{" "}
+                  and your 14-day average is{" "}
+                  <strong>{fourteenDayAverage.toFixed(1)} lbs</strong>.
+                </p>
+
+                <p>
+                  You are approximately{" "}
                   <strong>{poundsToGoal.toFixed(1)} lbs</strong> away from your
-                  goal.
+                  goal weight of <strong>{goalWeight.toFixed(1)} lbs</strong>.
                 </p>
 
                 <p>
-                  Your current pace is about{" "}
-                  <strong>{currentPace.toFixed(1)} lbs/week</strong>. Projected
-                  goal date: <strong>{projectedGoalDateText}</strong>.
+                  At your current pace of{" "}
+                  <strong>{currentPace.toFixed(1)} lbs/week</strong>, your
+                  projected goal date is{" "}
+                  <strong>{projectedGoalDateText}</strong>.
+                </p>
+
+                <p>
+                  To reach your goal by <strong>{goalDate}</strong>, you need
+                  to lose about{" "}
+                  <strong>{requiredWeeklyLoss.toFixed(1)} lbs/week</strong>.
                 </p>
 
                 <p>
@@ -891,7 +959,9 @@ AI Confidence Score: ${confidenceScore}%
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Plateau Detection Agent</h2>
+              <h2 className="text-2xl font-semibold">
+                Plateau Detection Agent
+              </h2>
 
               <div className="mt-4 space-y-3 text-slate-700">
                 <p>
@@ -918,7 +988,9 @@ AI Confidence Score: ${confidenceScore}%
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Goal Feasibility Agent</h2>
+              <h2 className="text-2xl font-semibold">
+                Goal Feasibility Agent
+              </h2>
 
               <p className="mt-2 text-sm text-slate-500">
                 Day 13: Evaluates whether your goal is realistic based on your
@@ -949,17 +1021,55 @@ AI Confidence Score: ${confidenceScore}%
                 />
                 <Stat
                   label="Current Loss Rate"
-                  value={`${goalFeasibility.currentLossRate.toFixed(1)} lbs/week`}
+                  value={`${goalFeasibility.currentLossRate.toFixed(
+                    1
+                  )} lbs/week`}
                 />
                 <Stat
                   label="Required Loss Rate"
-                  value={`${goalFeasibility.requiredLossRate.toFixed(1)} lbs/week`}
+                  value={`${goalFeasibility.requiredLossRate.toFixed(
+                    1
+                  )} lbs/week`}
                 />
               </div>
 
               <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
                 <p className="font-semibold">Recommendation</p>
                 <p className="mt-2">{goalFeasibility.recommendation}</p>
+              </div>
+            </section>
+
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Weekly AI Review</h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Day 14: Summarizes your week and gives one focused action for
+                next week.
+              </p>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <Stat label="Weekly Trend" value={weeklyAIReview.trend} />
+                <Stat label="Goal Status" value={goalStatus} />
+                <Stat
+                  label="Weekly Weight Change"
+                  value={`${weeklyWeightChange.toFixed(1)} lbs`}
+                />
+                <Stat label="Average Calories" value={avgCalories.toFixed(0)} />
+                <Stat
+                  label="Average Protein"
+                  value={`${avgProtein.toFixed(0)}g`}
+                />
+                <Stat label="Average Steps" value={avgSteps.toFixed(0)} />
+              </div>
+
+              <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
+                <p className="font-semibold">Weekly Summary</p>
+                <p className="mt-2">{weeklyAIReview.summary}</p>
+              </div>
+
+              <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-slate-700">
+                <p className="font-semibold">Main Action for Next Week</p>
+                <p className="mt-2">{weeklyAIReview.mainAction}</p>
               </div>
             </section>
 
@@ -992,26 +1102,34 @@ AI Confidence Score: ${confidenceScore}%
                     Step target: {stepTargetMet ? "✅ Met" : "⚠️ Not met"}
                   </li>
                   <li>
-                    Weight trend:{" "}
-                    {weeklyWeightChange < 0
-                      ? "✅ Moving down"
-                      : "⚠️ Flat/increasing"}
-                  </li>
-                  <li>
                     Goal pace:{" "}
-                    {requiredWeeklyLoss <= 2 ? "✅ Manageable" : "⚠️ Aggressive"}
+                    {requiredWeeklyLoss <= 2
+                      ? "✅ Manageable"
+                      : "⚠️ Aggressive"}
                   </li>
                   <li>
-                    Workout detail:{" "}
-                    {totalExercises > 0
-                      ? "✅ Exercises logged"
-                      : "⚠️ Add exercises"}
+                    Plateau:{" "}
+                    {plateauStatus === "Potential plateau detected"
+                      ? "⚠️ Watch trend closely"
+                      : "✅ No major concern"}
+                  </li>
+                  <li>
+                    Strength:{" "}
+                    {strengthStatus.includes("dropping")
+                      ? "⚠️ Monitor recovery"
+                      : "✅ Acceptable"}
+                  </li>
+                  <li>
+                    Workout data:{" "}
+                    {workoutLogs.length > 0
+                      ? "✅ Workout logs available"
+                      : "⚠️ Add workouts when you train"}
                   </li>
                   <li>
                     Strength analysis:{" "}
                     {workoutVolumes.length >= 2
                       ? "✅ Available"
-                      : "⚠️ Need 2 workouts"}
+                      : "⚠️ Need 2 workout days"}
                   </li>
                 </ul>
               </section>
@@ -1021,9 +1139,11 @@ AI Confidence Score: ${confidenceScore}%
 
                 <p className="mt-4 text-slate-700">
                   You are currently <strong>{goal.toLowerCase()}</strong>. Your
-                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>.
-                  Your goal is <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
-                  <strong>{goalDate}</strong>.
+                  latest weight is{" "}
+                  <strong>{latestWeight.toFixed(1)} lbs</strong>. Your goal is{" "}
+                  <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
+                  <strong>{goalDate}</strong>. FitCheck AI now includes goal
+                  feasibility and a Day 14 Weekly AI Review.
                 </p>
               </section>
             </section>
@@ -1072,20 +1192,22 @@ AI Confidence Score: ${confidenceScore}%
                               </ul>
                             )}
                           </td>
-                          <td className="flex gap-2 p-2">
-                            <button
-                              onClick={() => editLog(log)}
-                              className="rounded-lg bg-slate-200 px-3 py-1"
-                            >
-                              Edit
-                            </button>
+                          <td className="p-2">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => editLog(log)}
+                                className="rounded-lg bg-blue-100 px-3 py-1 font-semibold text-blue-700"
+                              >
+                                Edit
+                              </button>
 
-                            <button
-                              onClick={() => deleteLog(log.id)}
-                              className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
-                            >
-                              Delete
-                            </button>
+                              <button
+                                onClick={() => deleteLog(log.id)}
+                                className="rounded-lg bg-red-100 px-3 py-1 font-semibold text-red-700"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1093,6 +1215,15 @@ AI Confidence Score: ${confidenceScore}%
                   </table>
                 )}
               </div>
+
+              {logs.length > 0 && (
+                <button
+                  onClick={clearAllLogs}
+                  className="mt-5 rounded-xl bg-red-600 px-4 py-2 font-semibold text-white"
+                >
+                  Clear All Logs
+                </button>
+              )}
             </section>
           </section>
         </section>
@@ -1101,170 +1232,38 @@ AI Confidence Score: ${confidenceScore}%
   );
 }
 
-function getRecommendation({
-  goal,
-  logsCount,
-  avgProtein,
-  avgSteps,
-  avgCalories,
-  weeklyWeightChange,
-  requiredWeeklyLoss,
-  poundsToGoal,
-  totalExercises,
-  strengthStatus,
-  plateauStatus,
-}: {
-  goal: Goal;
-  logsCount: number;
-  avgProtein: number;
-  avgSteps: number;
-  avgCalories: number;
-  weeklyWeightChange: number;
-  requiredWeeklyLoss: number;
-  poundsToGoal: number;
-  totalExercises: number;
-  strengthStatus: string;
-  plateauStatus: string;
-}) {
-  if (logsCount === 0) {
-    return "Add your first daily log to start generating personalized recommendations.";
-  }
-
-  if (goal === "Cutting") {
-    if (poundsToGoal <= 0) {
-      return "Goal reached. Consider moving into maintenance before deciding whether to lean bulk.";
-    }
-
-    if (avgProtein < 130) {
-      return "Protein is below target. Increase protein to better preserve muscle while cutting.";
-    }
-
-    if (avgSteps < 10000) {
-      return "Steps are below target. Increasing daily movement may help fat loss without lowering calories further.";
-    }
-
-    if (totalExercises === 0) {
-      return "Start logging exercises so the coach can evaluate whether you are maintaining strength during your cut.";
-    }
-
-    if (strengthStatus === "Strength/performance dropping") {
-      return "Strength is dropping while cutting. Consider improving recovery, slightly increasing calories, or reducing training fatigue.";
-    }
-
-    if (plateauStatus === "Potential plateau detected") {
-      return "Potential plateau detected. Before reducing calories further, verify consistency with calories, steps, protein, sleep, and weigh-ins.";
-    }
-
-    if (requiredWeeklyLoss > 2.25) {
-      return "Your goal pace is very aggressive. Avoid crash dieting or rebound cycles.";
-    }
-
-    if (weeklyWeightChange < -2) {
-      return "Weight is dropping quickly. Monitor strength, fatigue, and recovery.";
-    }
-
-    if (weeklyWeightChange >= -2 && weeklyWeightChange <= -0.5) {
-      return "Strong cutting trend. Your weight, protein, activity, and workout logs support steady fat loss.";
-    }
-
-    if (avgCalories > 2200) {
-      return "Calories are relatively high for cutting. If weight stalls, tighten calorie consistency first.";
-    }
-
-    return "Progress looks slow or flat. Focus on the 7-day average, consistency, and workout performance.";
-  }
-
-  if (goal === "Bulking") {
-    if (weeklyWeightChange > 1) {
-      return "You are gaining quickly. Reduce calories slightly to keep the bulk leaner.";
-    }
-
-    if (strengthStatus === "Strength/performance improving") {
-      return "Good lean bulk signal: strength is improving while bodyweight is moving up.";
-    }
-
-    if (weeklyWeightChange >= 0.25 && weeklyWeightChange <= 0.75) {
-      return "Controlled lean bulk pace. Keep training hard and gaining slowly.";
-    }
-
-    return "Bulk pace may be too slow. If strength and weight are not increasing, consider a small calorie increase.";
-  }
-
-  if (Math.abs(weeklyWeightChange) <= 0.5) {
-    return "Maintenance looks stable. Keep calories consistent and focus on performance.";
-  }
-
-  return "Maintenance is drifting. Adjust calories slightly if weight is moving more than expected.";
-}
-
-function calculateExerciseVolume(exercise: Exercise) {
-  return exercise.sets * exercise.reps * exercise.weight;
-}
-
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
+    <div className="rounded-2xl bg-slate-100 p-4">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
+      <p className="mt-1 text-lg font-bold">{value}</p>
     </div>
   );
 }
 
-function NumberInput({
+function NumberField({
   label,
   value,
   onChange,
-  suffix,
 }: {
   label: string;
   value: number;
   onChange: (value: number) => void;
-  suffix?: string;
 }) {
   return (
-    <label className="block">
-      <span className="text-sm text-slate-500">{label}</span>
-      <div className="mt-1 flex items-center gap-2">
-        <input
-          className="w-full rounded-xl border p-2"
-          type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
-        {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
-      </div>
-    </label>
-  );
-}
-
-function Input({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm text-slate-500">{label}</span>
+    <label className="block text-sm font-medium text-slate-700">
+      {label}
       <input
         className="mt-1 w-full rounded-xl border p-2"
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        type="number"
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(event) => onChange(Number(event.target.value))}
       />
     </label>
   );
 }
 
-function Select({
+function SelectField({
   label,
   value,
   onChange,
@@ -1276,15 +1275,17 @@ function Select({
   options: string[];
 }) {
   return (
-    <label className="block">
-      <span className="text-sm text-slate-500">{label}</span>
+    <label className="block text-sm font-medium text-slate-700">
+      {label}
       <select
         className="mt-1 w-full rounded-xl border p-2"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
       >
         {options.map((option) => (
-          <option key={option}>{option}</option>
+          <option key={option} value={option}>
+            {option}
+          </option>
         ))}
       </select>
     </label>
@@ -1292,11 +1293,101 @@ function Select({
 }
 
 function addDays(date: Date, days: number) {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + Math.ceil(days));
-  return copy;
+  const result = new Date(date);
+  result.setDate(result.getDate() + Math.ceil(days));
+  return result;
 }
 
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function calculateExerciseVolume(exercise: Exercise) {
+  return exercise.sets * exercise.reps * exercise.weight;
+}
+
+function getCoachRecommendation({
+  goal,
+  avgCalories,
+  avgProtein,
+  avgSteps,
+  weeklyWeightChange,
+  currentPace,
+  requiredWeeklyLoss,
+  poundsToGoal,
+  goalStatus,
+  plateauStatus,
+  confidenceScore,
+  strengthStatus,
+}: {
+  goal: Goal;
+  avgCalories: number;
+  avgProtein: number;
+  avgSteps: number;
+  weeklyWeightChange: number;
+  currentPace: number;
+  requiredWeeklyLoss: number;
+  poundsToGoal: number;
+  goalStatus: string;
+  plateauStatus: string;
+  confidenceScore: number;
+  strengthStatus: string;
+}) {
+  if (poundsToGoal <= 0) {
+    return "Goal reached. Consider moving into maintenance before deciding whether to cut further or lean bulk.";
+  }
+
+  if (confidenceScore < 50) {
+    return "Keep logging more data before making aggressive decisions. The app needs more saved entries to make stronger recommendations.";
+  }
+
+  if (goal === "Cutting") {
+    if (plateauStatus === "Potential plateau detected") {
+      return "A possible plateau is showing. Do not panic after only a few days. Check calorie accuracy, sodium, sleep, stress, carbs, and steps first. If the trend stays flat, make a small adjustment.";
+    }
+
+    if (avgProtein < 120) {
+      return "Protein is lower than ideal for a cut. Increase protein to help preserve muscle while losing weight.";
+    }
+
+    if (avgSteps < 10000) {
+      return "Steps are below your target range. Increasing steps can help fat loss without cutting calories too aggressively.";
+    }
+
+    if (requiredWeeklyLoss > 2) {
+      return "Your required weekly loss is aggressive. Consider extending the timeline or tightening consistency instead of making extreme changes.";
+    }
+
+    if (strengthStatus === "Strength/performance dropping") {
+      return "Strength appears to be dropping. Prioritize sleep, recovery, protein, and avoid making the deficit too aggressive.";
+    }
+
+    if (goalStatus === "Ahead of schedule") {
+      return "You are ahead of schedule. Keep the plan steady and avoid unnecessary aggressive cuts.";
+    }
+
+    if (goalStatus === "On track") {
+      return "You are on track. Continue your current calorie, step, protein, and training routine.";
+    }
+
+    if (weeklyWeightChange > 0.5) {
+      return "Weight is trending up this week. Review calories, sodium, carbs, and untracked snacks before changing the plan.";
+    }
+
+    return "Your cut looks solid. Focus on consistency, protein, steps, and weekly averages rather than single-day scale changes.";
+  }
+
+  if (goal === "Bulking") {
+    if (weeklyWeightChange > 1) {
+      return "Weight is increasing quickly for a bulk. Consider slowing the surplus to limit unnecessary fat gain.";
+    }
+
+    if (strengthStatus === "Strength/performance improving") {
+      return "Good lean bulk signal: strength is improving. Keep training hard and maintain a controlled surplus.";
+    }
+
+    return "For bulking, aim for slow weight gain, progressive overload, enough protein, and consistent training.";
+  }
+
+  return "For maintenance, aim to keep weight stable while improving habits, training performance, and consistency.";
 }
