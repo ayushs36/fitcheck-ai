@@ -79,7 +79,7 @@ export default function Home() {
   const [coachAnswer, setCoachAnswer] = useState(
     "Ask FitCheck AI a question about your weight trend, plateau risk, calories, protein, steps, strength, or goal timeline."
   );
-
+const [isCoachLoading, setIsCoachLoading] = useState(false);
   useEffect(() => {
     const savedLogs = localStorage.getItem(STORAGE_KEY);
     if (savedLogs) setLogs(JSON.parse(savedLogs));
@@ -707,7 +707,78 @@ AI Confidence Score: ${confidenceScore}%
       }, and your strength status is ${strengthStatus}. ${recommendation}`
     );
   }
+async function askFitCheckAILLM() {
+  if (!coachQuestion.trim()) {
+    setCoachAnswer("Ask a question first so FitCheck AI can analyze your data.");
+    return;
+  }
 
+  setIsCoachLoading(true);
+  setCoachAnswer("FitCheck AI is analyzing your data...");
+
+  const context = {
+    goal,
+    latestWeight,
+    effectiveWeight,
+    sevenDayAverage,
+    fourteenDayAverage,
+    goalWeight,
+    goalDate,
+    poundsToGoal,
+    poundsRemaining,
+    GoalProgressBar,
+    currentPace,
+    requiredWeeklyLoss,
+    projectedGoalDateText,
+    goalStatus,
+    plateauStatus,
+    plateauDifference,
+    plateauRecommendation,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    strengthStatus,
+    strengthInsight,
+    latestWorkoutVolume,
+    previousWorkoutVolume,
+    volumeChange,
+    weeklyAIReview,
+    goalFeasibility,
+    recommendation,
+    logsCount: logs.length,
+  };
+
+  try {
+    const response = await fetch("/api/fitcheck-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question: coachQuestion,
+        context,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to get AI response.");
+    }
+
+    setCoachAnswer(data.answer);
+  } catch (error) {
+    console.error(error);
+
+    setCoachAnswer(
+      "AI response failed. Falling back to the rule-based coach."
+    );
+
+    askFitCheckAI();
+  } finally {
+    setIsCoachLoading(false);
+  }
+}
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -1221,23 +1292,28 @@ AI Confidence Score: ${confidenceScore}%
               </p>
 
               <div className="mt-5 flex flex-col gap-3 md:flex-row">
-                <input
-                  className="w-full rounded-2xl border border-slate-200 p-3"
-                  value={coachQuestion}
-                  onChange={(event: any) => setCoachQuestion(event.target.value)}
-                  onKeyDown={(event: any) => {
-                    if (event.key === "Enter") askFitCheckAI();
-                  }}
-                  placeholder="Example: Am I on track to reach my goal?"
-                />
+  <input
+    className="w-full rounded-2xl border border-slate-200 p-3"
+    value={coachQuestion}
+    onChange={(event) => setCoachQuestion(event.target.value)}
+    placeholder="Example: Am I on track to reach my goal?"
+  />
 
-                <button
-                  onClick={askFitCheckAI}
-                  className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white"
-                >
-                  Ask
-                </button>
-              </div>
+  <button
+    onClick={askFitCheckAI}
+    className="rounded-2xl bg-slate-200 px-5 py-3 font-semibold text-slate-800"
+  >
+    Rule-Based
+  </button>
+
+  <button
+    onClick={askFitCheckAILLM}
+    disabled={isCoachLoading}
+    className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
+  >
+    {isCoachLoading ? "Thinking..." : "Ask AI"}
+  </button>
+</div>
 
               <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
                 <p className="font-semibold">FitCheck AI Response</p>
