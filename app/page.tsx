@@ -768,16 +768,17 @@ async function askFitCheckAILLM() {
 
     setCoachAnswer(data.answer);
   } catch (error) {
-    console.error(error);
+  console.error(error);
 
-    setCoachAnswer(
-      "AI response failed. Falling back to the rule-based coach."
-    );
+  const message =
+    error instanceof Error ? error.message : "Unknown AI error.";
 
-    askFitCheckAI();
-  } finally {
-    setIsCoachLoading(false);
-  }
+  setCoachAnswer(
+    `AI request failed: ${message}. This means the LLM response did not run.`
+  );
+} finally {
+  setIsCoachLoading(false);
+}
 }
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
