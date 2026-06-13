@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const question = String(body.question ?? "");
-    const context = body.context;
+    const context = body.context ?? {};
 
     if (!question.trim()) {
       return NextResponse.json(
@@ -19,8 +19,15 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing OPENAI_API_KEY environment variable." },
+        { status: 500 }
+      );
+    }
+
     const response = await client.responses.create({
-      model: "gpt-5.2",
+      model: "gpt-4o-mini",
       input: `
 You are FitCheck AI, a practical fitness coaching assistant.
 
@@ -42,14 +49,14 @@ ${JSON.stringify(context, null, 2)}
     });
 
     return NextResponse.json({
-      answer: response.output_text,
+      answer: response.output_text || "No AI response was generated.",
     });
   } catch (error) {
     console.error("FitCheck AI API error:", error);
 
-    return NextResponse.json(
-      { error: "Could not generate AI response." },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Unknown API error.";
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
