@@ -76,10 +76,17 @@ export default function Home() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [coachQuestion, setCoachQuestion] = useState("");
-  const [coachAnswer, setCoachAnswer] = useState(
-    "Ask FitCheck AI a question about your weight trend, plateau risk, calories, protein, steps, strength, or goal timeline."
-  );
+const [coachAnswer, setCoachAnswer] = useState(
+  "Ask FitCheck AI a question..."
+);
 const [isCoachLoading, setIsCoachLoading] = useState(false);
+
+const [aiWeeklyReport, setAiWeeklyReport] = useState(
+  "Generate an AI weekly report once you have at least 7 saved logs."
+);
+
+const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
+  useState(false);
   useEffect(() => {
     const savedLogs = localStorage.getItem(STORAGE_KEY);
     if (savedLogs) setLogs(JSON.parse(savedLogs));
@@ -780,6 +787,81 @@ async function askFitCheckAILLM() {
   setIsCoachLoading(false);
 }
 }
+async function generateAIWeeklyReport() {
+  if (logs.length < 7) {
+    setAiWeeklyReport(
+      "You need at least 7 saved logs before FitCheck AI can generate a weekly AI report."
+    );
+    return;
+  }
+
+  setIsWeeklyReportLoading(true);
+  setAiWeeklyReport(
+    "FitCheck AI is generating your weekly report..."
+  );
+
+  const weeklyContext = {
+    goal,
+    latestWeight,
+    effectiveWeight,
+    sevenDayAverage,
+    fourteenDayAverage,
+    goalWeight,
+    goalDate,
+    poundsRemaining,
+    currentPace,
+    requiredWeeklyLoss,
+    goalStatus,
+    plateauStatus,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    strengthStatus,
+    strengthInsight,
+    recommendation,
+    logsCount: logs.length,
+  };
+
+  try {
+    const response = await fetch("/api/fitcheck-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question:
+          "Generate a complete weekly fitness coaching report including wins, problems, biggest risk, next week's priority, and goal outlook.",
+        context: weeklyContext,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          "Failed to generate weekly AI report."
+      );
+    }
+
+    setAiWeeklyReport(
+      data.answer || "No AI report generated."
+    );
+  } catch (error) {
+    console.error(error);
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unknown error.";
+
+    setAiWeeklyReport(
+      `AI weekly report failed: ${message}`
+    );
+  } finally {
+    setIsWeeklyReportLoading(false);
+  }
+}
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -1061,6 +1143,30 @@ async function askFitCheckAILLM() {
                 </div>
               )}
             </section>
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+  <h2 className="text-2xl font-semibold">
+    AI Weekly Report Generator
+  </h2>
+
+  <p className="mt-2 text-sm text-slate-500">
+    Generates a full AI-powered weekly coaching report
+    using your fitness data.
+  </p>
+
+  <button
+    onClick={generateAIWeeklyReport}
+    disabled={isWeeklyReportLoading}
+    className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
+  >
+    {isWeeklyReportLoading
+      ? "Generating..."
+      : "Generate AI Weekly Report"}
+  </button>
+
+  <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
+    {aiWeeklyReport}
+  </div>
+</section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
