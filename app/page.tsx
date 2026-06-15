@@ -44,10 +44,17 @@ type GoalFeasibility = {
   requiredLossRate: number;
   recommendation: string;
 };
-
+type AIConversation = {
+  id: string;
+  type: "Ask AI" | "Weekly Report";
+  question: string;
+  answer: string;
+  createdAt: string;
+};
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
+const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
 
 export default function Home() {
   const [goal, setGoal] = useState<Goal>("Cutting");
@@ -87,11 +94,22 @@ const [aiWeeklyReport, setAiWeeklyReport] = useState(
 
 const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
   useState(false);
+  const [aiHistory, setAiHistory] = useState<AIConversation[]>([]);
+  useEffect(() => {
+    const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
+    if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
+  }, []);
   useEffect(() => {
     const savedLogs = localStorage.getItem(STORAGE_KEY);
     if (savedLogs) setLogs(JSON.parse(savedLogs));
   }, []);
+useEffect(() => {
+  const savedHistory = localStorage.getItem(AI_HISTORY_KEY);
 
+  if (savedHistory) {
+    setAiHistory(JSON.parse(savedHistory));
+  }
+}, []);
   useEffect(() => {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -107,7 +125,9 @@ const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
   }, [logs]);
-
+useEffect(() => {
+  localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory));
+}, [aiHistory]);
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
@@ -591,7 +611,25 @@ AI Confidence Score: ${confidenceScore}%
   }
 
 
+function saveAIConversation(
+  type: AIConversation["type"],
+  question: string,
+  answer: string
+) {
+  const newConversation: AIConversation = {
+    id: crypto.randomUUID(),
+    type,
+    question,
+    answer,
+    createdAt: new Date().toLocaleString(),
+  };
 
+  setAiHistory((current) => [newConversation, ...current]);
+}
+
+function clearAIHistory() {
+  setAiHistory([]);
+}
   function askFitCheckAI() {
     const question = coachQuestion.toLowerCase().trim();
 
@@ -773,7 +811,10 @@ async function askFitCheckAILLM() {
       throw new Error(data.error || "Failed to get AI response.");
     }
 
-    setCoachAnswer(data.answer);
+    const aiAnswer = data.answer || "No AI response was generated.";
+
+setCoachAnswer(aiAnswer);
+saveAIConversation("Ask AI", coachQuestion, aiAnswer);
   } catch (error) {
   console.error(error);
 
@@ -844,9 +885,14 @@ async function generateAIWeeklyReport() {
       );
     }
 
-    setAiWeeklyReport(
-      data.answer || "No AI report generated."
-    );
+    const reportAnswer = data.answer || "No weekly AI report was generated.";
+
+setAiWeeklyReport(reportAnswer);
+saveAIConversation(
+  "Weekly Report",
+  "Generate weekly AI coaching report",
+  reportAnswer
+);
   } catch (error) {
     console.error(error);
 
@@ -1165,6 +1211,54 @@ async function generateAIWeeklyReport() {
 
   <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
     {aiWeeklyReport}
+  </div>
+</section>
+<section className="rounded-3xl bg-white p-6 shadow-sm">
+  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h2 className="text-2xl font-semibold">AI Conversation History</h2>
+      <p className="mt-2 text-sm text-slate-500">
+        Day 19: Saves AI questions, answers, and weekly reports so you can review past coaching.
+      </p>
+    </div>
+
+    {aiHistory.length > 0 && (
+      <button
+        onClick={clearAIHistory}
+        className="rounded-2xl bg-red-100 px-4 py-2 font-semibold text-red-700"
+      >
+        Clear History
+      </button>
+    )}
+  </div>
+
+  <div className="mt-5 space-y-4">
+    {aiHistory.length === 0 ? (
+      <p className="rounded-2xl bg-slate-100 p-4 text-slate-600">
+        No AI conversations yet. Ask FitCheck AI a question or generate a weekly AI report.
+      </p>
+    ) : (
+      aiHistory.map((item) => (
+        <div key={item.id} className="rounded-2xl bg-slate-100 p-4">
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <p className="font-semibold text-slate-900">{item.type}</p>
+            <p className="text-sm text-slate-500">{item.createdAt}</p>
+          </div>
+
+          <p className="mt-3 text-sm font-semibold text-slate-700">
+            Question
+          </p>
+          <p className="mt-1 text-slate-700">{item.question}</p>
+
+          <p className="mt-3 text-sm font-semibold text-slate-700">
+            Answer
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-slate-700">
+            {item.answer}
+          </p>
+        </div>
+      ))
+    )}
   </div>
 </section>
 
