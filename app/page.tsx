@@ -51,6 +51,14 @@ type AIConversation = {
   answer: string;
   createdAt: string;
 };
+type MaintenanceEstimate = {
+  estimatedMaintenance: number;
+  fatLossCaloriesOnePound: number;
+  fatLossCaloriesOnePointFivePounds: number;
+  fatLossCaloriesTwoPounds: number;
+  confidence: "Low" | "Medium" | "High";
+  explanation: string;
+};
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -237,6 +245,45 @@ useEffect(() => {
       : weeklyWeightChange < 0
       ? Math.abs(weeklyWeightChange)
       : 0;
+      const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
+  if (logs.length < 7 || avgCalories <= 0 || currentPace <= 0) {
+    return {
+      estimatedMaintenance: 0,
+      fatLossCaloriesOnePound: 0,
+      fatLossCaloriesOnePointFivePounds: 0,
+      fatLossCaloriesTwoPounds: 0,
+      confidence: "Low",
+      explanation:
+        "Log at least 7 days with calories and weight trends to estimate maintenance calories.",
+    };
+  }
+
+  const dailyDeficit = currentPace * 500;
+  const estimatedMaintenance = avgCalories + dailyDeficit;
+
+  let confidence: MaintenanceEstimate["confidence"] = "Medium";
+
+  if (logs.length >= 21) {
+    confidence = "High";
+  } else if (logs.length < 14) {
+    confidence = "Low";
+  }
+
+  return {
+    estimatedMaintenance,
+    fatLossCaloriesOnePound: estimatedMaintenance - 500,
+    fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
+    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
+    confidence,
+    explanation: `Based on your ${avgCalories.toFixed(
+      0
+    )} calorie average and ${currentPace.toFixed(
+      1
+    )} lb/week pace, maintenance is estimated at ${estimatedMaintenance.toFixed(
+      0
+    )} calories/day.`,
+  };
+}, [logs.length, avgCalories, currentPace]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
@@ -765,6 +812,7 @@ async function askFitCheckAILLM() {
     goal,
     latestWeight,
     effectiveWeight,
+    maintenanceEstimate,
     sevenDayAverage,
     fourteenDayAverage,
     goalWeight,
@@ -847,6 +895,7 @@ async function generateAIWeeklyReport() {
     effectiveWeight,
     sevenDayAverage,
     fourteenDayAverage,
+    maintenanceEstimate,
     goalWeight,
     goalDate,
     poundsRemaining,
@@ -1259,6 +1308,65 @@ saveAIConversation(
         </div>
       ))
     )}
+  </div>
+</section>
+<section className="rounded-3xl bg-white p-6 shadow-sm">
+  <h2 className="text-2xl font-semibold">
+    Maintenance Calorie Estimator
+  </h2>
+
+  <p className="mt-2 text-sm text-slate-500">
+    Estimates maintenance calories using your calorie intake and actual rate of weight loss.
+  </p>
+
+  <div className="mt-5 grid gap-4 md:grid-cols-2">
+    <Stat
+      label="Estimated Maintenance"
+      value={
+        maintenanceEstimate.estimatedMaintenance > 0
+          ? `${maintenanceEstimate.estimatedMaintenance.toFixed(0)} cal/day`
+          : "Need more data"
+      }
+    />
+
+    <Stat
+      label="Calories for ~1 lb/week loss"
+      value={
+        maintenanceEstimate.fatLossCaloriesOnePound > 0
+          ? `${maintenanceEstimate.fatLossCaloriesOnePound.toFixed(0)} cal/day`
+          : "Need more data"
+      }
+    />
+
+    <Stat
+      label="Calories for ~1.5 lb/week loss"
+      value={
+        maintenanceEstimate.fatLossCaloriesOnePointFivePounds > 0
+          ? `${maintenanceEstimate.fatLossCaloriesOnePointFivePounds.toFixed(
+              0
+            )} cal/day`
+          : "Need more data"
+      }
+    />
+
+    <Stat
+      label="Calories for ~2 lb/week loss"
+      value={
+        maintenanceEstimate.fatLossCaloriesTwoPounds > 0
+          ? `${maintenanceEstimate.fatLossCaloriesTwoPounds.toFixed(0)} cal/day`
+          : "Need more data"
+      }
+    />
+  </div>
+
+  <div className="mt-5 rounded-2xl bg-slate-100 p-4">
+    <p className="font-semibold">
+      Confidence: {maintenanceEstimate.confidence}
+    </p>
+
+    <p className="mt-2">
+      {maintenanceEstimate.explanation}
+    </p>
   </div>
 </section>
 
