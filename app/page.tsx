@@ -102,7 +102,11 @@ const [aiWeeklyReport, setAiWeeklyReport] = useState(
 
 const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
   useState(false);
-  const [aiHistory, setAiHistory] = useState<AIConversation[]>([]);
+  const [aiHistory, setAiHistory] = useState<AIConversation[]>([]); 
+  const [goalStrategy, setGoalStrategy] = useState(
+  "Generate an AI goal strategy to get a personalized plan for reaching your target."
+);
+const [isGoalStrategyLoading, setIsGoalStrategyLoading] = useState(false);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -957,6 +961,82 @@ saveAIConversation(
     setIsWeeklyReportLoading(false);
   }
 }
+async function generateGoalStrategy() {
+  if (logs.length < 7) {
+    setGoalStrategy(
+      "You need at least 7 saved logs before FitCheck AI can generate a reliable goal strategy."
+    );
+    return;
+  }
+
+  setIsGoalStrategyLoading(true);
+  setGoalStrategy("FitCheck AI is generating your goal strategy...");
+
+  const strategyContext = {
+    goal,
+    latestWeight,
+    effectiveWeight,
+    sevenDayAverage,
+    fourteenDayAverage,
+    goalWeight,
+    goalDate,
+    poundsToGoal,
+    poundsRemaining,
+    currentPace,
+    requiredWeeklyLoss,
+    projectedGoalDateText,
+    goalStatus,
+    plateauStatus,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    strengthStatus,
+    strengthInsight,
+    maintenanceEstimate,
+    goalFeasibility,
+    weeklyAIReview,
+    recommendation,
+    logsCount: logs.length,
+  };
+
+  try {
+    const response = await fetch("/api/fitcheck-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question:
+          "Create a personalized goal strategy. Include target calories, protein target, step target, training focus, recovery focus, realistic weekly loss, and whether the goal timeline should stay the same or be adjusted.",
+        context: strategyContext,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to generate goal strategy.");
+    }
+
+    const strategyAnswer = data.answer || "No goal strategy was generated.";
+
+    setGoalStrategy(strategyAnswer);
+    saveAIConversation(
+      "Ask AI",
+      "Generate personalized goal strategy",
+      strategyAnswer
+    );
+  } catch (error) {
+    console.error(error);
+
+    const message =
+      error instanceof Error ? error.message : "Unknown goal strategy error.";
+
+    setGoalStrategy(`AI goal strategy failed: ${message}`);
+  } finally {
+    setIsGoalStrategyLoading(false);
+  }
+}
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -1367,6 +1447,27 @@ saveAIConversation(
     <p className="mt-2">
       {maintenanceEstimate.explanation}
     </p>
+  </div>
+</section>
+<section className="rounded-3xl bg-white p-6 shadow-sm">
+  <h2 className="text-2xl font-semibold">AI Goal Strategy Agent</h2>
+
+  <p className="mt-2 text-sm text-slate-500">
+    Day 21: Generates a personalized strategy for reaching your goal using your
+    maintenance estimate, current pace, goal timeline, nutrition, steps, and
+    strength data.
+  </p>
+
+  <button
+    onClick={generateGoalStrategy}
+    disabled={isGoalStrategyLoading}
+    className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
+  >
+    {isGoalStrategyLoading ? "Generating..." : "Generate Goal Strategy"}
+  </button>
+
+  <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
+    {goalStrategy}
   </div>
 </section>
 
