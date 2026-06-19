@@ -106,7 +106,14 @@ const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
   const [goalStrategy, setGoalStrategy] = useState(
   "Generate an AI goal strategy to get a personalized plan for reaching your target."
 );
-const [isGoalStrategyLoading, setIsGoalStrategyLoading] = useState(false);
+const [isGoalStrategyLoading, setIsGoalStrategyLoading] = useState(false); 
+const [naturalLogText, setNaturalLogText] = useState("");
+
+const [naturalLogFeedback, setNaturalLogFeedback] = useState(
+  "Type your day in plain English and FitCheck AI will fill the log form."
+);
+
+const [isNaturalLogLoading, setIsNaturalLogLoading] = useState(false);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -1037,6 +1044,70 @@ async function generateGoalStrategy() {
     setIsGoalStrategyLoading(false);
   }
 }
+async function parseNaturalLogWithAI() {
+  if (!naturalLogText.trim()) {
+    setNaturalLogFeedback("Type a log first.");
+    return;
+  }
+
+  setIsNaturalLogLoading(true);
+  setNaturalLogFeedback("FitCheck AI is reading your log...");
+
+  try {
+    const response = await fetch("/api/parse-log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: naturalLogText,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to parse natural language log.");
+    }
+
+    setEntry((current) => ({
+      ...current,
+      weight:
+        typeof data.weight === "number" && Number.isFinite(data.weight)
+          ? data.weight
+          : current.weight,
+      calories:
+        typeof data.calories === "number" && Number.isFinite(data.calories)
+          ? data.calories
+          : current.calories,
+      protein:
+        typeof data.protein === "number" && Number.isFinite(data.protein)
+          ? data.protein
+          : current.protein,
+      steps:
+        typeof data.steps === "number" && Number.isFinite(data.steps)
+          ? data.steps
+          : current.steps,
+      workout:
+        typeof data.workout === "string" && data.workout.trim()
+          ? data.workout
+          : current.workout,
+    }));
+
+    setNaturalLogFeedback(
+      "Log form updated. Review the fields, then click Save Log."
+    );
+  } catch (error) {
+    console.error(error);
+
+    const message =
+      error instanceof Error ? error.message : "Unknown natural log error.";
+
+    setNaturalLogFeedback(`AI log parsing failed: ${message}`);
+  } finally {
+    setIsNaturalLogLoading(false);
+  }
+}
   return (
     <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
       <div className="mx-auto max-w-7xl">
@@ -1057,6 +1128,31 @@ async function generateGoalStrategy() {
         <section className="grid gap-6 lg:grid-cols-3">
           <section className="rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-semibold">Daily Log</h2>
+            <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+  <h3 className="text-lg font-semibold">AI Natural Language Logging</h3>
+
+  <p className="mt-2 text-sm text-slate-500">
+    Day 22: Type your daily log in plain English and FitCheck AI will fill the
+    form using OpenAI.
+  </p>
+
+  <textarea
+    className="mt-4 min-h-24 w-full rounded-2xl border border-slate-200 p-3"
+    value={naturalLogText}
+    onChange={(event) => setNaturalLogText(event.target.value)}
+    placeholder="Example: Today I weighed 139.2 lbs, ate 2100 calories, got 145g protein, walked 13k steps, and did Push Day."
+  />
+
+  <button
+    onClick={parseNaturalLogWithAI}
+    disabled={isNaturalLogLoading}
+    className="mt-3 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
+  >
+    {isNaturalLogLoading ? "Reading..." : "Fill Log With AI"}
+  </button>
+
+  <p className="mt-3 text-sm text-slate-600">{naturalLogFeedback}</p>
+</div>
 
             <div className="mt-5 space-y-4">
               <Select
