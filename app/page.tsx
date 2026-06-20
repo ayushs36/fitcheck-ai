@@ -102,7 +102,11 @@ const [aiWeeklyReport, setAiWeeklyReport] = useState(
 
 const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
   useState(false);
-  const [aiHistory, setAiHistory] = useState<AIConversation[]>([]); 
+  const [aiHistory, setAiHistory] = useState<AIConversation[]>([]);
+  const [expandedConversationId, setExpandedConversationId] =
+  useState<string | null>(null);
+
+const [historySearch, setHistorySearch] = useState(""); 
   const [goalStrategy, setGoalStrategy] = useState(
   "Generate an AI goal strategy to get a personalized plan for reaching your target."
 );
@@ -688,6 +692,15 @@ function saveAIConversation(
 function clearAIHistory() {
   setAiHistory([]);
 }
+const filteredAIHistory = aiHistory.filter((item) => {
+  const search = historySearch.toLowerCase();
+
+  return (
+    item.question.toLowerCase().includes(search) ||
+    item.answer.toLowerCase().includes(search) ||
+    item.type.toLowerCase().includes(search)
+  );
+});
   function askFitCheckAI() {
     const question = coachQuestion.toLowerCase().trim();
 
@@ -1109,7 +1122,7 @@ async function parseNaturalLogWithAI() {
   }
 }
   return (
-    <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
+    <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-6">
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 rounded-3xl bg-white p-6 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -1441,9 +1454,12 @@ async function parseNaturalLogWithAI() {
 <section className="rounded-3xl bg-white p-6 shadow-sm">
   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
     <div>
-      <h2 className="text-2xl font-semibold">AI Conversation History</h2>
+      <h2 className="text-2xl font-semibold">AI Coaching History</h2>
       <p className="mt-2 text-sm text-slate-500">
-        Day 19: Saves AI questions, answers, and weekly reports so you can review past coaching.
+        Day 23: Click a saved conversation to view the full question and answer.
+      </p>
+      <p className="mt-1 text-sm text-slate-500">
+        {aiHistory.length} saved conversation{aiHistory.length === 1 ? "" : "s"}
       </p>
     </div>
 
@@ -1457,32 +1473,64 @@ async function parseNaturalLogWithAI() {
     )}
   </div>
 
-  <div className="mt-5 space-y-4">
-    {aiHistory.length === 0 ? (
+  <input
+    className="mt-5 w-full rounded-2xl border border-slate-200 p-3"
+    value={historySearch}
+    onChange={(event) => setHistorySearch(event.target.value)}
+    placeholder="Search history by plateau, protein, goal, calories..."
+  />
+
+  <div className="mt-5 space-y-3">
+    {filteredAIHistory.length === 0 ? (
       <p className="rounded-2xl bg-slate-100 p-4 text-slate-600">
-        No AI conversations yet. Ask FitCheck AI a question or generate a weekly AI report.
+        No matching AI conversations yet.
       </p>
     ) : (
-      aiHistory.map((item) => (
-        <div key={item.id} className="rounded-2xl bg-slate-100 p-4">
-          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-            <p className="font-semibold text-slate-900">{item.type}</p>
-            <p className="text-sm text-slate-500">{item.createdAt}</p>
+      filteredAIHistory.map((item) => {
+        const isExpanded = expandedConversationId === item.id;
+
+        return (
+          <div key={item.id} className="rounded-2xl bg-slate-100 p-4">
+            <button
+              onClick={() =>
+                setExpandedConversationId(isExpanded ? null : item.id)
+              }
+              className="w-full text-left"
+            >
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    {isExpanded ? "▼" : "▶"} {item.question}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {item.type} • {item.createdAt}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+                  {isExpanded ? "Hide" : "View"}
+                </span>
+              </div>
+            </button>
+
+            {isExpanded && (
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <p className="text-sm font-semibold text-slate-700">
+                  Question
+                </p>
+                <p className="mt-1 text-slate-700">{item.question}</p>
+
+                <p className="mt-4 text-sm font-semibold text-slate-700">
+                  Answer
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-slate-700">
+                  {item.answer}
+                </p>
+              </div>
+            )}
           </div>
-
-          <p className="mt-3 text-sm font-semibold text-slate-700">
-            Question
-          </p>
-          <p className="mt-1 text-slate-700">{item.question}</p>
-
-          <p className="mt-3 text-sm font-semibold text-slate-700">
-            Answer
-          </p>
-          <p className="mt-1 whitespace-pre-wrap text-slate-700">
-            {item.answer}
-          </p>
-        </div>
-      ))
+        );
+      })
     )}
   </div>
 </section>
