@@ -412,57 +412,113 @@ useEffect(() => {
 
   const workoutLogs = sortedLogs.filter((log) => log.exercises.length > 0);
 
-  const latestWorkoutExercises =
-    workoutLogs[workoutLogs.length - 1]?.exercises ?? [];
+const latestWorkout = workoutLogs[workoutLogs.length - 1];
 
-  const workoutVolumes = workoutLogs.map((log) => ({
-    date: log.date,
-    volume: log.exercises.reduce(
-      (total, exercise) => total + calculateExerciseVolume(exercise),
-      0
-    ),
-  }));
+const latestWorkoutExercises = latestWorkout?.exercises ?? [];
 
-  const latestWorkoutVolume =
-    workoutVolumes[workoutVolumes.length - 1]?.volume ?? 0;
+const previousMatchingWorkout = workoutLogs
+  .slice(0, -1)
+  .reverse()
+  .find((log) =>
+    log.exercises.some((exercise) =>
+      latestWorkoutExercises.some(
+        (latestExercise) =>
+          latestExercise.name.toLowerCase().trim() ===
+          exercise.name.toLowerCase().trim()
+      )
+    )
+  );
 
-  const previousWorkoutVolume =
-    workoutVolumes.length >= 2
-      ? workoutVolumes[workoutVolumes.length - 2].volume
-      : 0;
+const matchingExerciseComparisons =
+  latestWorkout && previousMatchingWorkout
+    ? latestWorkout.exercises
+        .map((latestExercise) => {
+          const previousExercise = previousMatchingWorkout.exercises.find(
+            (exercise) =>
+              exercise.name.toLowerCase().trim() ===
+              latestExercise.name.toLowerCase().trim()
+          );
 
-  const volumeChange =
-    previousWorkoutVolume > 0
-      ? ((latestWorkoutVolume - previousWorkoutVolume) /
-          previousWorkoutVolume) *
-        100
-      : 0;
+          if (!previousExercise) return null;
 
-  let strengthStatus = "Need more workout data";
+          const latestTotalReps = latestExercise.sets * latestExercise.reps;
+          const previousTotalReps = previousExercise.sets * previousExercise.reps;
 
-  if (workoutVolumes.length >= 2) {
-    if (volumeChange > 5) {
-      strengthStatus = "Strength/performance improving";
-    } else if (volumeChange < -10) {
-      strengthStatus = "Strength/performance dropping";
-    } else {
-      strengthStatus = "Strength/performance stable";
-    }
+          const latestVolume = calculateExerciseVolume(latestExercise);
+          const previousVolume = calculateExerciseVolume(previousExercise);
+
+          return {
+            name: latestExercise.name,
+            latestTotalReps,
+            previousTotalReps,
+            latestWeight: latestExercise.weight,
+            previousWeight: previousExercise.weight,
+            latestVolume,
+            previousVolume,
+            repChange: latestTotalReps - previousTotalReps,
+            volumeChange: latestVolume - previousVolume,
+          };
+        })
+        .filter((item) => item !== null)
+    : [];
+
+const latestWorkoutVolume =
+  latestWorkout?.exercises.reduce(
+    (total, exercise) => total + calculateExerciseVolume(exercise),
+    0
+  ) ?? 0;
+
+const previousWorkoutVolume =
+  previousMatchingWorkout?.exercises.reduce(
+    (total, exercise) => total + calculateExerciseVolume(exercise),
+    0
+  ) ?? 0;
+
+const volumeChange =
+  previousWorkoutVolume > 0
+    ? ((latestWorkoutVolume - previousWorkoutVolume) /
+        previousWorkoutVolume) *
+      100
+    : 0;
+
+let strengthStatus = "Need more matching workout data";
+
+if (matchingExerciseComparisons.length > 0) {
+  const improved = matchingExerciseComparisons.filter(
+    (item) =>
+      item.latestTotalReps > item.previousTotalReps ||
+      item.latestWeight > item.previousWeight ||
+      item.latestVolume > item.previousVolume
+  ).length;
+
+  const declined = matchingExerciseComparisons.filter(
+    (item) =>
+      item.latestTotalReps < item.previousTotalReps &&
+      item.latestWeight <= item.previousWeight
+  ).length;
+
+  if (improved > declined) {
+    strengthStatus = "Strength/performance improving";
+  } else if (declined > improved) {
+    strengthStatus = "Strength/performance dropping";
+  } else {
+    strengthStatus = "Strength/performance stable";
   }
+}
 
-  let strengthInsight =
-    "Add at least 2 workout logs with exercises to track strength trends. Rest days are ignored for strength scoring.";
+let strengthInsight =
+  "Add at least 2 workouts with matching exercises to track strength trends. Rest days and different muscle groups are ignored.";
 
-  if (strengthStatus === "Strength/performance improving") {
-    strengthInsight =
-      "Your latest workout volume is higher than your previous workout. This suggests your strength or performance is improving.";
-  } else if (strengthStatus === "Strength/performance dropping") {
-    strengthInsight =
-      "Your latest workout volume dropped compared to your previous workout. This may be normal if you trained a different muscle group, but watch recovery, sleep, calories, and fatigue.";
-  } else if (strengthStatus === "Strength/performance stable") {
-    strengthInsight =
-      "Your workout volume is relatively stable. Rest days are not counted against your strength score.";
-  }
+if (strengthStatus === "Strength/performance improving") {
+  strengthInsight =
+    "Your matching exercises improved compared to the last time you performed them. This suggests strength or workout performance is improving.";
+} else if (strengthStatus === "Strength/performance dropping") {
+  strengthInsight =
+    "Your matching exercises dropped in reps, weight, or volume compared to the last time you performed them. Watch recovery, sleep, calories, and fatigue.";
+} else if (strengthStatus === "Strength/performance stable") {
+  strengthInsight =
+    "Your matching exercises are relatively stable. Rest days and unrelated workout days are not counted against your strength score.";
+}
 
   const proteinTargetMet = avgProtein >= 130;
   const stepTargetMet = avgSteps >= 10000;
@@ -1928,11 +1984,11 @@ async function parseNaturalLogWithAI() {
                       : "⚠️ Add exercises"}
                   </li>
                   <li>
-                    Strength analysis:{" "}
-                    {workoutVolumes.length >= 2
-                      ? "✅ Available"
-                      : "⚠️ Need 2 workouts"}
-                  </li>
+  Strength analysis:{" "}
+  {matchingExerciseComparisons.length > 0
+    ? "✅ Available"
+    : "⚠️ Need matching exercise history"}
+</li>
                 </ul>
               </section>
 
