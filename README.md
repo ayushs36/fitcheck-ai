@@ -1,138 +1,109 @@
 # FitCheck AI
 
-## Live Demo
-
-https://fitcheck-ai-psi.vercel.app
+Live Demo: https://fitcheck-ai-psi.vercel.app
 
 ## Overview
 
-FitCheck AI is an AI-inspired fitness analytics and coaching platform built with Next.js, React, TypeScript, Tailwind CSS, and Recharts.
+FitCheck AI is an AI-powered fitness analytics platform built with Next.js, React, TypeScript, Tailwind CSS, OpenAI API, Recharts, GitHub, and Vercel.
 
-The app helps users track bodyweight, calories, protein, steps, workouts, exercises, and strength performance while generating personalized coaching insights for cutting, bulking, and maintaining.
+The application tracks weight, calories, protein, steps, workouts, and exercise performance while providing personalized coaching and analytics through AI-powered features.
+
+## Screenshots
+
+### Dashboard
+
+![Dashboard](public/screenshots/dashboard.png)
+
+### Ask FitCheck AI
+
+![Ask FitCheck AI](public/screenshots/ask-ai.png)
+
+### AI Weekly Report
+
+![AI Weekly Report](public/screenshots/weekly-report.png)
+
+### AI Goal Strategy Agent
+
+![Goal Strategy](public/screenshots/goal-strategy.png)
+
+### AI Natural Language Logging
+
+![Natural Logging](public/screenshots/natural-log.png)
+
+### Maintenance Calorie Estimator
+
+![Maintenance](public/screenshots/maintenance-estimator.png)
+
+### AI Coaching History
+
+![AI History](public/screenshots/ai-history.png)
 
 ## Features
 
-* Daily weight logging
-* Calorie tracking
-* Protein tracking
-* Step tracking
-* Workout tracking
-* Exercise tracking with sets, reps, and weight
-* 7-day and 14-day moving averages
-* Weight trend charts
-* Steps trend charts
-* Goal weight tracking
-* Goal date tracking
-* Projected goal date
-* Goal pace analysis
-* AI Coach Report
-* Weekly Report Generator
-* Strength Analytics
-* Workout volume analysis
-* Plateau Detection Agent
-* Goal Feasibility Agent
-* Weekly AI Review
-* Local storage persistence
-* Saved user settings
-* Edit and delete logs
+- Daily fitness logging
+- Weight tracking
+- Calorie tracking
+- Protein tracking
+- Step tracking
+- Exercise tracking
+- Goal forecasting
+- Goal feasibility analysis
+- Plateau detection
+- Maintenance calorie estimation
+- Strength analytics
+- AI Weekly Reports
+- AI Goal Strategy Agent
+- AI Natural Language Logging
+- AI Coaching History
+- OpenAI-powered coaching
 
 ## Tech Stack
 
-* Next.js
-* React
-* TypeScript
-* Tailwind CSS
-* Recharts
-* localStorage
-* Vercel
-* GitHub
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- OpenAI API
+- Recharts
+- Vercel
+- GitHub
+- localStorage
 
-## AI / Agent Logic
+## Architecture
 
-FitCheck AI uses rule-based agent logic to analyze user data and generate coaching recommendations.
+User Interface
 
-The app currently evaluates:
+↓
 
-* Weight trend
-* Protein consistency
-* Step average
-* Goal feasibility
-* Weekly progress
-* Exercise volume
-* Strength performance
-* Plateau risk
-* Goal timeline realism
-* Weekly trend analysis
-* Cutting, bulking, or maintaining status
+Next.js Dashboard
 
-### Plateau Detection Agent (Day 12)
+↓
 
-Analyzes 7-day and 14-day weight averages to identify potential weight-loss plateaus and provide recommendations before users make unnecessary calorie adjustments.
+Analytics Engine
 
-### Goal Feasibility Agent (Day 13)
+↓
 
-Compares current weight-loss pace to the pace required to reach a goal by a target date.
+Next.js API Routes
 
-Evaluates:
+↓
 
-* Current loss rate
-* Required loss rate
-* Days remaining
-* Pounds remaining
-* Goal feasibility score
-* Goal realism verdict
-* Personalized recommendation
+OpenAI API
 
-### Weekly AI Review (Day 14)
+## Current Limitations
 
-Provides a weekly summary of progress including:
+- Data stored in localStorage
+- No cloud sync
+- No user authentication
+- No database
 
-* Weekly weight change
-* Average calories
-* Average protein
-* Average steps
-* Weekly trend classification
-* Goal status
-* Primary action recommendation for the upcoming week
+## Future Roadmap
 
-### Day 14 Improvements
+- Supabase
+- User accounts
+- Cloud syncing
+- Advanced AI coaching
+- Mobile app
 
-* Fixed analytics so unsaved form inputs no longer affect dashboard calculations
-* Goal calculations now use the latest saved weight
-* Strength analytics ignore rest days
-* Workout volume comparisons only use actual workout sessions
-* Improved stability and consistency of coaching insights
+## Status
 
-## Future Improvements
-
-* UI/UX redesign
-* Ask FitCheck AI chat interface
-* Natural language AI coach
-* LLM integration
-* Personalized AI recommendations
-* AI fitness agent tools
-* Mobile app version
-* Cloud database
-* User accounts
-* Apple Health integration
-* Garmin integration
-* Fitbit integration
-* Wearable device support
-
-## Current Status
-
-Actively under development.
-
-### Development Progress
-
-✅ Day 1–11 Complete
-
-✅ Day 12: Plateau Detection Agent
-
-✅ Day 13: Goal Feasibility Agent
-
-✅ Day 14: Weekly AI Review
-
-🔄 Next Milestone: Ask FitCheck AI
-
-🎯 Long-Term Goal: Transform FitCheck AI into a true AI-powered fitness coaching agent capable of analyzing user fitness data and generating personalized recommendations using LLM-based reasoning.
+Currently under active development.
