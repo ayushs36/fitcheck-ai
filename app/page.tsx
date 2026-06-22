@@ -11,54 +11,19 @@ import {
   CartesianGrid,
 } from "recharts";
 
-type Goal = "Cutting" | "Bulking" | "Maintaining";
-
-type Exercise = {
-  id: string;
-  name: string;
-  sets: number;
-  reps: number;
-  weight: number;
-};
-
-type LogEntry = {
-  id: string;
-  date: string;
-  weight: number;
-  calories: number;
-  protein: number;
-  steps: number;
-  workout: string;
-  exercises: Exercise[];
-};
-
-type GoalFeasibility = {
-  score: number;
-  verdict: string;
-  currentWeight: number;
-  goalWeight: number;
-  targetDate: string;
-  poundsRemaining: number;
-  daysRemaining: number;
-  currentLossRate: number;
-  requiredLossRate: number;
-  recommendation: string;
-};
-type AIConversation = {
-  id: string;
-  type: "Ask AI" | "Weekly Report";
-  question: string;
-  answer: string;
-  createdAt: string;
-};
-type MaintenanceEstimate = {
-  estimatedMaintenance: number;
-  fatLossCaloriesOnePound: number;
-  fatLossCaloriesOnePointFivePounds: number;
-  fatLossCaloriesTwoPounds: number;
-  confidence: "Low" | "Medium" | "High";
-  explanation: string;
-};
+import type {
+  Goal,
+  Exercise,
+  LogEntry,
+  GoalFeasibility,
+  AIConversation,
+  MaintenanceEstimate,
+} from "@/types/fitness";
+import {
+  calculateExerciseVolume,
+  addDays,
+  formatDate,
+} from "@/lib/calculations";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -2175,9 +2140,7 @@ function getRecommendation({
   return "Maintenance is drifting. Adjust calories slightly if weight is moving more than expected.";
 }
 
-function calculateExerciseVolume(exercise: Exercise) {
-  return exercise.sets * exercise.reps * exercise.weight;
-}
+
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -2351,12 +2314,3 @@ function Select({
   );
 }
 
-function addDays(date: Date, days: number) {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + Math.ceil(days));
-  return copy;
-}
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
