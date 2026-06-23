@@ -25,6 +25,14 @@ import {
   formatDate,
 } from "@/lib/calculations";
 
+import { Stat } from "@/components/Stat";
+
+import { StatusBadge } from "@/components/StatusBadge";
+
+import { GoalProgressBar } from "@/components/GoalProgressBar";
+
+import { Input, NumberInput, Select } from "@/components/FormInputs";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
@@ -2142,175 +2150,6 @@ function getRecommendation({
 
 
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-    </div>
-  );
-}
 
-function GoalProgressBar({
-  progress,
-  startWeight,
-  currentWeight,
-  goalWeight,
-}: {
-  progress: number;
-  startWeight: number;
-  currentWeight: number;
-  goalWeight: number;
-}) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">Goal Progress</p>
-          <p className="mt-1 text-2xl font-bold">{progress}%</p>
-        </div>
 
-        <div className="text-right text-sm text-slate-500">
-          <p>Start: {startWeight.toFixed(1)} lbs</p>
-          <p>Current Avg: {currentWeight.toFixed(1)} lbs</p>
-          <p>Goal: {goalWeight.toFixed(1)} lbs</p>
-        </div>
-      </div>
-
-      <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-200">
-        <div
-          className="h-full rounded-full bg-emerald-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function StatusBadge({ label, value }: { label: string; value: string }) {
-  const tone = getStatusTone(value);
-
-  return (
-    <span className={`rounded-full px-3 py-1 text-sm font-semibold ${tone}`}>
-      {label}: {value}
-    </span>
-  );
-}
-
-function getStatusTone(value: string) {
-  const normalized = value.toLowerCase();
-
-  if (
-    normalized.includes("ahead") ||
-    normalized.includes("on track") ||
-    normalized.includes("realistic") ||
-    normalized.includes("improving") ||
-    normalized.includes("stable") ||
-    normalized.includes("progress trending down")
-  ) {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (
-    normalized.includes("aggressive") ||
-    normalized.includes("plateau") ||
-    normalized.includes("need") ||
-    normalized.includes("flat") ||
-    normalized.includes("slow")
-  ) {
-    return "bg-amber-100 text-amber-700";
-  }
-
-  if (
-    normalized.includes("behind") ||
-    normalized.includes("unlikely") ||
-    normalized.includes("dropping") ||
-    normalized.includes("up")
-  ) {
-    return "bg-red-100 text-red-700";
-  }
-
-  return "bg-slate-200 text-slate-700";
-}
-
-function NumberInput({
-  label,
-  value,
-  onChange,
-  suffix,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  suffix?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm text-slate-500">{label}</span>
-      <div className="mt-1 flex items-center gap-2">
-        <input
-          className="w-full rounded-xl border p-2"
-          type="number"
-          value={value}
-          onChange={(e: any) => onChange(Number(e.target.value))}
-        />
-        {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
-      </div>
-    </label>
-  );
-}
-
-function Input({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm text-slate-500">{label}</span>
-      <input
-        className="mt-1 w-full rounded-xl border p-2"
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e: any) => onChange(e.target.value)}
-      />
-    </label>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm text-slate-500">{label}</span>
-      <select
-        className="mt-1 w-full rounded-xl border p-2"
-        value={value}
-        onChange={(e: any) => onChange(e.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option}>{option}</option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
