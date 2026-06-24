@@ -233,7 +233,7 @@ useEffect(() => {
   const requiredWeeklyLoss =
     weeksUntilGoal > 0 ? poundsRemaining / weeksUntilGoal : 0;
 
-  const currentPace = useMemo(() => {
+  const weeklyAverageChange = useMemo(() => {
   const validWeightLogs = sortedLogs.filter((log) => log.weight > 0);
 
   if (validWeightLogs.length < 7) {
@@ -245,12 +245,12 @@ useEffect(() => {
   const firstWeight = recentLogs[0].weight;
   const lastWeight = recentLogs[recentLogs.length - 1].weight;
 
-  const weeklyChange = lastWeight - firstWeight;
-
-  return weeklyChange < 0 ? Math.abs(weeklyChange) : 0;
+  return lastWeight - firstWeight;
 }, [sortedLogs]);
+
+const currentPace = Math.abs(weeklyAverageChange);
       const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
-  if (logs.length < 7 || avgCalories <= 0 || currentPace <= 0) {
+  if (logs.length < 7 || avgCalories <= 0) {
     return {
       estimatedMaintenance: 0,
       fatLossCaloriesOnePound: 0,
@@ -258,11 +258,12 @@ useEffect(() => {
       fatLossCaloriesTwoPounds: 0,
       confidence: "Low",
       explanation:
-        "Log at least 7 days with calories and a recent weekly weight change to estimate maintenance calories.",
+        "Log at least 7 days with calorie and weight data to estimate maintenance calories.",
     };
   }
 
-  const dailyDeficit = currentPace * 500;
+  const dailyDeficit = -weeklyAverageChange * 500;
+
   const estimatedMaintenance = avgCalories + dailyDeficit;
 
   let confidence: MaintenanceEstimate["confidence"] = "Medium";
@@ -279,15 +280,15 @@ useEffect(() => {
     fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
     fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
     confidence,
-    explanation: `Based on your ${avgCalories.toFixed(
+    explanation: `Based on your average intake of ${avgCalories.toFixed(
       0
-    )} calorie average and ${currentPace.toFixed(
+    )} calories/day and a recent weekly weight change of ${weeklyAverageChange.toFixed(
       1
-    )} lb/week recent pace, your estimated maintenance is about ${estimatedMaintenance.toFixed(
+    )} lbs/week, your estimated maintenance is approximately ${estimatedMaintenance.toFixed(
       0
     )} calories/day.`,
   };
-}, [logs.length, avgCalories, currentPace]);
+}, [logs.length, avgCalories, weeklyAverageChange]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
