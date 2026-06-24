@@ -33,6 +33,12 @@ import { GoalProgressBar } from "@/components/GoalProgressBar";
 
 import { Input, NumberInput, Select } from "@/components/FormInputs";
 
+import { AskAICard } from "@/components/AskAICard";
+
+import { AIWeeklyReportCard } from "@/components/AIWeeklyReportCard";
+
+import { GoalStrategyCard } from "@/components/GoalStrategyCard";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
@@ -227,14 +233,36 @@ useEffect(() => {
   const requiredWeeklyLoss =
     weeksUntilGoal > 0 ? poundsRemaining / weeksUntilGoal : 0;
 
-  const currentPace =
-    fourteenDayAverage > 0 && sevenDayAverage > 0
-      ? Math.max(0, (fourteenDayAverage - sevenDayAverage) * 2)
-      : weeklyWeightChange < 0
-      ? Math.abs(weeklyWeightChange)
-      : 0;
+  const currentPace = useMemo(() => {
+  const validWeightLogs = sortedLogs.filter((log) => log.weight > 0);
+
+  if (validWeightLogs.length < 2) {
+    return 0;
+  }
+
+  const firstLog = validWeightLogs[0];
+  const latestLogForPace = validWeightLogs[validWeightLogs.length - 1];
+
+  const daysTracked = Math.max(
+    1,
+    Math.ceil(
+      (new Date(latestLogForPace.date).getTime() -
+        new Date(firstLog.date).getTime()) /
+        (1000 * 60 * 60 * 24)
+    )
+  );
+
+  const totalWeightChange = latestLogForPace.weight - firstLog.weight;
+  const weeklyChange = (totalWeightChange / daysTracked) * 7;
+
+  return weeklyChange < 0 ? Math.abs(weeklyChange) : 0;
+}, [sortedLogs]);
       const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
-  if (logs.length < 7 || avgCalories <= 0 || currentPace <= 0) {
+  const validLogs = sortedLogs.filter(
+    (log) => log.weight > 0 && log.calories > 0
+  );
+
+  if (validLogs.length < 7) {
     return {
       estimatedMaintenance: 0,
       fatLossCaloriesOnePound: 0,
@@ -242,18 +270,47 @@ useEffect(() => {
       fatLossCaloriesTwoPounds: 0,
       confidence: "Low",
       explanation:
-        "Log at least 7 days with calories and weight trends to estimate maintenance calories.",
+        "Log at least 7 days with valid weight and calorie entries to estimate maintenance calories.",
     };
   }
 
-  const dailyDeficit = currentPace * 500;
-  const estimatedMaintenance = avgCalories + dailyDeficit;
+  const firstLog = validLogs[0];
+  const latestLogForMaintenance = validLogs[validLogs.length - 1];
+
+  const daysTracked = Math.max(
+    1,
+    Math.ceil(
+      (new Date(latestLogForMaintenance.date).getTime() -
+        new Date(firstLog.date).getTime()) /
+        (1000 * 60 * 60 * 24)
+    )
+  );
+
+  const totalWeightChange = latestLogForMaintenance.weight - firstLog.weight;
+  const weeklyChange = (totalWeightChange / daysTracked) * 7;
+
+  const averageCalories = average(validLogs.map((log) => log.calories));
+
+  const dailyDeficitFromWeightTrend = (-weeklyChange * 3500) / 7;
+  const estimatedMaintenance = averageCalories + dailyDeficitFromWeightTrend;
+
+  if (!Number.isFinite(estimatedMaintenance) || estimatedMaintenance <= 0) {
+    return {
+      estimatedMaintenance: 0,
+      fatLossCaloriesOnePound: 0,
+      fatLossCaloriesOnePointFivePounds: 0,
+      fatLossCaloriesTwoPounds: 0,
+      confidence: "Low",
+      explanation:
+        "Maintenance could not be estimated from the current data. Check that your weight and calorie entries are valid.",
+    };
+  }
 
   let confidence: MaintenanceEstimate["confidence"] = "Medium";
 
-  if (logs.length >= 21) {
+  if (validLogs.length >= 21 && daysTracked >= 21) {
     confidence = "High";
-  } else if (logs.length < 14) {
+  } else if (validLogs.length < 14 || daysTracked < 14) {
     confidence = "Low";
   }
 
@@ -263,15 +320,15 @@ useEffect(() => {
     fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
     fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
     confidence,
-    explanation: `Based on your ${avgCalories.toFixed(
+    explanation: `Based on ${validLogs.length} valid logs across ${daysTracked} days, your average intake is ${averageCalories.toFixed(
       0
-    )} calorie average and ${currentPace.toFixed(
+    )} calories/day and your trend-based weight change is ${weeklyChange.toFixed(
       1
-    )} lb/week pace, maintenance is estimated at ${estimatedMaintenance.toFixed(
+    )} lbs/week. Estimated maintenance is about ${estimatedMaintenance.toFixed(
       0
     )} calories/day.`,
   };
-}, [logs.length, avgCalories, currentPace]);
+}, [sortedLogs]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
@@ -1622,27 +1679,11 @@ async function parseNaturalLogWithAI() {
     </p>
   </div>
 </section>
-<section className="rounded-3xl bg-white p-6 shadow-sm">
-  <h2 className="text-2xl font-semibold">AI Goal Strategy Agent</h2>
-
-  <p className="mt-2 text-sm text-slate-500">
-    Day 21: Generates a personalized strategy for reaching your goal using your
-    maintenance estimate, current pace, goal timeline, nutrition, steps, and
-    strength data.
-  </p>
-
-  <button
-    onClick={generateGoalStrategy}
-    disabled={isGoalStrategyLoading}
-    className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
-  >
-    {isGoalStrategyLoading ? "Generating..." : "Generate Goal Strategy"}
-  </button>
-
-  <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
-    {goalStrategy}
-  </div>
-</section>
+<GoalStrategyCard
+  goalStrategy={goalStrategy}
+  isGoalStrategyLoading={isGoalStrategyLoading}
+  generateGoalStrategy={generateGoalStrategy}
+/>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
@@ -1865,59 +1906,21 @@ async function parseNaturalLogWithAI() {
             </section>
 
 
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Ask FitCheck AI</h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                Day 16: Ask questions about your progress, plateau risk, goal
-                timeline, calories, protein, steps, or strength trends. This is
-                currently rule-based and prepares the app for LLM integration.
-              </p>
-
-              <div className="mt-5 flex flex-col gap-3 md:flex-row">
-  <input
-    className="w-full rounded-2xl border border-slate-200 p-3"
-    value={coachQuestion}
-    onChange={(event) => setCoachQuestion(event.target.value)}
-    placeholder="Example: Am I on track to reach my goal?"
-  />
-
-  <button
-    onClick={askFitCheckAI}
-    className="rounded-2xl bg-slate-200 px-5 py-3 font-semibold text-slate-800"
-  >
-    Rule-Based
-  </button>
-
-  <button
-    onClick={askFitCheckAILLM}
-    disabled={isCoachLoading}
-    className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
-  >
-    {isCoachLoading ? "Thinking..." : "Ask AI"}
-  </button>
-</div>
-
-              <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
-                <p className="font-semibold">FitCheck AI Response</p>
-                <p className="mt-2">{coachAnswer}</p>
-              </div>
-
-              <div className="mt-4 grid gap-2 text-sm text-slate-500 md:grid-cols-2">
-                <p>Try: “Why am I plateauing?”</p>
-                <p>Try: “Am I on track for 130?”</p>
-                <p>Try: “Should I lower calories?”</p>
-                <p>Try: “How is my strength?”</p>
-              </div>
-            </section>
+            <AskAICard
+  coachQuestion={coachQuestion}
+  setCoachQuestion={setCoachQuestion}
+  coachAnswer={coachAnswer}
+  isCoachLoading={isCoachLoading}
+  askFitCheckAI={askFitCheckAI}
+  askFitCheckAILLM={askFitCheckAILLM}
+/>
 
 
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Weekly Report</h2>
-              <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-sm text-slate-700">
-                {weeklyReport}
-              </pre>
-            </section>
+            <AIWeeklyReportCard
+  aiWeeklyReport={aiWeeklyReport}
+  isWeeklyReportLoading={isWeeklyReportLoading}
+  generateAIWeeklyReport={generateAIWeeklyReport}
+/>
 
             <section className="rounded-3xl bg-emerald-50 p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Coach Recommendation</h2>
@@ -2147,9 +2150,3 @@ function getRecommendation({
 
   return "Maintenance is drifting. Adjust calories slightly if weight is moving more than expected.";
 }
-
-
-
-
-
-
