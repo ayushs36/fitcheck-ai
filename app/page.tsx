@@ -236,21 +236,22 @@ useEffect(() => {
   const weeklyAverageChange = useMemo(() => {
   const validWeightLogs = sortedLogs.filter((log) => log.weight > 0);
 
-  if (validWeightLogs.length < 7) {
+  if (validWeightLogs.length < 14) {
     return 0;
   }
 
-  const recentLogs = validWeightLogs.slice(-7);
+  const previous7Logs = validWeightLogs.slice(-14, -7);
+  const recent7Logs = validWeightLogs.slice(-7);
 
-  const firstWeight = recentLogs[0].weight;
-  const lastWeight = recentLogs[recentLogs.length - 1].weight;
+  const previous7Average = average(previous7Logs.map((log) => log.weight));
+  const recent7Average = average(recent7Logs.map((log) => log.weight));
 
-  return lastWeight - firstWeight;
+  return recent7Average - previous7Average;
 }, [sortedLogs]);
 
-const currentPace = Math.abs(weeklyAverageChange);
+const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
       const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
-  if (logs.length < 7 || avgCalories <= 0) {
+  if (logs.length < 14 || avgCalories <= 0) {
     return {
       estimatedMaintenance: 0,
       fatLossCaloriesOnePound: 0,
@@ -258,7 +259,7 @@ const currentPace = Math.abs(weeklyAverageChange);
       fatLossCaloriesTwoPounds: 0,
       confidence: "Low",
       explanation:
-        "Log at least 7 days with calorie and weight data to estimate maintenance calories.",
+        "Log at least 14 days with calorie and weight data to estimate maintenance calories.",
     };
   }
 
