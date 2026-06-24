@@ -236,33 +236,21 @@ useEffect(() => {
   const currentPace = useMemo(() => {
   const validWeightLogs = sortedLogs.filter((log) => log.weight > 0);
 
-  if (validWeightLogs.length < 2) {
+  if (validWeightLogs.length < 7) {
     return 0;
   }
 
-  const firstLog = validWeightLogs[0];
-  const latestLogForPace = validWeightLogs[validWeightLogs.length - 1];
+  const recentLogs = validWeightLogs.slice(-7);
 
-  const daysTracked = Math.max(
-    1,
-    Math.ceil(
-      (new Date(latestLogForPace.date).getTime() -
-        new Date(firstLog.date).getTime()) /
-        (1000 * 60 * 60 * 24)
-    )
-  );
+  const firstWeight = recentLogs[0].weight;
+  const lastWeight = recentLogs[recentLogs.length - 1].weight;
 
-  const totalWeightChange = latestLogForPace.weight - firstLog.weight;
-  const weeklyChange = (totalWeightChange / daysTracked) * 7;
+  const weeklyChange = lastWeight - firstWeight;
 
   return weeklyChange < 0 ? Math.abs(weeklyChange) : 0;
 }, [sortedLogs]);
       const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
-  const validLogs = sortedLogs.filter(
-    (log) => log.weight > 0 && log.calories > 0
-  );
-
-  if (validLogs.length < 7) {
+  if (logs.length < 7 || avgCalories <= 0 || currentPace <= 0) {
     return {
       estimatedMaintenance: 0,
       fatLossCaloriesOnePound: 0,
@@ -270,47 +258,18 @@ useEffect(() => {
       fatLossCaloriesTwoPounds: 0,
       confidence: "Low",
       explanation:
-        "Log at least 7 days with valid weight and calorie entries to estimate maintenance calories.",
+        "Log at least 7 days with calories and a recent weekly weight change to estimate maintenance calories.",
     };
   }
 
-  const firstLog = validLogs[0];
-  const latestLogForMaintenance = validLogs[validLogs.length - 1];
-
-  const daysTracked = Math.max(
-    1,
-    Math.ceil(
-      (new Date(latestLogForMaintenance.date).getTime() -
-        new Date(firstLog.date).getTime()) /
-        (1000 * 60 * 60 * 24)
-    )
-  );
-
-  const totalWeightChange = latestLogForMaintenance.weight - firstLog.weight;
-  const weeklyChange = (totalWeightChange / daysTracked) * 7;
-
-  const averageCalories = average(validLogs.map((log) => log.calories));
-
-  const dailyDeficitFromWeightTrend = (-weeklyChange * 3500) / 7;
-  const estimatedMaintenance = averageCalories + dailyDeficitFromWeightTrend;
-
-  if (!Number.isFinite(estimatedMaintenance) || estimatedMaintenance <= 0) {
-    return {
-      estimatedMaintenance: 0,
-      fatLossCaloriesOnePound: 0,
-      fatLossCaloriesOnePointFivePounds: 0,
-      fatLossCaloriesTwoPounds: 0,
-      confidence: "Low",
-      explanation:
-        "Maintenance could not be estimated from the current data. Check that your weight and calorie entries are valid.",
-    };
-  }
+  const dailyDeficit = currentPace * 500;
+  const estimatedMaintenance = avgCalories + dailyDeficit;
 
   let confidence: MaintenanceEstimate["confidence"] = "Medium";
 
-  if (validLogs.length >= 21 && daysTracked >= 21) {
+  if (logs.length >= 21) {
     confidence = "High";
-  } else if (validLogs.length < 14 || daysTracked < 14) {
+  } else if (logs.length < 14) {
     confidence = "Low";
   }
 
@@ -320,15 +279,15 @@ useEffect(() => {
     fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
     fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
     confidence,
-    explanation: `Based on ${validLogs.length} valid logs across ${daysTracked} days, your average intake is ${averageCalories.toFixed(
+    explanation: `Based on your ${avgCalories.toFixed(
       0
-    )} calories/day and your trend-based weight change is ${weeklyChange.toFixed(
+    )} calorie average and ${currentPace.toFixed(
       1
-    )} lbs/week. Estimated maintenance is about ${estimatedMaintenance.toFixed(
+    )} lb/week recent pace, your estimated maintenance is about ${estimatedMaintenance.toFixed(
       0
     )} calories/day.`,
   };
-}, [sortedLogs]);
+}, [logs.length, avgCalories, currentPace]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
