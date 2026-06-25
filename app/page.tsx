@@ -39,6 +39,8 @@ import { AIWeeklyReportCard } from "@/components/AIWeeklyReportCard";
 
 import { GoalStrategyCard } from "@/components/GoalStrategyCard";
 
+import { DailyLogCard } from "@/components/DailyLogCard";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
@@ -90,13 +92,6 @@ const [historySearch, setHistorySearch] = useState("");
   "Generate an AI goal strategy to get a personalized plan for reaching your target."
 );
 const [isGoalStrategyLoading, setIsGoalStrategyLoading] = useState(false); 
-const [naturalLogText, setNaturalLogText] = useState("");
-
-const [naturalLogFeedback, setNaturalLogFeedback] = useState(
-  "Type your day in plain English and FitCheck AI will fill the log form."
-);
-
-const [isNaturalLogLoading, setIsNaturalLogLoading] = useState(false);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -1104,70 +1099,6 @@ async function generateGoalStrategy() {
     setIsGoalStrategyLoading(false);
   }
 }
-async function parseNaturalLogWithAI() {
-  if (!naturalLogText.trim()) {
-    setNaturalLogFeedback("Type a log first.");
-    return;
-  }
-
-  setIsNaturalLogLoading(true);
-  setNaturalLogFeedback("FitCheck AI is reading your log...");
-
-  try {
-    const response = await fetch("/api/parse-log", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: naturalLogText,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to parse natural language log.");
-    }
-
-    setEntry((current) => ({
-      ...current,
-      weight:
-        typeof data.weight === "number" && Number.isFinite(data.weight)
-          ? data.weight
-          : current.weight,
-      calories:
-        typeof data.calories === "number" && Number.isFinite(data.calories)
-          ? data.calories
-          : current.calories,
-      protein:
-        typeof data.protein === "number" && Number.isFinite(data.protein)
-          ? data.protein
-          : current.protein,
-      steps:
-        typeof data.steps === "number" && Number.isFinite(data.steps)
-          ? data.steps
-          : current.steps,
-      workout:
-        typeof data.workout === "string" && data.workout.trim()
-          ? data.workout
-          : current.workout,
-    }));
-
-    setNaturalLogFeedback(
-      "Log form updated. Review the fields, then click Save Log."
-    );
-  } catch (error) {
-    console.error(error);
-
-    const message =
-      error instanceof Error ? error.message : "Unknown natural log error.";
-
-    setNaturalLogFeedback(`AI log parsing failed: ${message}`);
-  } finally {
-    setIsNaturalLogLoading(false);
-  }
-}
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-6">
       <div className="mx-auto max-w-7xl">
@@ -1186,207 +1117,34 @@ async function parseNaturalLogWithAI() {
         </header>
 
         <section className="grid gap-6 lg:grid-cols-3">
-          <section className="rounded-3xl bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold">Daily Log</h2>
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-  <h3 className="text-lg font-semibold">AI Natural Language Logging</h3>
-
-  <p className="mt-2 text-sm text-slate-500">
-    Day 22: Type your daily log in plain English and FitCheck AI will fill the
-    form using OpenAI.
-  </p>
-
-  <textarea
-    className="mt-4 min-h-24 w-full rounded-2xl border border-slate-200 p-3"
-    value={naturalLogText}
-    onChange={(event) => setNaturalLogText(event.target.value)}
-    placeholder="Example: Today I weighed 139.2 lbs, ate 2100 calories, got 145g protein, walked 13k steps, and did Push Day."
-  />
-
-  <button
-    onClick={parseNaturalLogWithAI}
-    disabled={isNaturalLogLoading}
-    className="mt-3 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
-  >
-    {isNaturalLogLoading ? "Reading..." : "Fill Log With AI"}
-  </button>
-
-  <p className="mt-3 text-sm text-slate-600">{naturalLogFeedback}</p>
-</div>
-
-            <div className="mt-5 space-y-4">
-              <Select
-                label="Goal"
-                value={goal}
-                onChange={(value) => setGoal(value as Goal)}
-                options={["Cutting", "Bulking", "Maintaining"]}
-              />
-
-              <Input
-                label="Date"
-                type="date"
-                value={entry.date}
-                onChange={(value) => setEntry({ ...entry, date: value })}
-              />
-
-              <NumberInput
-                label="Daily Scale Weight"
-                value={entry.weight}
-                onChange={(value) => setEntry({ ...entry, weight: value })}
-                suffix="lbs"
-              />
-
-              <NumberInput
-                label="Goal Weight"
-                value={goalWeight}
-                onChange={setGoalWeight}
-                suffix="lbs"
-              />
-
-              <Input
-                label="Goal Date"
-                type="date"
-                value={goalDate}
-                onChange={setGoalDate}
-              />
-
-              <NumberInput
-                label="Calories"
-                value={entry.calories}
-                onChange={(value) => setEntry({ ...entry, calories: value })}
-                suffix="cal"
-              />
-
-              <NumberInput
-                label="Protein"
-                value={entry.protein}
-                onChange={(value) => setEntry({ ...entry, protein: value })}
-                suffix="g"
-              />
-
-              <NumberInput
-                label="Steps"
-                value={entry.steps}
-                onChange={(value) => setEntry({ ...entry, steps: value })}
-                suffix="steps"
-              />
-
-              <Input
-                label="Workout"
-                type="text"
-                value={entry.workout}
-                onChange={(value) => setEntry({ ...entry, workout: value })}
-                placeholder="Push, Pull, Legs, Rest..."
-              />
-
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <h3 className="font-semibold">Add Exercise</h3>
-
-                <div className="mt-3 space-y-3">
-                  <Input
-                    label="Exercise Name"
-                    type="text"
-                    value={exercise.name}
-                    onChange={(value) =>
-                      setExercise({ ...exercise, name: value })
-                    }
-                    placeholder="Bench Press"
-                  />
-
-                  <NumberInput
-                    label="Sets"
-                    value={exercise.sets}
-                    onChange={(value) =>
-                      setExercise({ ...exercise, sets: value })
-                    }
-                  />
-
-                  <NumberInput
-                    label="Reps"
-                    value={exercise.reps}
-                    onChange={(value) =>
-                      setExercise({ ...exercise, reps: value })
-                    }
-                  />
-
-                  <NumberInput
-                    label="Weight Used"
-                    value={exercise.weight}
-                    onChange={(value) =>
-                      setExercise({ ...exercise, weight: value })
-                    }
-                    suffix="lbs"
-                  />
-
-                  <button
-                    onClick={addExercise}
-                    className="w-full rounded-xl bg-slate-900 px-4 py-2 font-semibold text-white"
-                  >
-                    Add Exercise
-                  </button>
-                </div>
-
-                <div className="mt-4">
-                  <p className="font-semibold">Exercises in This Log</p>
-
-                  {entry.exercises.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">
-                      No exercises added yet.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-2 text-sm">
-                      {entry.exercises.map((item) => (
-                        <li
-                          key={item.id}
-                          className="flex items-center justify-between rounded-xl bg-white p-3"
-                        >
-                          <span>
-                            {item.name} — {item.sets} x {item.reps} @{" "}
-                            {item.weight} lbs
-                          </span>
-
-                          <button
-                            onClick={() => deleteExercise(item.id)}
-                            className="text-red-600"
-                          >
-                            Delete
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={saveLog}
-                className="w-full rounded-2xl bg-black px-4 py-3 font-semibold text-white"
-              >
-                {editingId ? "Update Log" : "Add Daily Log"}
-              </button>
-
-              {editingId && (
-                <button
-                  onClick={resetEntry}
-                  className="w-full rounded-2xl bg-slate-200 px-4 py-3 font-semibold"
-                >
-                  Cancel Edit
-                </button>
-              )}
-
-              <button
-                onClick={clearAllLogs}
-                className="w-full rounded-2xl bg-red-100 px-4 py-3 font-semibold text-red-700"
-              >
-                Clear All Logs
-              </button>
-            </div>
-          </section>
-
-            
+<DailyLogCard
+  goal={goal}
+  setGoal={setGoal}
+  entry={entry}
+  setEntry={setEntry}
+  exercise={exercise}
+  setExercise={setExercise}
+  goalWeight={goalWeight}
+  setGoalWeight={setGoalWeight}
+  goalDate={goalDate}
+  setGoalDate={setGoalDate}
+  editingId={editingId}
+  addExercise={addExercise}
+  deleteExercise={deleteExercise}
+  saveLog={saveLog}
+  resetEntry={resetEntry}
+  clearAllLogs={clearAllLogs}
+/>
 
 
           <section className="space-y-6 lg:col-span-2">
+            <AskAICard
+  coachQuestion={coachQuestion}
+  setCoachQuestion={setCoachQuestion}
+  coachAnswer={coachAnswer}
+  isCoachLoading={isCoachLoading}
+  askFitCheckAILLM={askFitCheckAILLM}
+/>
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Dashboard</h2>
 
@@ -1449,6 +1207,7 @@ async function parseNaturalLogWithAI() {
               </div></section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <div className="grid gap-6 xl:grid-cols-2"></div>
               <h2 className="text-2xl font-semibold">Weight Trend Chart</h2>
 
               {chartData.length === 0 ? (
@@ -1473,31 +1232,32 @@ async function parseNaturalLogWithAI() {
                   </ResponsiveContainer>
                 </div>
               )}
+              <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
+
+              {chartData.length === 0 ? (
+                <p className="mt-4 text-slate-500">
+                  No logs yet. Add your first log.
+                </p>
+              ) : (
+                <div className="mt-5 h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="steps"
+                        strokeWidth={3}
+                        dot
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </section>
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-  <h2 className="text-2xl font-semibold">
-    AI Weekly Report Generator
-  </h2>
-
-  <p className="mt-2 text-sm text-slate-500">
-    Generates a full AI-powered weekly coaching report
-    using your fitness data.
-  </p>
-
-  <button
-    onClick={generateAIWeeklyReport}
-    disabled={isWeeklyReportLoading}
-    className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
-  >
-    {isWeeklyReportLoading
-      ? "Generating..."
-      : "Generate AI Weekly Report"}
-  </button>
-
-  <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
-    {aiWeeklyReport}
-  </div>
-</section>
+            
 <section className="rounded-3xl bg-white p-6 shadow-sm">
   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
     <div>
@@ -1647,80 +1407,10 @@ async function parseNaturalLogWithAI() {
 />
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
-
-              {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">
-                  No logs yet. Add your first log.
-                </p>
-              ) : (
-                <div className="mt-5 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="steps"
-                        strokeWidth={3}
-                        dot
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">AI Coach Report</h2>
-
-              <div className="mt-4 space-y-3 text-slate-700">
-                <p>
-                  You are currently <strong>{goal.toLowerCase()}</strong>. Your
-                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>
-                  {logs.length > 0 && (
-                    <>
-                      , and your 7-day average is{" "}
-                      <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
-                    </>
-                  )}
-                  .
-                </p>
-
-                <p>
-                  Your goal is <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
-                  <strong>{goalDate}</strong>. Based on your 7-day average, you
-                  are currently{" "}
-                  <strong>{poundsRemaining.toFixed(1)} lbs</strong> away from
-                  your goal.
-                </p>
-
-                <p>
-                  Your current pace is about{" "}
-                  <strong>{currentPace.toFixed(1)} lbs/week</strong>. Projected
-                  goal date: <strong>{projectedGoalDateText}</strong>.
-                </p>
-
-                <p>
-                  Latest workout included{" "}
-                  <strong>{latestWorkoutExercises.length}</strong> logged
-                  exercises.
-                </p>
-
-                <p>
-                  Goal status: <strong>{goalStatus}</strong>
-                </p>
-
-                <p>
-                  Plateau status: <strong>{plateauStatus}</strong>
-                </p>
-
-                <p>
-                  AI confidence score: <strong>{confidenceScore}%</strong>
-                </p>
-              </div>
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -1867,16 +1557,6 @@ async function parseNaturalLogWithAI() {
             </section>
 
 
-            <AskAICard
-  coachQuestion={coachQuestion}
-  setCoachQuestion={setCoachQuestion}
-  coachAnswer={coachAnswer}
-  isCoachLoading={isCoachLoading}
-  askFitCheckAI={askFitCheckAI}
-  askFitCheckAILLM={askFitCheckAILLM}
-/>
-
-
             <AIWeeklyReportCard
   aiWeeklyReport={aiWeeklyReport}
   isWeeklyReportLoading={isWeeklyReportLoading}
@@ -1889,57 +1569,9 @@ async function parseNaturalLogWithAI() {
             </section>
 
             <section className="grid gap-6 md:grid-cols-2">
-              <section className="rounded-3xl bg-white p-6 shadow-sm">
-                <h2 className="text-xl font-semibold">Agent Checks</h2>
-
-                <ul className="mt-4 space-y-2 text-slate-700">
-                  <li>
-                    Data quality:{" "}
-                    {enoughData ? "✅ Enough logs" : "⚠️ Add more logs"}
-                  </li>
-                  <li>
-                    Protein target:{" "}
-                    {proteinTargetMet ? "✅ Met" : "⚠️ Not met"}
-                  </li>
-                  <li>
-                    Step target: {stepTargetMet ? "✅ Met" : "⚠️ Not met"}
-                  </li>
-                  <li>
-                    Weight trend:{" "}
-                    {weeklyWeightChange < 0
-                      ? "✅ Moving down"
-                      : "⚠️ Flat/increasing"}
-                  </li>
-                  <li>
-                    Goal pace:{" "}
-                    {requiredWeeklyLoss <= 2 ? "✅ Manageable" : "⚠️ Aggressive"}
-                  </li>
-                  <li>
-                    Workout detail:{" "}
-                    {totalExercises > 0
-                      ? "✅ Exercises logged"
-                      : "⚠️ Add exercises"}
-                  </li>
-                  <li>
-  Strength analysis:{" "}
-  {matchingExerciseComparisons.length > 0
-    ? "✅ Available"
-    : "⚠️ Need matching exercise history"}
-</li>
-                </ul>
-              </section>
+              
 
               <section className="rounded-3xl bg-white p-6 shadow-sm">
-                <h2 className="text-xl font-semibold">Current Summary</h2>
-
-                <p className="mt-4 text-slate-700">
-                  You are currently <strong>{goal.toLowerCase()}</strong>. Your
-                  latest weight is <strong>{latestWeight.toFixed(1)} lbs</strong>.
-                  Your goal is <strong>{goalWeight.toFixed(1)} lbs</strong> by{" "}
-                  <strong>{goalDate}</strong>. Day 15 now uses your 7-day
-                  average for forecasting, average-based current pace, a cleaner
-                  dashboard, status badges, and newest logs first.
-                </p>
               </section>
             </section>
 

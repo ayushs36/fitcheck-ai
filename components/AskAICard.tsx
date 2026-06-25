@@ -3,14 +3,12 @@ export function AskAICard({
   setCoachQuestion,
   coachAnswer,
   isCoachLoading,
-  askFitCheckAI,
   askFitCheckAILLM,
 }: {
   coachQuestion: string;
   setCoachQuestion: (value: string) => void;
   coachAnswer: string;
   isCoachLoading: boolean;
-  askFitCheckAI: () => void;
   askFitCheckAILLM: () => void;
 }) {
   return (
@@ -24,10 +22,6 @@ export function AskAICard({
           onChange={(event) => setCoachQuestion(event.target.value)}
           placeholder="Example: Am I on track to reach my goal?"
         />
-
-        <button onClick={askFitCheckAI} className="rounded-2xl bg-slate-200 px-5 py-3 font-semibold">
-          Rule-Based
-        </button>
 
         <button
           onClick={askFitCheckAILLM}
