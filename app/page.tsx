@@ -1407,13 +1407,6 @@ async function generateGoalStrategy() {
 />
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              
-            </section>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-            </section>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Strength Analytics</h2>
 
               <div className="mt-4 space-y-3 text-slate-700">
@@ -1566,13 +1559,6 @@ async function generateGoalStrategy() {
             <section className="rounded-3xl bg-emerald-50 p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Coach Recommendation</h2>
               <p className="mt-3 text-slate-700">{recommendation}</p>
-            </section>
-
-            <section className="grid gap-6 md:grid-cols-2">
-              
-
-              <section className="rounded-3xl bg-white p-6 shadow-sm">
-              </section>
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
