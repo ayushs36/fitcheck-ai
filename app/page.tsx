@@ -41,6 +41,8 @@ import { GoalStrategyCard } from "@/components/GoalStrategyCard";
 
 import { DailyLogCard } from "@/components/DailyLogCard";
 
+import { FitCheckAgentCard } from "@/components/FitCheckAgentCard";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
@@ -71,6 +73,7 @@ export default function Home() {
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedLogMonths, setExpandedLogMonths] = useState<string[]>([]);
   const [coachQuestion, setCoachQuestion] = useState("");
 const [coachAnswer, setCoachAnswer] = useState(
   "Ask FitCheck AI a question..."
@@ -92,6 +95,11 @@ const [historySearch, setHistorySearch] = useState("");
   "Generate an AI goal strategy to get a personalized plan for reaching your target."
 );
 const [isGoalStrategyLoading, setIsGoalStrategyLoading] = useState(false); 
+const [agentReport, setAgentReport] = useState(
+  "Run FitCheck Agent to analyze your latest trends and generate your next action plan."
+);
+
+const [isAgentLoading, setIsAgentLoading] = useState(false);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -157,6 +165,8 @@ useEffect(() => {
 
   const fourteenDayAverage =
     last14Logs.length > 0 ? average(last14Logs.map((log) => log.weight)) : 0;
+    
+    const movingAverageWeight = sevenDayAverage;
 
   const avgCalories = average(last7Logs.map((log) => log.calories));
   const avgProtein = average(last7Logs.map((log) => log.protein));
@@ -383,13 +393,21 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     requiredWeeklyLoss,
   ]);
 
-  const chartData = sortedLogs.map((log) => ({
+  const chartData = sortedLogs.map((log, index) => {
+  const recentLogsForAverage = sortedLogs.slice(Math.max(0, index - 6), index + 1);
+
+  return {
     date: log.date.slice(5),
     weight: log.weight,
+    movingAverage:
+      recentLogsForAverage.length > 0
+        ? average(recentLogsForAverage.map((item) => item.weight))
+        : log.weight,
     calories: log.calories,
     protein: log.protein,
     steps: log.steps,
-  }));
+  };
+});
 
   const totalExercises = sortedLogs.reduce(
     (total, log) => total + log.exercises.length,
@@ -1030,7 +1048,6 @@ async function generateGoalStrategy() {
     );
     return;
   }
-
   setIsGoalStrategyLoading(true);
   setGoalStrategy("FitCheck AI is generating your goal strategy...");
 
@@ -1099,6 +1116,102 @@ async function generateGoalStrategy() {
     setIsGoalStrategyLoading(false);
   }
 }
+async function runFitCheckAgent() {
+  if (logs.length < 7) {
+    setAgentReport(
+      "You need at least 7 saved logs before FitCheck Agent can analyze your data."
+    );
+    return;
+  }
+
+  setIsAgentLoading(true);
+  setAgentReport("FitCheck Agent is reviewing your progress...");
+
+  const agentContext = {
+    goal,
+    latestWeight,
+    movingAverageWeight,
+    sevenDayAverage,
+    fourteenDayAverage,
+    goalWeight,
+    goalDate,
+    poundsRemaining,
+    currentPace,
+    requiredWeeklyLoss,
+    goalStatus,
+    plateauStatus,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    strengthStatus,
+    strengthInsight,
+    maintenanceEstimate,
+    goalFeasibility,
+    logsCount: logs.length,
+  };
+
+  try {
+    const response = await fetch("/api/fitcheck-ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question:
+          "Act as FitCheck Agent. Review the user's fitness data and return a structured coaching plan with: Current Status, Biggest Risk, Next 7-Day Action, Calorie Target, Protein Target, Step Target, Training Focus, and Confidence Level.",
+        context: agentContext,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to run FitCheck Agent.");
+    }
+
+    const answer = data.answer || "No agent report was generated.";
+
+    setAgentReport(answer);
+    saveAIConversation("Ask AI", "Run FitCheck Agent", answer);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown agent error.";
+
+    setAgentReport(`FitCheck Agent failed: ${message}`);
+  } finally {
+    setIsAgentLoading(false);
+  }
+}
+const groupedLogs = useMemo(() => {
+  const groups: Record<string, LogEntry[]> = {};
+
+  [...sortedLogs].reverse().forEach((log) => {
+    const date = new Date(`${log.date}T00:00:00`);
+    const monthYear = date.toLocaleString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+
+    if (!groups[monthYear]) {
+      groups[monthYear] = [];
+    }
+
+    groups[monthYear].push(log);
+  });
+
+  return Object.entries(groups).map(([monthYear, monthLogs]) => ({
+    monthYear,
+    logs: monthLogs,
+  }));
+}, [sortedLogs]);
+
+function toggleLogMonth(monthYear: string) {
+  setExpandedLogMonths((current) =>
+    current.includes(monthYear)
+      ? current.filter((item) => item !== monthYear)
+      : [...current, monthYear]
+  );
+}
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-6">
       <div className="mx-auto max-w-7xl">
@@ -1138,6 +1251,12 @@ async function generateGoalStrategy() {
 
 
           <section className="space-y-6 lg:col-span-2">
+<FitCheckAgentCard
+  agentReport={agentReport}
+  isAgentLoading={isAgentLoading}
+  runFitCheckAgent={runFitCheckAgent}
+/>
+            
             <AskAICard
   coachQuestion={coachQuestion}
   setCoachQuestion={setCoachQuestion}
@@ -1145,11 +1264,12 @@ async function generateGoalStrategy() {
   isCoachLoading={isCoachLoading}
   askFitCheckAILLM={askFitCheckAILLM}
 />
+
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Dashboard</h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Day 15: Cleaned-up dashboard with the most useful progress,
+                Cleaned-up dashboard with the most useful progress,
                 goal, plateau, and strength signals.
               </p>
 
@@ -1182,9 +1302,13 @@ async function generateGoalStrategy() {
                   value={`${poundsRemaining.toFixed(1)} lbs`}
                 />
                 <Stat
-                  label="Current Pace"
-                  value={`${currentPace.toFixed(1)} lbs/week`}
-                />
+  label="Moving Average Weight"
+  value={
+    logs.length >= 7
+      ? `${movingAverageWeight.toFixed(1)} lbs`
+      : "Need 7 logs"
+  }
+/>
                 <Stat
                   label="Required Weekly Loss"
                   value={`${requiredWeeklyLoss.toFixed(1)} lbs/week`}
@@ -1228,6 +1352,12 @@ async function generateGoalStrategy() {
                         strokeWidth={3}
                         dot
                       />
+                      <Line
+  type="monotone"
+  dataKey="movingAverage"
+  strokeWidth={3}
+  dot={false}
+/>
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -1263,7 +1393,7 @@ async function generateGoalStrategy() {
     <div>
       <h2 className="text-2xl font-semibold">AI Coaching History</h2>
       <p className="mt-2 text-sm text-slate-500">
-        Day 23: Click a saved conversation to view the full question and answer.
+        Click a saved conversation to view the full question and answer.
       </p>
       <p className="mt-1 text-sm text-slate-500">
         {aiHistory.length} saved conversation{aiHistory.length === 1 ? "" : "s"}
@@ -1463,7 +1593,7 @@ async function generateGoalStrategy() {
               <h2 className="text-2xl font-semibold">Goal Feasibility Agent</h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Day 13: Evaluates whether your goal is realistic using your
+                Evaluates whether your goal is realistic using your
                 7-day average weight, average-based pace, required pace, and
                 deadline.
               </p>
@@ -1514,8 +1644,8 @@ async function generateGoalStrategy() {
               <h2 className="text-2xl font-semibold">Weekly AI Review</h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Day 14: Summarizes your week and gives one focused action for
-                next week. Day 15 improves the wording and uses average-based
+                Summarizes your week and gives one focused action for
+                next week. Improves the wording and uses average-based
                 pace.
               </p>
 
@@ -1562,70 +1692,100 @@ async function generateGoalStrategy() {
             </section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Recent Logs</h2>
+              <section className="rounded-3xl bg-white p-6 shadow-sm">
+  <h2 className="text-2xl font-semibold">Recent Logs</h2>
 
-              <div className="mt-5 overflow-x-auto">
-                {sortedLogs.length === 0 ? (
-                  <p className="text-slate-500">No logs yet.</p>
-                ) : (
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b text-slate-500">
-                        <th className="p-2">Date</th>
-                        <th className="p-2">Weight</th>
-                        <th className="p-2">Calories</th>
-                        <th className="p-2">Protein</th>
-                        <th className="p-2">Steps</th>
-                        <th className="p-2">Workout</th>
-                        <th className="p-2">Exercises</th>
-                        <th className="p-2">Actions</th>
-                      </tr>
-                    </thead>
+  <div className="mt-5 space-y-4">
+    {groupedLogs.length === 0 ? (
+      <p className="text-slate-500">No logs yet.</p>
+    ) : (
+      groupedLogs.map((group) => {
+        const isExpanded = expandedLogMonths.includes(group.monthYear);
 
-                    <tbody>
-                      {[...sortedLogs].reverse().map((log) => (
-                        <tr key={log.id} className="border-b align-top">
-                          <td className="p-2">{log.date}</td>
-                          <td className="p-2">{log.weight}</td>
-                          <td className="p-2">{log.calories}</td>
-                          <td className="p-2">{log.protein}g</td>
-                          <td className="p-2">{log.steps}</td>
-                          <td className="p-2">{log.workout || "—"}</td>
-                          <td className="p-2">
-                            {log.exercises.length === 0 ? (
-                              "—"
-                            ) : (
-                              <ul className="space-y-1">
-                                {log.exercises.map((item) => (
-                                  <li key={item.id}>
-                                    {item.name}: {item.sets}x{item.reps} @{" "}
-                                    {item.weight} lbs
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </td>
-                          <td className="flex gap-2 p-2">
-                            <button
-                              onClick={() => editLog(log)}
-                              className="rounded-lg bg-slate-200 px-3 py-1"
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              onClick={() => deleteLog(log.id)}
-                              className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+        return (
+          <div key={group.monthYear} className="rounded-2xl bg-slate-100 p-4">
+            <button
+              onClick={() => toggleLogMonth(group.monthYear)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <div>
+                <p className="text-lg font-semibold">{group.monthYear}</p>
+                <p className="text-sm text-slate-500">
+                  {group.logs.length} log{group.logs.length === 1 ? "" : "s"}
+                </p>
               </div>
+
+              <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold">
+                {isExpanded ? "Hide" : "View"}
+              </span>
+            </button>
+
+            {isExpanded && (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b text-slate-500">
+                      <th className="p-2">Date</th>
+                      <th className="p-2">Weight</th>
+                      <th className="p-2">Calories</th>
+                      <th className="p-2">Protein</th>
+                      <th className="p-2">Steps</th>
+                      <th className="p-2">Workout</th>
+                      <th className="p-2">Exercises</th>
+                      <th className="p-2">Actions</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {group.logs.map((log) => (
+                      <tr key={log.id} className="border-b align-top">
+                        <td className="p-2">{log.date}</td>
+                        <td className="p-2">{log.weight}</td>
+                        <td className="p-2">{log.calories}</td>
+                        <td className="p-2">{log.protein}g</td>
+                        <td className="p-2">{log.steps}</td>
+                        <td className="p-2">{log.workout || "—"}</td>
+                        <td className="p-2">
+                          {log.exercises.length === 0 ? (
+                            "—"
+                          ) : (
+                            <ul className="space-y-1">
+                              {log.exercises.map((item) => (
+                                <li key={item.id}>
+                                  {item.name}: {item.sets}x{item.reps} @{" "}
+                                  {item.weight} lbs
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                        <td className="flex gap-2 p-2">
+                          <button
+                            onClick={() => editLog(log)}
+                            className="rounded-lg bg-slate-200 px-3 py-1"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => deleteLog(log.id)}
+                            className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })
+    )}
+  </div>
+</section>
             </section>
           </section>
         </section>
