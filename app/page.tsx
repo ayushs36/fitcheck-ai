@@ -399,11 +399,13 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 
   return {
     date: log.date.slice(5),
-    weight: log.weight,
+    weight: Number(log.weight.toFixed(1)),
     movingAverage:
-      recentLogsForAverage.length > 0
-        ? average(recentLogsForAverage.map((item) => item.weight))
-        : log.weight,
+  recentLogsForAverage.length > 0
+    ? Number(
+        average(recentLogsForAverage.map((item) => item.weight)).toFixed(1)
+      )
+    : Number(log.weight.toFixed(1)),
     calories: log.calories,
     protein: log.protein,
     steps: log.steps,
