@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  Legend,
 } from "recharts";
 
 import type {
@@ -160,26 +161,24 @@ useEffect(() => {
   const latestLog = sortedLogs[sortedLogs.length - 1];
   const latestWeight = latestLog?.weight ?? 0;
 
-  const sevenDayAverage =
-    last7Logs.length > 0 ? average(last7Logs.map((log) => log.weight)) : 0;
+  const movingAverage =
+  last7Logs.length > 0 ? average(last7Logs.map((log) => log.weight)) : 0;
 
-  const fourteenDayAverage =
-    last14Logs.length > 0 ? average(last14Logs.map((log) => log.weight)) : 0;
-    
-    const movingAverageWeight = sevenDayAverage;
+const fourteenDayAverage =
+  last14Logs.length > 0 ? average(last14Logs.map((log) => log.weight)) : 0;
 
   const avgCalories = average(last7Logs.map((log) => log.calories));
   const avgProtein = average(last7Logs.map((log) => log.protein));
   const avgSteps = average(last7Logs.map((log) => log.steps));
 
-  const plateauDifference = Math.abs(sevenDayAverage - fourteenDayAverage);
+  const plateauDifference = Math.abs(movingAverage - fourteenDayAverage);
 
   let plateauStatus = "Need more data";
 
   if (logs.length >= 14) {
     if (plateauDifference <= 0.3) {
       plateauStatus = "Potential plateau detected";
-    } else if (sevenDayAverage < fourteenDayAverage) {
+    } else if (movingAverage < fourteenDayAverage) {
       plateauStatus = "Progress trending down";
     } else {
       plateauStatus = "Weight trending up";
@@ -205,7 +204,7 @@ useEffect(() => {
     last7Logs.length >= 2 ? latestWeight - first7Weight : 0;
 
   const effectiveWeight =
-    sevenDayAverage > 0 ? sevenDayAverage : latestWeight;
+    movingAverage > 0 ? movingAverage : latestWeight;
 
   const poundsToGoal = effectiveWeight - goalWeight;
 
@@ -394,7 +393,10 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
   ]);
 
   const chartData = sortedLogs.map((log, index) => {
-  const recentLogsForAverage = sortedLogs.slice(Math.max(0, index - 6), index + 1);
+  const recentLogsForAverage = sortedLogs.slice(
+    Math.max(0, index - 6),
+    index + 1
+  );
 
   return {
     date: log.date.slice(5),
@@ -607,7 +609,7 @@ if (strengthStatus === "Strength/performance improving") {
 
   const weeklyReport = `
 Goal: ${goal}
-7-Day Average Weight: ${sevenDayAverage.toFixed(1)} lbs
+7-Day Average Weight: ${movingAverage.toFixed(1)} lbs
 14-Day Average Weight: ${fourteenDayAverage.toFixed(1)} lbs
 Goal Weight: ${goalWeight.toFixed(1)} lbs
 Pounds to Goal: ${poundsToGoal.toFixed(1)} lbs
@@ -782,7 +784,7 @@ const filteredAIHistory = aiHistory.filter((item) => {
       question.includes("stalled")
     ) {
       setCoachAnswer(
-        `Your plateau status is: ${plateauStatus}. Your 7-day average is ${sevenDayAverage.toFixed(
+        `Your plateau status is: ${plateauStatus}. Your 7-day average is ${movingAverage.toFixed(
           1
         )} lbs and your 14-day average is ${fourteenDayAverage.toFixed(
           1
@@ -897,7 +899,7 @@ async function askFitCheckAILLM() {
     latestWeight,
     effectiveWeight,
     maintenanceEstimate,
-    sevenDayAverage,
+    movingAverage,
     fourteenDayAverage,
     goalWeight,
     goalDate,
@@ -977,7 +979,7 @@ async function generateAIWeeklyReport() {
     goal,
     latestWeight,
     effectiveWeight,
-    sevenDayAverage,
+    movingAverage,
     fourteenDayAverage,
     maintenanceEstimate,
     goalWeight,
@@ -1055,7 +1057,7 @@ async function generateGoalStrategy() {
     goal,
     latestWeight,
     effectiveWeight,
-    sevenDayAverage,
+    movingAverage,
     fourteenDayAverage,
     goalWeight,
     goalDate,
@@ -1130,8 +1132,7 @@ async function runFitCheckAgent() {
   const agentContext = {
     goal,
     latestWeight,
-    movingAverageWeight,
-    sevenDayAverage,
+    movingAverage,
     fourteenDayAverage,
     goalWeight,
     goalDate,
@@ -1288,12 +1289,6 @@ function toggleLogMonth(monthYear: string) {
                   value={`${latestWeight.toFixed(1)} lbs`}
                 />
                 <Stat
-                  label="7-Day Average"
-                  value={
-                    logs.length ? `${sevenDayAverage.toFixed(1)} lbs` : "No logs"
-                  }
-                />
-                <Stat
                   label="Goal Weight"
                   value={`${goalWeight.toFixed(1)} lbs`}
                 />
@@ -1302,10 +1297,10 @@ function toggleLogMonth(monthYear: string) {
                   value={`${poundsRemaining.toFixed(1)} lbs`}
                 />
                 <Stat
-  label="Moving Average Weight"
+  label="7-Day Moving Average"
   value={
     logs.length >= 7
-      ? `${movingAverageWeight.toFixed(1)} lbs`
+      ? `${movingAverage.toFixed(1)} lbs`
       : "Need 7 logs"
   }
 />
@@ -1332,12 +1327,10 @@ function toggleLogMonth(monthYear: string) {
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <div className="grid gap-6 xl:grid-cols-2"></div>
-              <h2 className="text-2xl font-semibold">Weight Trend Chart</h2>
-
-              {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">
-                  No logs yet. Add your first log.
-                </p>
+              <h2 className="text-2xl font-semibold">Weight Trend</h2>
+<p className="mt-2 text-sm text-slate-500">
+  Daily scale weight with a smoothed 7-day moving average.
+</p>
               ) : (
                 <div className="mt-5 h-72">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1361,7 +1354,7 @@ function toggleLogMonth(monthYear: string) {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              )}
+              )
               <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
 
               {chartData.length === 0 ? (
@@ -1372,17 +1365,28 @@ function toggleLogMonth(monthYear: string) {
                 <div className="mt-5 h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="steps"
-                        strokeWidth={3}
-                        dot
-                      />
-                    </LineChart>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="date" />
+  <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
+  <Tooltip />
+  <Legend />
+
+  <Line
+    type="monotone"
+    dataKey="weight"
+    name="Daily Weight"
+    strokeWidth={2}
+    dot={{ r: 3 }}
+  />
+
+  <Line
+    type="monotone"
+    dataKey="movingAverage"
+    name="7-Day Moving Average"
+    strokeWidth={4}
+    dot={false}
+  />
+</LineChart>
                   </ResponsiveContainer>
                 </div>
               )}
@@ -1568,7 +1572,7 @@ function toggleLogMonth(monthYear: string) {
               <div className="mt-4 space-y-3 text-slate-700">
                 <p>
                   7-day average:{" "}
-                  <strong>{sevenDayAverage.toFixed(1)} lbs</strong>
+                  <strong>{movingAverage.toFixed(1)} lbs</strong>
                 </p>
 
                 <p>
