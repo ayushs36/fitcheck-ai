@@ -1336,31 +1336,32 @@ function toggleLogMonth(monthYear: string) {
     {chartData.length === 0 ? (
       <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
     ) : (
-      <div className="mt-5 h-72">
+      <div className="mt-5 h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
+            <XAxis dataKey="date" interval="preserveStartEnd" />
             <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
             <Tooltip />
             <Legend />
-
             <Line
-              type="monotone"
-              dataKey="weight"
-              name="Daily Weight"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
-            />
+  type="monotone"
+  dataKey="weight"
+  name="Daily Weight"
+  strokeWidth={1}
+  dot={false}
+  activeDot={{ r: 4 }}
+/>
 
-            <Line
-              type="monotone"
-              dataKey="movingAverage"
-              name="7-Day Moving Average"
-              strokeWidth={4}
-              dot={false}
-            />
+<Line
+  type="monotone"
+  dataKey="movingAverage"
+  name="7-Day Moving Average"
+  strokeWidth={4}
+  dot={false}
+/>
+
+            
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -1392,7 +1393,7 @@ function toggleLogMonth(monthYear: string) {
                 "Daily Steps",
               ]}
             />
-            <Legend />
+            <Legend verticalAlign="top" height={36} />
 
             <Line
               type="monotone"
