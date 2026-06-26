@@ -9,7 +9,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
 } from "recharts";
 
 import type {
@@ -1343,7 +1342,6 @@ function toggleLogMonth(monthYear: string) {
             <XAxis dataKey="date" interval="preserveStartEnd" />
             <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
             <Tooltip />
-            <Legend />
             <Line
   type="monotone"
   dataKey="weight"
@@ -1393,7 +1391,6 @@ function toggleLogMonth(monthYear: string) {
                 "Daily Steps",
               ]}
             />
-            <Legend verticalAlign="top" height={36} />
 
             <Line
               type="monotone"
