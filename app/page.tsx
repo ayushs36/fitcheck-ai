@@ -1325,73 +1325,89 @@ function toggleLogMonth(monthYear: string) {
                 <StatusBadge label="Strength" value={strengthStatus} />
               </div></section>
 
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <div className="grid gap-6 xl:grid-cols-2"></div>
-              <h2 className="text-2xl font-semibold">Weight Trend</h2>
-<p className="mt-2 text-sm text-slate-500">
-  Daily scale weight with a smoothed 7-day moving average.
-</p>
-              ) : (
-                <div className="mt-5 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="weight"
-                        strokeWidth={3}
-                        dot
-                      />
-                      <Line
-  type="monotone"
-  dataKey="movingAverage"
-  strokeWidth={3}
-  dot={false}
-/>
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )
-              <h2 className="text-2xl font-semibold">Steps Trend Chart</h2>
+<div className="grid gap-6 xl:grid-cols-2">
+  <section className="rounded-3xl bg-white p-6 shadow-sm">
+    <h2 className="text-2xl font-semibold">Weight Trend</h2>
 
-              {chartData.length === 0 ? (
-                <p className="mt-4 text-slate-500">
-                  No logs yet. Add your first log.
-                </p>
-              ) : (
-                <div className="mt-5 h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-  <CartesianGrid strokeDasharray="3 3" />
-  <XAxis dataKey="date" />
-  <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
-  <Tooltip />
-  <Legend />
+    <p className="mt-2 text-sm text-slate-500">
+      Daily scale weight with a smoothed 7-day moving average.
+    </p>
 
-  <Line
-    type="monotone"
-    dataKey="weight"
-    name="Daily Weight"
-    strokeWidth={2}
-    dot={{ r: 3 }}
-  />
+    {chartData.length === 0 ? (
+      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    ) : (
+      <div className="mt-5 h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis domain={["dataMin - 2", "dataMax + 2"]} />
+            <Tooltip />
+            <Legend />
 
-  <Line
-    type="monotone"
-    dataKey="movingAverage"
-    name="7-Day Moving Average"
-    strokeWidth={4}
-    dot={false}
-  />
-</LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </section>
-            
+            <Line
+              type="monotone"
+              dataKey="weight"
+              name="Daily Weight"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="movingAverage"
+              name="7-Day Moving Average"
+              strokeWidth={4}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    )}
+  </section>
+
+  <section className="rounded-3xl bg-white p-6 shadow-sm">
+    <h2 className="text-2xl font-semibold">Steps Trend</h2>
+
+    <p className="mt-2 text-sm text-slate-500">
+      Daily step count across your saved logs.
+    </p>
+
+    {chartData.length === 0 ? (
+      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    ) : (
+      <div className="mt-5 h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" />
+            <YAxis
+              domain={[0, "auto"]}
+              tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
+            />
+            <Tooltip
+              formatter={(value) => [
+                `${Number(value).toLocaleString()} steps`,
+                "Daily Steps",
+              ]}
+            />
+            <Legend />
+
+            <Line
+              type="monotone"
+              dataKey="steps"
+              name="Daily Steps"
+              strokeWidth={3}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    )}
+  </section>
+</div>
 <section className="rounded-3xl bg-white p-6 shadow-sm">
   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
     <div>
