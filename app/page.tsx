@@ -254,7 +254,11 @@ const fourteenDayAverage =
 
 const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
       const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
-  if (logs.length < 14 || avgCalories <= 0) {
+  const validLogs = sortedLogs.filter(
+    (log) => log.weight > 0 && log.calories > 0
+  );
+
+  if (validLogs.length < 14) {
     return {
       estimatedMaintenance: 0,
       fatLossCaloriesOnePound: 0,
@@ -262,19 +266,33 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
       fatLossCaloriesTwoPounds: 0,
       confidence: "Low",
       explanation:
-        "Log at least 14 days with calorie and weight data to estimate maintenance calories.",
+        "Log at least 14 days with weight and calories to estimate maintenance calories.",
     };
   }
 
-  const dailyDeficit = -weeklyAverageChange * 500;
+  const recentLogs = validLogs.slice(-14);
 
-  const estimatedMaintenance = avgCalories + dailyDeficit;
+  const averageCalories = average(recentLogs.map((log) => log.calories));
+
+  const first7Logs = recentLogs.slice(0, 7);
+  const last7LogsForMaintenance = recentLogs.slice(7);
+
+  const first7Average = average(first7Logs.map((log) => log.weight));
+  const last7Average = average(
+    last7LogsForMaintenance.map((log) => log.weight)
+  );
+
+  const weeklyWeightChange = last7Average - first7Average;
+
+  const estimatedDailyDeficit = -weeklyWeightChange * 500;
+
+  const estimatedMaintenance = averageCalories + estimatedDailyDeficit;
 
   let confidence: MaintenanceEstimate["confidence"] = "Medium";
 
-  if (logs.length >= 21) {
+  if (validLogs.length >= 28) {
     confidence = "High";
-  } else if (logs.length < 14) {
+  } else if (validLogs.length < 21) {
     confidence = "Low";
   }
 
@@ -284,15 +302,19 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
     fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
     confidence,
-    explanation: `Based on your average intake of ${avgCalories.toFixed(
+    explanation: `Based on your last 14 valid logs, your average intake is ${averageCalories.toFixed(
       0
-    )} calories/day and a recent weekly weight change of ${weeklyAverageChange.toFixed(
+    )} calories/day. Your first 7-day average weight was ${first7Average.toFixed(
       1
-    )} lbs/week, your estimated maintenance is approximately ${estimatedMaintenance.toFixed(
+    )} lbs and your most recent 7-day average weight is ${last7Average.toFixed(
+      1
+    )} lbs. This suggests a weekly weight change of ${weeklyWeightChange.toFixed(
+      1
+    )} lbs/week and an estimated maintenance of about ${estimatedMaintenance.toFixed(
       0
     )} calories/day.`,
   };
-}, [logs.length, avgCalories, weeklyAverageChange]);
+}, [sortedLogs]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
@@ -1160,7 +1182,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-          "Act as FitCheck Agent. Review the user's fitness data and return a structured coaching plan with: Current Status, Biggest Risk, Next 7-Day Action, Calorie Target, Protein Target, Step Target, Training Focus, and Confidence Level.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, and maintenance estimate. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1497,8 +1519,9 @@ function toggleLogMonth(monthYear: string) {
   </h2>
 
   <p className="mt-2 text-sm text-slate-500">
-    Estimates maintenance calories using your calorie intake and actual rate of weight loss.
-  </p>
+  Estimates maintenance using your recent calorie intake and the change between
+  your previous and current 7-day moving average weight.
+</p>
 
   <div className="mt-5 grid gap-4 md:grid-cols-2">
     <Stat

@@ -12,15 +12,16 @@ export function FitCheckAgentCard({
       <h2 className="text-2xl font-semibold">FitCheck Agent</h2>
 
       <p className="mt-2 text-sm text-slate-500">
-        Runs a full AI review of your current progress and creates your next action plan.
-      </p>
+  Runs an autonomous coaching check using your logs, moving average trend,
+  nutrition, activity, strength data, and goal timeline.
+</p>
 
       <button
         onClick={runFitCheckAgent}
         disabled={isAgentLoading}
         className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
       >
-        {isAgentLoading ? "Running Agent..." : "Run FitCheck Agent"}
+        {isAgentLoading ? "Running Agent..." : "Run Agent Check"}
       </button>
 
       <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
