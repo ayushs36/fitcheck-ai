@@ -18,6 +18,7 @@ import type {
   GoalFeasibility,
   AIConversation,
   MaintenanceEstimate,
+  AgentCheck,
 } from "@/types/fitness";
 import {
   calculateExerciseVolume,
@@ -43,9 +44,12 @@ import { DailyLogCard } from "@/components/DailyLogCard";
 
 import { FitCheckAgentCard } from "@/components/FitCheckAgentCard";
 
+import { AgentHistoryCard } from "@/components/AgentHistoryCard";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
+const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
 
 export default function Home() {
   const [goal, setGoal] = useState<Goal>("Cutting");
@@ -100,6 +104,9 @@ const [agentReport, setAgentReport] = useState(
 );
 
 const [isAgentLoading, setIsAgentLoading] = useState(false);
+const [agentHistory, setAgentHistory] = useState<AgentCheck[]>([]);
+const [expandedAgentCheckId, setExpandedAgentCheckId] =
+  useState<string | null>(null);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -133,6 +140,16 @@ useEffect(() => {
 useEffect(() => {
   localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory));
 }, [aiHistory]);
+useEffect(() => {
+  const savedAgentHistory = localStorage.getItem(AGENT_HISTORY_KEY);
+
+  if (savedAgentHistory) {
+    setAgentHistory(JSON.parse(savedAgentHistory));
+  }
+}, []);
+useEffect(() => {
+  localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(agentHistory));
+}, [agentHistory]);
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
@@ -777,6 +794,53 @@ function saveAIConversation(
 function clearAIHistory() {
   setAiHistory([]);
 }
+
+function getAgentSection(response: string, label: string) {
+  const sections = [
+    "Overall Status",
+    "Biggest Risk",
+    "Evidence",
+    "Calorie Target",
+    "Protein Target",
+    "Step Target",
+    "Training Focus",
+    "Next 7-Day Action Plan",
+    "Confidence Level",
+  ];
+  const escapedSections = sections
+    .map((section) => section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const regex = new RegExp(
+    `${label}:?\\s*([\\s\\S]*?)(?=\\n\\s*(?:${escapedSections}):|$)`,
+    "i"
+  );
+  const match = response.match(regex);
+  const value = match?.[1]
+    ?.replace(/^[-*]\s*/, "")
+    .replace(/\n+/g, " ")
+    .trim();
+
+  return value || "Not specified";
+}
+
+function saveAgentCheck(fullResponse: string) {
+  const newAgentCheck: AgentCheck = {
+    id: crypto.randomUUID(),
+    date: new Date().toLocaleString(),
+    status: getAgentSection(fullResponse, "Overall Status"),
+    biggestRisk: getAgentSection(fullResponse, "Biggest Risk"),
+    recommendation: getAgentSection(fullResponse, "Next 7-Day Action Plan"),
+    confidence: getAgentSection(fullResponse, "Confidence Level"),
+    fullResponse,
+  };
+
+  setAgentHistory((current) => [newAgentCheck, ...current]);
+}
+
+function clearAgentHistory() {
+  setAgentHistory([]);
+  setExpandedAgentCheckId(null);
+}
 const filteredAIHistory = aiHistory.filter((item) => {
   const search = historySearch.toLowerCase();
 
@@ -1196,6 +1260,7 @@ async function runFitCheckAgent() {
     const answer = data.answer || "No agent report was generated.";
 
     setAgentReport(answer);
+    saveAgentCheck(answer);
     saveAIConversation("Ask AI", "Run FitCheck Agent", answer);
   } catch (error) {
     const message =
@@ -1279,6 +1344,13 @@ function toggleLogMonth(monthYear: string) {
   agentReport={agentReport}
   isAgentLoading={isAgentLoading}
   runFitCheckAgent={runFitCheckAgent}
+/>
+
+<AgentHistoryCard
+  agentHistory={agentHistory}
+  expandedAgentCheckId={expandedAgentCheckId}
+  setExpandedAgentCheckId={setExpandedAgentCheckId}
+  clearAgentHistory={clearAgentHistory}
 />
             
             <AskAICard

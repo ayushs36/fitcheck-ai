@@ -40,6 +40,16 @@ export type AIConversation = {
   createdAt: string;
 };
 
+export type AgentCheck = {
+  id: string;
+  date: string;
+  status: string;
+  biggestRisk: string;
+  recommendation: string;
+  confidence: string;
+  fullResponse: string;
+};
+
 export type MaintenanceEstimate = {
   estimatedMaintenance: number;
   fatLossCaloriesOnePound: number;
