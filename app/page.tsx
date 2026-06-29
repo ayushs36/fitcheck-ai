@@ -25,6 +25,7 @@ import {
   addDays,
   formatDate,
 } from "@/lib/calculations";
+import { getAgentDecision } from "@/lib/agentDecision";
 
 import { Stat } from "@/components/Stat";
 
@@ -686,6 +687,21 @@ AI Confidence Score: ${confidenceScore}%
     plateauStatus,
   });
 
+  const agentDecision = getAgentDecision({
+    goal,
+    logsCount: logs.length,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    currentPace,
+    requiredWeeklyLoss,
+    plateauStatus,
+    strengthStatus,
+    goalStatus,
+    goalFeasibility,
+    maintenanceEstimate,
+  });
+
   function resetEntry() {
     setEntry({
       id: crypto.randomUUID(),
@@ -1235,6 +1251,7 @@ async function runFitCheckAgent() {
     strengthInsight,
     maintenanceEstimate,
     goalFeasibility,
+    agentDecision,
     logsCount: logs.length,
   };
 
@@ -1246,7 +1263,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, and maintenance estimate. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If you disagree with it, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1344,6 +1361,7 @@ function toggleLogMonth(monthYear: string) {
   agentReport={agentReport}
   isAgentLoading={isAgentLoading}
   runFitCheckAgent={runFitCheckAgent}
+  agentDecision={agentDecision}
 />
 
 <AgentHistoryCard

@@ -50,6 +50,26 @@ export type AgentCheck = {
   fullResponse: string;
 };
 
+export type AgentDecisionAction =
+  | "Hold calories"
+  | "Reduce calories"
+  | "Increase steps"
+  | "Improve protein"
+  | "Focus recovery"
+  | "Adjust goal timeline";
+
+export type AgentDecision = {
+  action: AgentDecisionAction;
+  priority: string;
+  rationale: string;
+  calorieGuidance: string;
+  proteinGuidance: string;
+  stepGuidance: string;
+  recoveryGuidance: string;
+  timelineGuidance: string;
+  confidence: "Low" | "Medium" | "High";
+};
+
 export type MaintenanceEstimate = {
   estimatedMaintenance: number;
   fatLossCaloriesOnePound: number;
