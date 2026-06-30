@@ -47,6 +47,8 @@ import { FitCheckAgentCard } from "@/components/FitCheckAgentCard";
 
 import { AgentHistoryCard } from "@/components/AgentHistoryCard";
 
+import { AgentDashboardCard } from "@/components/AgentDashboardCard";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
@@ -92,10 +94,6 @@ const [aiWeeklyReport, setAiWeeklyReport] = useState(
 const [isWeeklyReportLoading, setIsWeeklyReportLoading] =
   useState(false);
   const [aiHistory, setAiHistory] = useState<AIConversation[]>([]);
-  const [expandedConversationId, setExpandedConversationId] =
-  useState<string | null>(null);
-
-const [historySearch, setHistorySearch] = useState(""); 
   const [goalStrategy, setGoalStrategy] = useState(
   "Generate an AI goal strategy to get a personalized plan for reaching your target."
 );
@@ -702,6 +700,9 @@ AI Confidence Score: ${confidenceScore}%
     maintenanceEstimate,
   });
 
+  const latestAgentCheck = agentHistory[0];
+  const previousAgentCheck = agentHistory[1];
+
   function resetEntry() {
     setEntry({
       id: crypto.randomUUID(),
@@ -807,15 +808,12 @@ function saveAIConversation(
   setAiHistory((current) => [newConversation, ...current]);
 }
 
-function clearAIHistory() {
-  setAiHistory([]);
-}
-
 function getAgentSection(response: string, label: string) {
   const sections = [
     "Overall Status",
     "Biggest Risk",
     "Evidence",
+    "Decision Engine Action",
     "Calorie Target",
     "Protein Target",
     "Step Target",
@@ -826,8 +824,9 @@ function getAgentSection(response: string, label: string) {
   const escapedSections = sections
     .map((section) => section.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("|");
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const regex = new RegExp(
-    `${label}:?\\s*([\\s\\S]*?)(?=\\n\\s*(?:${escapedSections}):|$)`,
+    `(?:^|\\n)\\s*(?:[-*]\\s*)?(?:\\*\\*)?${escapedLabel}(?:\\*\\*)?:?\\s*([\\s\\S]*?)(?=\\n\\s*(?:[-*]\\s*)?(?:\\*\\*)?(?:${escapedSections})(?:\\*\\*)?:|$)`,
     "i"
   );
   const match = response.match(regex);
@@ -840,32 +839,37 @@ function getAgentSection(response: string, label: string) {
 }
 
 function saveAgentCheck(fullResponse: string) {
-  const newAgentCheck: AgentCheck = {
-    id: crypto.randomUUID(),
-    date: new Date().toLocaleString(),
-    status: getAgentSection(fullResponse, "Overall Status"),
-    biggestRisk: getAgentSection(fullResponse, "Biggest Risk"),
-    recommendation: getAgentSection(fullResponse, "Next 7-Day Action Plan"),
-    confidence: getAgentSection(fullResponse, "Confidence Level"),
-    fullResponse,
-  };
+  setAgentHistory((current) => {
+    const currentDecision = agentDecision.action;
+    const previousDecision = current[0]?.decision;
+    const changeSummary = previousDecision
+      ? previousDecision === currentDecision
+        ? "No change. The agent kept the same core recommendation."
+        : `Previous: ${previousDecision}. Current: ${currentDecision}. Change reason: ${agentDecision.rationale}`
+      : "First saved agent recommendation.";
 
-  setAgentHistory((current) => [newAgentCheck, ...current]);
+    const newAgentCheck: AgentCheck = {
+      id: crypto.randomUUID(),
+      date: new Date().toLocaleString(),
+      status: getAgentSection(fullResponse, "Overall Status"),
+      decision: currentDecision,
+      biggestRisk: getAgentSection(fullResponse, "Biggest Risk"),
+      evidence: getAgentSection(fullResponse, "Evidence"),
+      nextAction: getAgentSection(fullResponse, "Next 7-Day Action Plan"),
+      recommendation: getAgentSection(fullResponse, "Next 7-Day Action Plan"),
+      confidence: getAgentSection(fullResponse, "Confidence Level"),
+      changeSummary,
+      fullResponse,
+    };
+
+    return [newAgentCheck, ...current];
+  });
 }
 
 function clearAgentHistory() {
   setAgentHistory([]);
   setExpandedAgentCheckId(null);
 }
-const filteredAIHistory = aiHistory.filter((item) => {
-  const search = historySearch.toLowerCase();
-
-  return (
-    item.question.toLowerCase().includes(search) ||
-    item.answer.toLowerCase().includes(search) ||
-    item.type.toLowerCase().includes(search)
-  );
-});
   function askFitCheckAI() {
     const question = coachQuestion.toLowerCase().trim();
 
@@ -1357,6 +1361,12 @@ function toggleLogMonth(monthYear: string) {
 
 
           <section className="space-y-6 lg:col-span-2">
+<AgentDashboardCard
+  agentDecision={agentDecision}
+  latestAgentCheck={latestAgentCheck}
+  previousAgentCheck={previousAgentCheck}
+/>
+
 <FitCheckAgentCard
   agentReport={agentReport}
   isAgentLoading={isAgentLoading}
@@ -1369,14 +1379,6 @@ function toggleLogMonth(monthYear: string) {
   expandedAgentCheckId={expandedAgentCheckId}
   setExpandedAgentCheckId={setExpandedAgentCheckId}
   clearAgentHistory={clearAgentHistory}
-/>
-            
-            <AskAICard
-  coachQuestion={coachQuestion}
-  setCoachQuestion={setCoachQuestion}
-  coachAnswer={coachAnswer}
-  isCoachLoading={isCoachLoading}
-  askFitCheckAILLM={askFitCheckAILLM}
 />
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -1521,89 +1523,6 @@ function toggleLogMonth(monthYear: string) {
   </section>
 </div>
 <section className="rounded-3xl bg-white p-6 shadow-sm">
-  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    <div>
-      <h2 className="text-2xl font-semibold">AI Coaching History</h2>
-      <p className="mt-2 text-sm text-slate-500">
-        Click a saved conversation to view the full question and answer.
-      </p>
-      <p className="mt-1 text-sm text-slate-500">
-        {aiHistory.length} saved conversation{aiHistory.length === 1 ? "" : "s"}
-      </p>
-    </div>
-
-    {aiHistory.length > 0 && (
-      <button
-        onClick={clearAIHistory}
-        className="rounded-2xl bg-red-100 px-4 py-2 font-semibold text-red-700"
-      >
-        Clear History
-      </button>
-    )}
-  </div>
-
-  <input
-    className="mt-5 w-full rounded-2xl border border-slate-200 p-3"
-    value={historySearch}
-    onChange={(event) => setHistorySearch(event.target.value)}
-    placeholder="Search history by plateau, protein, goal, calories..."
-  />
-
-  <div className="mt-5 space-y-3">
-    {filteredAIHistory.length === 0 ? (
-      <p className="rounded-2xl bg-slate-100 p-4 text-slate-600">
-        No matching AI conversations yet.
-      </p>
-    ) : (
-      filteredAIHistory.map((item) => {
-        const isExpanded = expandedConversationId === item.id;
-
-        return (
-          <div key={item.id} className="rounded-2xl bg-slate-100 p-4">
-            <button
-              onClick={() =>
-                setExpandedConversationId(isExpanded ? null : item.id)
-              }
-              className="w-full text-left"
-            >
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {isExpanded ? "▼" : "▶"} {item.question}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {item.type} • {item.createdAt}
-                  </p>
-                </div>
-
-                <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-600">
-                  {isExpanded ? "Hide" : "View"}
-                </span>
-              </div>
-            </button>
-
-            {isExpanded && (
-              <div className="mt-4 border-t border-slate-200 pt-4">
-                <p className="text-sm font-semibold text-slate-700">
-                  Question
-                </p>
-                <p className="mt-1 text-slate-700">{item.question}</p>
-
-                <p className="mt-4 text-sm font-semibold text-slate-700">
-                  Answer
-                </p>
-                <p className="mt-1 whitespace-pre-wrap text-slate-700">
-                  {item.answer}
-                </p>
-              </div>
-            )}
-          </div>
-        );
-      })
-    )}
-  </div>
-</section>
-<section className="rounded-3xl bg-white p-6 shadow-sm">
   <h2 className="text-2xl font-semibold">
     Maintenance Calorie Estimator
   </h2>
@@ -1667,6 +1586,14 @@ function toggleLogMonth(monthYear: string) {
   goalStrategy={goalStrategy}
   isGoalStrategyLoading={isGoalStrategyLoading}
   generateGoalStrategy={generateGoalStrategy}
+/>
+
+<AskAICard
+  coachQuestion={coachQuestion}
+  setCoachQuestion={setCoachQuestion}
+  coachAnswer={coachAnswer}
+  isCoachLoading={isCoachLoading}
+  askFitCheckAILLM={askFitCheckAILLM}
 />
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">

@@ -44,6 +44,9 @@ export function AgentHistoryCard({
         ) : (
           agentHistory.map((check) => {
             const isExpanded = expandedAgentCheckId === check.id;
+            const decision = check.decision ?? "Not specified";
+            const nextAction = check.nextAction ?? check.recommendation;
+            const evidence = check.evidence ?? "Open full details to review evidence.";
 
             return (
               <div key={check.id} className="rounded-2xl bg-slate-100 p-4">
@@ -56,7 +59,7 @@ export function AgentHistoryCard({
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <p className="font-semibold text-slate-900">
-                        {isExpanded ? "Hide" : "View"} agent check
+                        {isExpanded ? "Hide" : "View"} {decision}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
                         {check.date}
@@ -71,18 +74,29 @@ export function AgentHistoryCard({
 
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
                   <AgentHistoryStat label="Status" value={check.status} />
+                  <AgentHistoryStat label="Decision" value={decision} />
                   <AgentHistoryStat
                     label="Biggest Risk"
                     value={check.biggestRisk}
                   />
                   <AgentHistoryStat
-                    label="Recommendation"
-                    value={check.recommendation}
+                    label="Next Action"
+                    value={nextAction}
+                  />
+                  <AgentHistoryStat label="Evidence" value={evidence} />
+                  <AgentHistoryStat
+                    label="Change"
+                    value={check.changeSummary ?? "No previous comparison"}
                   />
                 </div>
 
                 {isExpanded && (
                   <div className="mt-4 border-t border-slate-200 pt-4">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Reasoning
+                    </p>
+                    <p className="mt-2 text-slate-700">{evidence}</p>
+
                     <p className="text-sm font-semibold text-slate-700">
                       Full Agent Response
                     </p>

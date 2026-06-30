@@ -44,9 +44,13 @@ export type AgentCheck = {
   id: string;
   date: string;
   status: string;
+  decision?: AgentDecisionAction;
   biggestRisk: string;
+  evidence?: string;
+  nextAction?: string;
   recommendation: string;
   confidence: string;
+  changeSummary?: string;
   fullResponse: string;
 };
 
