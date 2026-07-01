@@ -26,6 +26,13 @@ import {
   formatDate,
 } from "@/lib/calculations";
 import { getAgentDecision } from "@/lib/agentDecision";
+import {
+  getGoalAdaptation,
+  getNutritionTargets,
+  getRecoveryRisk,
+  getWeeklyPlan,
+} from "@/lib/advancedInsights";
+import { createDemoAgentHistory, createDemoLogs } from "@/lib/demoData";
 
 import { Stat } from "@/components/Stat";
 
@@ -48,6 +55,16 @@ import { FitCheckAgentCard } from "@/components/FitCheckAgentCard";
 import { AgentHistoryCard } from "@/components/AgentHistoryCard";
 
 import { AgentDashboardCard } from "@/components/AgentDashboardCard";
+
+import { GoalAdaptationCard } from "@/components/GoalAdaptationCard";
+
+import { DemoModeCard } from "@/components/DemoModeCard";
+
+import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
+
+import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
+
+import { RecoveryRiskCard } from "@/components/RecoveryRiskCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -703,6 +720,30 @@ AI Confidence Score: ${confidenceScore}%
   const latestAgentCheck = agentHistory[0];
   const previousAgentCheck = agentHistory[1];
 
+  const advancedInsightInput = {
+    goal,
+    logs: sortedLogs,
+    effectiveWeight,
+    goalWeight,
+    goalDate,
+    avgCalories,
+    avgProtein,
+    avgSteps,
+    currentPace,
+    requiredWeeklyLoss,
+    goalStatus,
+    plateauStatus,
+    strengthStatus,
+    volumeChange,
+    goalFeasibility,
+    maintenanceEstimate,
+    agentDecision,
+  };
+  const goalAdaptation = getGoalAdaptation(advancedInsightInput);
+  const nutritionTargets = getNutritionTargets(advancedInsightInput);
+  const weeklyPlan = getWeeklyPlan(advancedInsightInput);
+  const recoveryRisk = getRecoveryRisk(advancedInsightInput);
+
   function resetEntry() {
     setEntry({
       id: crypto.randomUUID(),
@@ -788,6 +829,42 @@ AI Confidence Score: ${confidenceScore}%
       setLogs([]);
       localStorage.removeItem(STORAGE_KEY);
       resetEntry();
+    }
+  }
+
+  function loadDemoData() {
+    const demoLogs = createDemoLogs();
+
+    setGoal("Cutting");
+    setGoalWeight(134);
+    setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
+    setLogs(demoLogs);
+    setAgentHistory(createDemoAgentHistory());
+    setExpandedLogMonths([]);
+    setEntry({
+      id: crypto.randomUUID(),
+      date: new Date().toISOString().slice(0, 10),
+      weight: demoLogs[demoLogs.length - 1]?.weight ?? 138,
+      calories: 1850,
+      protein: 145,
+      steps: 11000,
+      workout: "",
+      exercises: [],
+    });
+    setAgentReport(
+      "Demo data loaded. Run FitCheck Agent to generate a fresh coaching check from the sample logs."
+    );
+  }
+
+  function applyGoalDateSuggestion() {
+    if (goalAdaptation.suggestedGoalDate) {
+      setGoalDate(goalAdaptation.suggestedGoalDate);
+    }
+  }
+
+  function applyCalorieSuggestion() {
+    if (goalAdaptation.suggestedCalories) {
+      setEntry({ ...entry, calories: goalAdaptation.suggestedCalories });
     }
   }
 
@@ -1340,6 +1417,7 @@ function toggleLogMonth(monthYear: string) {
         </header>
 
         <section className="grid gap-6 lg:grid-cols-3">
+<section className="space-y-6">
 <DailyLogCard
   goal={goal}
   setGoal={setGoal}
@@ -1359,6 +1437,9 @@ function toggleLogMonth(monthYear: string) {
   clearAllLogs={clearAllLogs}
 />
 
+<DemoModeCard loadDemoData={loadDemoData} />
+</section>
+
 
           <section className="space-y-6 lg:col-span-2">
 <AgentDashboardCard
@@ -1366,6 +1447,19 @@ function toggleLogMonth(monthYear: string) {
   latestAgentCheck={latestAgentCheck}
   previousAgentCheck={previousAgentCheck}
 />
+
+<GoalAdaptationCard
+  goalAdaptation={goalAdaptation}
+  applyGoalDate={applyGoalDateSuggestion}
+  applyCalories={applyCalorieSuggestion}
+/>
+
+<div className="grid gap-6 xl:grid-cols-2">
+  <WeeklyPlanCard weeklyPlan={weeklyPlan} />
+  <NutritionTargetsCard nutritionTargets={nutritionTargets} />
+</div>
+
+<RecoveryRiskCard recoveryRisk={recoveryRisk} />
 
 <FitCheckAgentCard
   agentReport={agentReport}

@@ -82,3 +82,40 @@ export type MaintenanceEstimate = {
   confidence: "Low" | "Medium" | "High";
   explanation: string;
 };
+
+export type GoalAdaptation = {
+  status: string;
+  suggestedGoalDate: string | null;
+  suggestedCalories: number | null;
+  recommendation: string;
+  reason: string;
+  confidence: "Low" | "Medium" | "High";
+};
+
+export type NutritionTargets = {
+  calorieTarget: number;
+  calorieRange: string;
+  proteinTarget: number;
+  proteinRange: string;
+  priority: string;
+  guidance: string;
+  confidence: "Low" | "Medium" | "High";
+};
+
+export type WeeklyPlan = {
+  focus: string;
+  calories: string;
+  protein: string;
+  steps: string;
+  training: string;
+  recovery: string;
+  adherenceScore: number;
+  adherenceSummary: string;
+};
+
+export type RecoveryRisk = {
+  score: number;
+  level: "Low" | "Medium" | "High";
+  drivers: string[];
+  recommendation: string;
+};
