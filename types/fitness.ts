@@ -119,3 +119,15 @@ export type RecoveryRisk = {
   drivers: string[];
   recommendation: string;
 };
+
+export type DataFreshness = {
+  score: number;
+  status: "No data" | "Fresh" | "Aging" | "Stale";
+  lastLogDate: string | null;
+  daysSinceLastLog: number | null;
+  missedDaysLast14: number;
+  longestGapDays: number;
+  confidenceImpact: "None" | "Slight" | "Moderate" | "High";
+  message: string;
+  recommendation: string;
+};

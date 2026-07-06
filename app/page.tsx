@@ -33,6 +33,10 @@ import {
   getWeeklyPlan,
 } from "@/lib/advancedInsights";
 import { createDemoAgentHistory, createDemoLogs } from "@/lib/demoData";
+import {
+  adjustDecisionForFreshness,
+  getDataFreshness,
+} from "@/lib/dataFreshness";
 
 import { Stat } from "@/components/Stat";
 
@@ -65,6 +69,8 @@ import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
 
 import { RecoveryRiskCard } from "@/components/RecoveryRiskCard";
+
+import { DataFreshnessCard } from "@/components/DataFreshnessCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -702,7 +708,8 @@ AI Confidence Score: ${confidenceScore}%
     plateauStatus,
   });
 
-  const agentDecision = getAgentDecision({
+  const dataFreshness = getDataFreshness(sortedLogs);
+  const baseAgentDecision = getAgentDecision({
     goal,
     logsCount: logs.length,
     avgCalories,
@@ -716,6 +723,10 @@ AI Confidence Score: ${confidenceScore}%
     goalFeasibility,
     maintenanceEstimate,
   });
+  const agentDecision = adjustDecisionForFreshness(
+    baseAgentDecision,
+    dataFreshness
+  );
 
   const latestAgentCheck = agentHistory[0];
   const previousAgentCheck = agentHistory[1];
@@ -738,6 +749,7 @@ AI Confidence Score: ${confidenceScore}%
     goalFeasibility,
     maintenanceEstimate,
     agentDecision,
+    dataFreshness,
   };
   const goalAdaptation = getGoalAdaptation(advancedInsightInput);
   const nutritionTargets = getNutritionTargets(advancedInsightInput);
@@ -1333,6 +1345,7 @@ async function runFitCheckAgent() {
     maintenanceEstimate,
     goalFeasibility,
     agentDecision,
+    dataFreshness,
     logsCount: logs.length,
   };
 
@@ -1344,7 +1357,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If you disagree with it, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, dataFreshness, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1447,6 +1460,8 @@ function toggleLogMonth(monthYear: string) {
   latestAgentCheck={latestAgentCheck}
   previousAgentCheck={previousAgentCheck}
 />
+
+<DataFreshnessCard dataFreshness={dataFreshness} />
 
 <GoalAdaptationCard
   goalAdaptation={goalAdaptation}
