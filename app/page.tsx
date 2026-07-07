@@ -37,6 +37,7 @@ import {
   adjustDecisionForFreshness,
   getDataFreshness,
 } from "@/lib/dataFreshness";
+import { getPlanAdherence } from "@/lib/planAdherence";
 
 import { Stat } from "@/components/Stat";
 
@@ -71,6 +72,8 @@ import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
 import { RecoveryRiskCard } from "@/components/RecoveryRiskCard";
 
 import { DataFreshnessCard } from "@/components/DataFreshnessCard";
+
+import { PlanAdherenceCard } from "@/components/PlanAdherenceCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -755,6 +758,10 @@ AI Confidence Score: ${confidenceScore}%
   const nutritionTargets = getNutritionTargets(advancedInsightInput);
   const weeklyPlan = getWeeklyPlan(advancedInsightInput);
   const recoveryRisk = getRecoveryRisk(advancedInsightInput);
+  const planAdherence = getPlanAdherence({
+    logs: sortedLogs,
+    nutritionTargets,
+  });
 
   function resetEntry() {
     setEntry({
@@ -1346,6 +1353,7 @@ async function runFitCheckAgent() {
     goalFeasibility,
     agentDecision,
     dataFreshness,
+    planAdherence,
     logsCount: logs.length,
   };
 
@@ -1357,7 +1365,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, dataFreshness, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, dataFreshness, planAdherence, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1473,6 +1481,8 @@ function toggleLogMonth(monthYear: string) {
   <WeeklyPlanCard weeklyPlan={weeklyPlan} />
   <NutritionTargetsCard nutritionTargets={nutritionTargets} />
 </div>
+
+<PlanAdherenceCard planAdherence={planAdherence} />
 
 <RecoveryRiskCard recoveryRisk={recoveryRisk} />
 

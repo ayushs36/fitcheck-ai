@@ -131,3 +131,23 @@ export type DataFreshness = {
   message: string;
   recommendation: string;
 };
+
+export type PlanAdherenceMetric = {
+  label: string;
+  score: number;
+  target: string;
+  actual: string;
+  status: "On track" | "Needs attention" | "Off track";
+};
+
+export type PlanAdherence = {
+  score: number;
+  trend: "Improving" | "Stable" | "Declining" | "Need more data";
+  biggestBlocker: string;
+  blockerRecommendation: string;
+  metrics: PlanAdherenceMetric[];
+  weeklyScores: Array<{
+    label: string;
+    score: number;
+  }>;
+};
