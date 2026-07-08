@@ -1,5 +1,6 @@
 import type {
   AgentDecision,
+  CheckInSummary,
   Goal,
   GoalFeasibility,
   MaintenanceEstimate,
@@ -18,6 +19,7 @@ type AgentDecisionInput = {
   goalStatus: string;
   goalFeasibility: GoalFeasibility;
   maintenanceEstimate: MaintenanceEstimate;
+  checkInSummary?: CheckInSummary;
 };
 
 const PROTEIN_TARGET = 130;
@@ -37,6 +39,7 @@ export function getAgentDecision(input: AgentDecisionInput): AgentDecision {
     goalStatus,
     goalFeasibility,
     maintenanceEstimate,
+    checkInSummary,
   } = input;
 
   const confidence = getDecisionConfidence(logsCount, maintenanceEstimate);
@@ -57,6 +60,28 @@ export function getAgentDecision(input: AgentDecisionInput): AgentDecision {
     requiredWeeklyLoss > 0 &&
     (currentPace <= 0 || currentPace < requiredWeeklyLoss * 0.75);
   const paceAggressive = isCutting && currentPace >= 1.5;
+
+  if (
+    checkInSummary &&
+    checkInSummary.status === "Recovery Priority"
+  ) {
+    return {
+      action: "Focus recovery",
+      priority: "Readiness",
+      rationale:
+        "The latest check-ins show low readiness from sleep, soreness, energy, or stress.",
+      calorieGuidance:
+        "Hold calories steady until readiness improves; avoid adding deficit pressure.",
+      proteinGuidance: `Keep protein near ${proteinTargetText}.`,
+      stepGuidance:
+        "Keep steps consistent, but avoid forcing high-activity days while recovery is low.",
+      recoveryGuidance:
+        "Prioritize sleep, lower stress, and manage training load for the next 2-3 days.",
+      timelineGuidance:
+        "Do not shorten the goal timeline while readiness is low.",
+      confidence,
+    };
+  }
 
   if (goalUnrealistic) {
     return {

@@ -1,5 +1,6 @@
 import type {
   AgentDecision,
+  CheckInSummary,
   Goal,
   GoalAdaptation,
   GoalFeasibility,
@@ -29,6 +30,7 @@ type AdvancedInsightInput = {
   goalFeasibility: GoalFeasibility;
   maintenanceEstimate: MaintenanceEstimate;
   agentDecision: AgentDecision;
+  checkInSummary?: CheckInSummary;
 };
 
 export function getGoalAdaptation(input: AdvancedInsightInput): GoalAdaptation {
@@ -180,6 +182,14 @@ export function getRecoveryRisk(input: AdvancedInsightInput): RecoveryRisk {
   if (input.avgSteps > 14000) {
     score += 10;
     drivers.push("Steps are high enough to add fatigue.");
+  }
+
+  if (input.checkInSummary?.status === "Recovery Priority") {
+    score += 30;
+    drivers.push("Check-ins show low readiness.");
+  } else if (input.checkInSummary?.status === "Manage Load") {
+    score += 15;
+    drivers.push("Check-ins suggest load should be managed.");
   }
 
   const cappedScore = Math.min(100, score);

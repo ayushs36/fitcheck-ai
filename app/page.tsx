@@ -19,6 +19,7 @@ import type {
   AIConversation,
   MaintenanceEstimate,
   AgentCheck,
+  CheckInEntry,
 } from "@/types/fitness";
 import {
   calculateExerciseVolume,
@@ -38,6 +39,7 @@ import {
   getDataFreshness,
 } from "@/lib/dataFreshness";
 import { getPlanAdherence } from "@/lib/planAdherence";
+import { getCheckInSummary } from "@/lib/checkIns";
 
 import { Stat } from "@/components/Stat";
 
@@ -75,10 +77,13 @@ import { DataFreshnessCard } from "@/components/DataFreshnessCard";
 
 import { PlanAdherenceCard } from "@/components/PlanAdherenceCard";
 
+import { CheckInCard } from "@/components/CheckInCard";
+
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
 const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
+const CHECK_INS_KEY = "fitcheck-check-ins-v1";
 
 export default function Home() {
   const [goal, setGoal] = useState<Goal>("Cutting");
@@ -132,6 +137,17 @@ const [isAgentLoading, setIsAgentLoading] = useState(false);
 const [agentHistory, setAgentHistory] = useState<AgentCheck[]>([]);
 const [expandedAgentCheckId, setExpandedAgentCheckId] =
   useState<string | null>(null);
+const [checkIns, setCheckIns] = useState<CheckInEntry[]>([]);
+const [checkInEntry, setCheckInEntry] = useState<CheckInEntry>({
+  id: crypto.randomUUID(),
+  date: new Date().toISOString().slice(0, 10),
+  hunger: 3,
+  sleepQuality: 3,
+  soreness: 3,
+  energy: 3,
+  stress: 3,
+  notes: "",
+});
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -175,6 +191,16 @@ useEffect(() => {
 useEffect(() => {
   localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(agentHistory));
 }, [agentHistory]);
+useEffect(() => {
+  const savedCheckIns = localStorage.getItem(CHECK_INS_KEY);
+
+  if (savedCheckIns) {
+    setCheckIns(JSON.parse(savedCheckIns));
+  }
+}, []);
+useEffect(() => {
+  localStorage.setItem(CHECK_INS_KEY, JSON.stringify(checkIns));
+}, [checkIns]);
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
@@ -712,6 +738,7 @@ AI Confidence Score: ${confidenceScore}%
   });
 
   const dataFreshness = getDataFreshness(sortedLogs);
+  const checkInSummary = getCheckInSummary(checkIns);
   const baseAgentDecision = getAgentDecision({
     goal,
     logsCount: logs.length,
@@ -725,6 +752,7 @@ AI Confidence Score: ${confidenceScore}%
     goalStatus,
     goalFeasibility,
     maintenanceEstimate,
+    checkInSummary,
   });
   const agentDecision = adjustDecisionForFreshness(
     baseAgentDecision,
@@ -753,6 +781,7 @@ AI Confidence Score: ${confidenceScore}%
     maintenanceEstimate,
     agentDecision,
     dataFreshness,
+    checkInSummary,
   };
   const goalAdaptation = getGoalAdaptation(advancedInsightInput);
   const nutritionTargets = getNutritionTargets(advancedInsightInput);
@@ -851,6 +880,30 @@ AI Confidence Score: ${confidenceScore}%
     }
   }
 
+  function saveCheckIn() {
+    const savedCheckIn = { ...checkInEntry, id: crypto.randomUUID() };
+
+    setCheckIns((current) => [
+      savedCheckIn,
+      ...current.filter((item) => item.date !== savedCheckIn.date),
+    ]);
+    setCheckInEntry({
+      id: crypto.randomUUID(),
+      date: new Date().toISOString().slice(0, 10),
+      hunger: 3,
+      sleepQuality: 3,
+      soreness: 3,
+      energy: 3,
+      stress: 3,
+      notes: "",
+    });
+  }
+
+  function clearCheckIns() {
+    setCheckIns([]);
+    localStorage.removeItem(CHECK_INS_KEY);
+  }
+
   function loadDemoData() {
     const demoLogs = createDemoLogs();
 
@@ -859,6 +912,7 @@ AI Confidence Score: ${confidenceScore}%
     setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
     setLogs(demoLogs);
     setAgentHistory(createDemoAgentHistory());
+    setCheckIns([]);
     setExpandedLogMonths([]);
     setEntry({
       id: crypto.randomUUID(),
@@ -1353,6 +1407,7 @@ async function runFitCheckAgent() {
     goalFeasibility,
     agentDecision,
     dataFreshness,
+    checkInSummary,
     planAdherence,
     logsCount: logs.length,
   };
@@ -1365,7 +1420,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, dataFreshness, planAdherence, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, dataFreshness, checkInSummary, planAdherence, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use checkInSummary to adjust recovery and training advice. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1459,6 +1514,14 @@ function toggleLogMonth(monthYear: string) {
 />
 
 <DemoModeCard loadDemoData={loadDemoData} />
+
+<CheckInCard
+  checkInEntry={checkInEntry}
+  setCheckInEntry={setCheckInEntry}
+  checkInSummary={checkInSummary}
+  saveCheckIn={saveCheckIn}
+  clearCheckIns={clearCheckIns}
+/>
 </section>
 
 
