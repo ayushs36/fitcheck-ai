@@ -152,25 +152,9 @@ export type PlanAdherence = {
   }>;
 };
 
-export type CheckInEntry = {
-  id: string;
-  date: string;
-  hunger: number;
-  sleepQuality: number;
-  soreness: number;
-  energy: number;
-  stress: number;
-  notes: string;
-};
-
-export type CheckInSummary = {
-  readinessScore: number;
-  status: "Ready" | "Manage Load" | "Recovery Priority" | "Need check-in";
-  latestCheckIn: CheckInEntry | null;
-  averageHunger: number;
-  averageSleepQuality: number;
-  averageSoreness: number;
-  averageEnergy: number;
-  averageStress: number;
+export type ReadinessScore = {
+  score: number;
+  status: "Train hard" | "Maintain plan" | "Manage load" | "Recovery priority";
+  drivers: string[];
   recommendation: string;
 };
