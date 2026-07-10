@@ -76,12 +76,16 @@ export type AgentDecision = {
 
 export type MaintenanceEstimate = {
   estimatedMaintenance: number;
+  maintenanceRangeLow: number;
+  maintenanceRangeHigh: number;
   fatLossCaloriesOnePound: number;
   fatLossCaloriesOnePointFivePounds: number;
   fatLossCaloriesTwoPounds: number;
   confidence: "Low" | "Medium" | "High";
+  confidenceReason: string;
   calculationMethod: "Same-day calories" | "Lag-adjusted calories";
   trendWarning?: string;
+  adjustmentGuidance: string;
   explanation: string;
 };
 

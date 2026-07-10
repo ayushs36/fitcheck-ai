@@ -248,7 +248,7 @@ const fourteenDayAverage =
     } else if (movingAverage < fourteenDayAverage) {
       plateauStatus = "Progress trending down";
     } else {
-      plateauStatus = "Weight trending up";
+      plateauStatus = "Possible water-weight spike";
     }
   }
 
@@ -261,9 +261,9 @@ const fourteenDayAverage =
   } else if (plateauStatus === "Progress trending down") {
     plateauRecommendation =
       "Your 7-day average is below your 14-day average, which means progress is still moving in the right direction.";
-  } else if (plateauStatus === "Weight trending up") {
+  } else if (plateauStatus === "Possible water-weight spike") {
     plateauRecommendation =
-      "Your 7-day average is above your 14-day average. Review recent calories, steps, sodium, carbs, and workout stress before assuming fat gain.";
+      "Your 7-day average is above your 14-day average. Treat this as possible water-weight noise first, then review calories, steps, sodium, carbs, digestion, and workout stress before assuming fat gain.";
   }
 
   const first7Weight = last7Logs[0]?.weight ?? latestWeight;
@@ -329,11 +329,17 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
   if (validLogs.length < 14) {
     return {
       estimatedMaintenance: 0,
+	      maintenanceRangeLow: 0,
+	      maintenanceRangeHigh: 0,
 	      fatLossCaloriesOnePound: 0,
 	      fatLossCaloriesOnePointFivePounds: 0,
 	      fatLossCaloriesTwoPounds: 0,
 	      confidence: "Low",
+	      confidenceReason:
+	        "Fewer than 14 valid logs are available, so the trend window is too small.",
 	      calculationMethod: "Lag-adjusted calories",
+	      adjustmentGuidance:
+	        "Keep logging before changing calories based on maintenance.",
 	      explanation:
 	        "Log at least 14 days with weight and calories to estimate maintenance calories.",
 	    };
@@ -387,6 +393,41 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     confidence = "Low";
   }
 
+  const rangeBuffer =
+    confidence === "High" ? 100 : confidence === "Medium" ? 175 : 300;
+  const maintenanceRangeLow = Math.max(0, estimatedMaintenance - rangeBuffer);
+  const maintenanceRangeHigh = estimatedMaintenance + rangeBuffer;
+
+  const confidenceReasons: string[] = [];
+
+  if (validLogs.length >= 28) {
+    confidenceReasons.push("At least 28 valid logs are available.");
+  } else if (validLogs.length >= 21) {
+    confidenceReasons.push("At least 21 valid logs are available.");
+  } else {
+    confidenceReasons.push("Only 14-20 valid logs are available.");
+  }
+
+  if (useLagAdjustedCalories) {
+    confidenceReasons.push(
+      "Morning weigh-ins are matched to previous-day calories."
+    );
+  } else {
+    confidenceReasons.push(
+      "Not enough previous-day calorie pairs were available, so same-day calories are used."
+    );
+  }
+
+  if (trendMovingAgainstGoal) {
+    confidenceReasons.push("The weight trend is moving against your goal.");
+  }
+
+  const confidenceReason = confidenceReasons.join(" ");
+  const adjustmentGuidance =
+    confidence === "Low"
+      ? "Do not make an aggressive calorie change from this estimate yet. Hold the plan for 7 more days if adherence is solid, or audit calorie tracking if the trend keeps moving against the goal."
+      : "Use this as a planning range, then reassess after another week of consistent logs.";
+
   const trendWarning = trendMovingAgainstGoal
     ? goal === "Cutting"
       ? "Your weight trend is moving up while your goal is fat loss, so this maintenance estimate is low-confidence. It may be caused by water weight, under-logged calories, soreness, sodium, digestion, or too little trend data."
@@ -395,14 +436,18 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 
   return {
     estimatedMaintenance,
+	    maintenanceRangeLow,
+	    maintenanceRangeHigh,
 	    fatLossCaloriesOnePound: estimatedMaintenance - 500,
 	    fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
 	    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
 	    confidence,
+	    confidenceReason,
 	    calculationMethod: useLagAdjustedCalories
 	      ? "Lag-adjusted calories"
 	      : "Same-day calories",
 	    trendWarning,
+	    adjustmentGuidance,
 	    explanation: `Based on your last 14 valid logs, your average intake is ${averageCalories.toFixed(
 	      0
 	    )} calories/day using ${
@@ -417,7 +462,9 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
       1
     )} lbs/week and an estimated maintenance of about ${estimatedMaintenance.toFixed(
       0
-    )} calories/day.`,
+    )} calories/day. Treat the useful range as roughly ${maintenanceRangeLow.toFixed(
+      0
+    )}-${maintenanceRangeHigh.toFixed(0)} calories/day.`,
   };
 }, [goal, sortedLogs]);
 
@@ -1760,7 +1807,18 @@ function toggleLogMonth(monthYear: string) {
 
   <div className="mt-5 grid gap-4 md:grid-cols-2">
     <Stat
-      label="Estimated Maintenance"
+      label="Maintenance Range"
+      value={
+        maintenanceEstimate.estimatedMaintenance > 0
+          ? `${maintenanceEstimate.maintenanceRangeLow.toFixed(
+              0
+            )}-${maintenanceEstimate.maintenanceRangeHigh.toFixed(0)} cal/day`
+          : "Need more data"
+      }
+    />
+
+    <Stat
+      label="Point Estimate"
       value={
         maintenanceEstimate.estimatedMaintenance > 0
           ? `${maintenanceEstimate.estimatedMaintenance.toFixed(0)} cal/day`
@@ -1805,11 +1863,17 @@ function toggleLogMonth(monthYear: string) {
 	    <p className="mt-1 text-sm text-slate-500">
 	      Method: {maintenanceEstimate.calculationMethod}
 	    </p>
+	    <p className="mt-2 text-sm text-slate-600">
+	      Reason: {maintenanceEstimate.confidenceReason}
+	    </p>
 	    {maintenanceEstimate.trendWarning && (
 	      <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-medium text-amber-900">
 	        {maintenanceEstimate.trendWarning}
 	      </p>
 	    )}
+	    <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-medium text-slate-700">
+	      {maintenanceEstimate.adjustmentGuidance}
+	    </p>
 
 	    <p className="mt-2">
       {maintenanceEstimate.explanation}
