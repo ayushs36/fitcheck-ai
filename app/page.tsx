@@ -367,6 +367,9 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
   );
 
   const weeklyWeightChange = last7Average - first7Average;
+  const trendMovingAgainstGoal =
+    (goal === "Cutting" && weeklyWeightChange > 0.1) ||
+    (goal === "Bulking" && weeklyWeightChange < -0.1);
 
   const estimatedDailyDeficit = -weeklyWeightChange * 500;
 
@@ -380,6 +383,16 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     confidence = "Low";
   }
 
+  if (trendMovingAgainstGoal) {
+    confidence = "Low";
+  }
+
+  const trendWarning = trendMovingAgainstGoal
+    ? goal === "Cutting"
+      ? "Your weight trend is moving up while your goal is fat loss, so this maintenance estimate is low-confidence. It may be caused by water weight, under-logged calories, soreness, sodium, digestion, or too little trend data."
+      : "Your weight trend is moving down while your goal is gaining weight, so this maintenance estimate is low-confidence. It may be caused by water weight changes, inconsistent intake, training fatigue, or too little trend data."
+    : undefined;
+
   return {
     estimatedMaintenance,
 	    fatLossCaloriesOnePound: estimatedMaintenance - 500,
@@ -389,6 +402,7 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 	    calculationMethod: useLagAdjustedCalories
 	      ? "Lag-adjusted calories"
 	      : "Same-day calories",
+	    trendWarning,
 	    explanation: `Based on your last 14 valid logs, your average intake is ${averageCalories.toFixed(
 	      0
 	    )} calories/day using ${
@@ -405,7 +419,7 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
       0
     )} calories/day.`,
   };
-}, [sortedLogs]);
+}, [goal, sortedLogs]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
@@ -1791,6 +1805,11 @@ function toggleLogMonth(monthYear: string) {
 	    <p className="mt-1 text-sm text-slate-500">
 	      Method: {maintenanceEstimate.calculationMethod}
 	    </p>
+	    {maintenanceEstimate.trendWarning && (
+	      <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-medium text-amber-900">
+	        {maintenanceEstimate.trendWarning}
+	      </p>
+	    )}
 
 	    <p className="mt-2">
       {maintenanceEstimate.explanation}

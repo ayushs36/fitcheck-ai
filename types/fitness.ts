@@ -81,6 +81,7 @@ export type MaintenanceEstimate = {
   fatLossCaloriesTwoPounds: number;
   confidence: "Low" | "Medium" | "High";
   calculationMethod: "Same-day calories" | "Lag-adjusted calories";
+  trendWarning?: string;
   explanation: string;
 };
 
