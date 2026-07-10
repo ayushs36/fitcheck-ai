@@ -1709,13 +1709,15 @@ function toggleLogMonth(monthYear: string) {
 
           <section className={showToday ? "space-y-6 lg:col-span-2" : "space-y-6"}>
 {(showToday || showCoach) && (
-<>
 <AgentDashboardCard
   agentDecision={agentDecision}
   latestAgentCheck={latestAgentCheck}
   previousAgentCheck={previousAgentCheck}
 />
+)}
 
+{showCoach && (
+<>
 <FitCheckAgentCard
   agentReport={agentReport}
   isAgentLoading={isAgentLoading}
@@ -1725,7 +1727,7 @@ function toggleLogMonth(monthYear: string) {
 </>
 )}
 
-{showCoach && (
+{(showCoach || showHistory) && (
 <AgentHistoryCard
   agentHistory={agentHistory}
   expandedAgentCheckId={expandedAgentCheckId}
@@ -1734,7 +1736,7 @@ function toggleLogMonth(monthYear: string) {
 />
 )}
 
-{(showToday || showDashboard) && (
+{showDashboard && (
 <>
 <DataFreshnessCard dataFreshness={dataFreshness} />
 
@@ -2191,13 +2193,7 @@ function toggleLogMonth(monthYear: string) {
   generateAIWeeklyReport={generateAIWeeklyReport}
 />
 
-            <section className="rounded-3xl bg-emerald-50 p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Coach Recommendation</h2>
-              <p className="mt-3 text-slate-700">{recommendation}</p>
-            </section>
-
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <section className="rounded-3xl bg-white p-6 shadow-sm">
   <h2 className="text-2xl font-semibold">Recent Logs</h2>
 
   <div className="mt-5 space-y-4">
@@ -2291,7 +2287,6 @@ function toggleLogMonth(monthYear: string) {
     )}
   </div>
 </section>
-            </section>
 </>
 )}
           </section>
