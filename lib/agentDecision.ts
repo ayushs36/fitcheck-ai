@@ -76,6 +76,24 @@ export function getAgentDecision(input: AgentDecisionInput): AgentDecision {
     };
   }
 
+  if (isCutting && maintenanceEstimate.confidence === "Low" && maintenanceEstimate.trendWarning) {
+    return {
+      action: "Hold calories",
+      priority: "Data validation",
+      rationale:
+        "The weight trend is moving against the fat-loss goal, but the maintenance estimate is low-confidence, so a calorie cut would be premature.",
+      calorieGuidance:
+        "Hold calories steady for the next 7 days if adherence is solid. If the trend keeps rising, audit tracking accuracy before lowering calories.",
+      proteinGuidance: `Keep protein near ${proteinTargetText}.`,
+      stepGuidance: `Keep steps close to ${stepTargetText} so the next trend check is easier to interpret.`,
+      recoveryGuidance:
+        "Watch sleep, soreness, sodium, carbs, and digestion because water-weight noise can hide the real trend.",
+      timelineGuidance:
+        "Do not adjust the goal timeline from this maintenance estimate alone.",
+      confidence: "Low",
+    };
+  }
+
   if (proteinLow) {
     return {
       action: "Improve protein",
@@ -193,6 +211,10 @@ function getCalorieTarget(
   avgCalories: number,
   maintenanceEstimate: MaintenanceEstimate
 ) {
+  if (!maintenanceEstimate.calorieTargetsReliable) {
+    return avgCalories > 0 ? Math.round(avgCalories - 100) : 0;
+  }
+
   if (maintenanceEstimate.fatLossCaloriesOnePound > 0) {
     return Math.round(maintenanceEstimate.fatLossCaloriesOnePound);
   }

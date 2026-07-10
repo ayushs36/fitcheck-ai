@@ -80,6 +80,7 @@ export type MaintenanceEstimate = {
   plausibilityFloor: number;
   maintenanceRangeLow: number;
   maintenanceRangeHigh: number;
+  calorieTargetsReliable: boolean;
   fatLossCaloriesOnePound: number;
   fatLossCaloriesOnePointFivePounds: number;
   fatLossCaloriesTwoPounds: number;

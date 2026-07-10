@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -88,7 +90,32 @@ const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
 const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
 const GOAL_ADAPTATION_HISTORY_KEY = "fitcheck-goal-adaptation-history-v1";
 
-export default function Home() {
+const APP_NAV_ITEMS = [
+  { href: "/", label: "Today", view: "today" },
+  { href: "/dashboard", label: "Dashboard", view: "dashboard" },
+  { href: "/coach", label: "Coach", view: "coach" },
+  { href: "/plan", label: "Plan", view: "plan" },
+  { href: "/training", label: "Training", view: "training" },
+  { href: "/history", label: "History", view: "history" },
+] as const;
+
+type AppView = (typeof APP_NAV_ITEMS)[number]["view"];
+
+function getViewFromPath(pathname: string): AppView {
+  const match = APP_NAV_ITEMS.find((item) => item.href === pathname);
+  return match?.view ?? "today";
+}
+
+export function FitCheckApp() {
+  const pathname = usePathname();
+  const activeView = getViewFromPath(pathname);
+  const showToday = activeView === "today";
+  const showDashboard = activeView === "dashboard";
+  const showCoach = activeView === "coach";
+  const showPlan = activeView === "plan";
+  const showTraining = activeView === "training";
+  const showHistory = activeView === "history";
+
   const [goal, setGoal] = useState<Goal>("Cutting");
   const [goalWeight, setGoalWeight] = useState(130);
   const [goalDate, setGoalDate] = useState("2026-06-17");
@@ -333,6 +360,7 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 	      plausibilityFloor: 0,
 	      maintenanceRangeLow: 0,
 	      maintenanceRangeHigh: 0,
+	      calorieTargetsReliable: false,
 	      fatLossCaloriesOnePound: 0,
 	      fatLossCaloriesOnePointFivePounds: 0,
 	      fatLossCaloriesTwoPounds: 0,
@@ -443,9 +471,10 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
   }
 
   const confidenceReason = confidenceReasons.join(" ");
+  const calorieTargetsReliable = confidence !== "Low";
   const adjustmentGuidance =
     confidence === "Low"
-      ? "Do not make an aggressive calorie change from this estimate yet. Hold the plan for 7 more days if adherence is solid, or audit calorie tracking if the trend keeps moving against the goal."
+      ? "Do not use this estimate to set aggressive fat-loss calories yet. Hold the plan for 7 more days if adherence is solid, or audit calorie tracking if the trend keeps moving against the goal."
       : "Use this as a planning range, then reassess after another week of consistent logs.";
 
   const trendWarning = trendMovingAgainstGoal
@@ -460,6 +489,7 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 	    plausibilityFloor,
 	    maintenanceRangeLow,
 	    maintenanceRangeHigh,
+	    calorieTargetsReliable,
 	    fatLossCaloriesOnePound: estimatedMaintenance - 500,
 	    fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
 	    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
@@ -497,6 +527,21 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     )}-${maintenanceRangeHigh.toFixed(0)} calories/day.`,
   };
 }, [avgSteps, goal, latestWeight, sortedLogs]);
+
+  const maintenanceIsUncertain =
+    maintenanceEstimate.estimatedMaintenance <= 0 ||
+    maintenanceEstimate.confidence === "Low";
+  const maintenanceHeadline = maintenanceIsUncertain
+    ? "Maintenance uncertain"
+    : `${maintenanceEstimate.maintenanceRangeLow.toFixed(
+        0
+      )}-${maintenanceEstimate.maintenanceRangeHigh.toFixed(0)} cal/day`;
+  const maintenanceSubhead = maintenanceIsUncertain
+    ? "Trend conflicts with your goal, so FitCheck is holding back from calorie targets."
+    : "Use this as a practical planning range, not an exact metabolic number.";
+  const maintenanceAction = maintenanceIsUncertain
+    ? "Hold or audit first"
+    : "Use range for planning";
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0
@@ -1613,9 +1658,30 @@ function toggleLogMonth(monthYear: string) {
             averages, goal pace, charts, strength analytics, plateau detection,
             and AI-style coaching recommendations.
           </p>
+
+          <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl bg-slate-100 p-2">
+            {APP_NAV_ITEMS.map((item) => {
+              const isActive = item.view === activeView;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? "bg-white text-slate-950 shadow-sm"
+                      : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-3">
+        <section className={showToday ? "grid gap-6 lg:grid-cols-3" : "space-y-6"}>
+{showToday && (
 <section className="space-y-6">
 <DailyLogCard
   goal={goal}
@@ -1638,37 +1704,17 @@ function toggleLogMonth(monthYear: string) {
 
 <DemoModeCard loadDemoData={loadDemoData} />
 </section>
+)}
 
 
-          <section className="space-y-6 lg:col-span-2">
+          <section className={showToday ? "space-y-6 lg:col-span-2" : "space-y-6"}>
+{(showToday || showCoach) && (
+<>
 <AgentDashboardCard
   agentDecision={agentDecision}
   latestAgentCheck={latestAgentCheck}
   previousAgentCheck={previousAgentCheck}
 />
-
-<DataFreshnessCard dataFreshness={dataFreshness} />
-
-<ReadinessScoreCard readinessScore={readinessScore} />
-
-<GoalAdaptationCard
-  goalAdaptation={goalAdaptation}
-  applyGoalDate={applyGoalDateSuggestion}
-  applyCalories={applyCalorieSuggestion}
-  rejectGoalAdaptation={rejectGoalAdaptation}
-  currentGoalDate={goalDate}
-  currentGoalWeight={goalWeight}
-  adaptationHistory={goalAdaptationHistory}
-/>
-
-<div className="grid gap-6 xl:grid-cols-2">
-  <WeeklyPlanCard weeklyPlan={weeklyPlan} />
-  <NutritionTargetsCard nutritionTargets={nutritionTargets} />
-</div>
-
-<PlanAdherenceCard planAdherence={planAdherence} />
-
-<RecoveryRiskCard recoveryRisk={recoveryRisk} />
 
 <FitCheckAgentCard
   agentReport={agentReport}
@@ -1676,13 +1722,23 @@ function toggleLogMonth(monthYear: string) {
   runFitCheckAgent={runFitCheckAgent}
   agentDecision={agentDecision}
 />
+</>
+)}
 
+{showCoach && (
 <AgentHistoryCard
   agentHistory={agentHistory}
   expandedAgentCheckId={expandedAgentCheckId}
   setExpandedAgentCheckId={setExpandedAgentCheckId}
   clearAgentHistory={clearAgentHistory}
 />
+)}
+
+{(showToday || showDashboard) && (
+<>
+<DataFreshnessCard dataFreshness={dataFreshness} />
+
+<ReadinessScoreCard readinessScore={readinessScore} />
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Dashboard</h2>
@@ -1826,131 +1882,6 @@ function toggleLogMonth(monthYear: string) {
   </section>
 </div>
 <section className="rounded-3xl bg-white p-6 shadow-sm">
-  <h2 className="text-2xl font-semibold">
-    Maintenance Calorie Estimator
-  </h2>
-
-  <p className="mt-2 text-sm text-slate-500">
-  Estimates maintenance using your recent calorie intake and the change between
-  your previous and current 7-day moving average weight.
-</p>
-
-  <div className="mt-5 grid gap-4 md:grid-cols-2">
-    <Stat
-      label="Maintenance Range"
-      value={
-        maintenanceEstimate.estimatedMaintenance > 0
-          ? `${maintenanceEstimate.maintenanceRangeLow.toFixed(
-              0
-            )}-${maintenanceEstimate.maintenanceRangeHigh.toFixed(0)} cal/day`
-          : "Need more data"
-      }
-    />
-
-    <Stat
-      label="Point Estimate"
-      value={
-        maintenanceEstimate.estimatedMaintenance > 0
-          ? `${maintenanceEstimate.estimatedMaintenance.toFixed(0)} cal/day`
-          : "Need more data"
-      }
-    />
-
-    <Stat
-      label="Calories for ~1 lb/week loss"
-      value={
-        maintenanceEstimate.fatLossCaloriesOnePound > 0
-          ? `${maintenanceEstimate.fatLossCaloriesOnePound.toFixed(0)} cal/day`
-          : "Need more data"
-      }
-    />
-
-    <Stat
-      label="Calories for ~1.5 lb/week loss"
-      value={
-        maintenanceEstimate.fatLossCaloriesOnePointFivePounds > 0
-          ? `${maintenanceEstimate.fatLossCaloriesOnePointFivePounds.toFixed(
-              0
-            )} cal/day`
-          : "Need more data"
-      }
-    />
-
-    <Stat
-      label="Calories for ~2 lb/week loss"
-      value={
-        maintenanceEstimate.fatLossCaloriesTwoPounds > 0
-          ? `${maintenanceEstimate.fatLossCaloriesTwoPounds.toFixed(0)} cal/day`
-          : "Need more data"
-      }
-    />
-  </div>
-
-	  <div className="mt-5 rounded-2xl bg-slate-100 p-4">
-	    <p className="font-semibold">
-	      Confidence: {maintenanceEstimate.confidence}
-	    </p>
-	    <p className="mt-1 text-sm text-slate-500">
-	      Method: {maintenanceEstimate.calculationMethod}
-	    </p>
-	    <p className="mt-2 text-sm text-slate-600">
-	      Reason: {maintenanceEstimate.confidenceReason}
-	    </p>
-	    {maintenanceEstimate.trendWarning && (
-	      <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-medium text-amber-900">
-	        {maintenanceEstimate.trendWarning}
-	      </p>
-	    )}
-	    <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-medium text-slate-700">
-	      {maintenanceEstimate.adjustmentGuidance}
-	    </p>
-
-	    <p className="mt-2">
-      {maintenanceEstimate.explanation}
-    </p>
-  </div>
-</section>
-<GoalStrategyCard
-  goalStrategy={goalStrategy}
-  isGoalStrategyLoading={isGoalStrategyLoading}
-  generateGoalStrategy={generateGoalStrategy}
-/>
-
-<AskAICard
-  coachQuestion={coachQuestion}
-  setCoachQuestion={setCoachQuestion}
-  coachAnswer={coachAnswer}
-  isCoachLoading={isCoachLoading}
-  askFitCheckAILLM={askFitCheckAILLM}
-/>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Strength Analytics</h2>
-
-              <div className="mt-4 space-y-3 text-slate-700">
-                <p>
-                  Latest workout volume:{" "}
-                  <strong>{latestWorkoutVolume.toFixed(0)}</strong>
-                </p>
-
-                <p>
-                  Previous workout volume:{" "}
-                  <strong>{previousWorkoutVolume.toFixed(0)}</strong>
-                </p>
-
-                <p>
-                  Volume change: <strong>{volumeChange.toFixed(1)}%</strong>
-                </p>
-
-                <p>
-                  Strength status: <strong>{strengthStatus}</strong>
-                </p>
-
-                <p>{strengthInsight}</p>
-              </div>
-            </section>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Plateau Detection Agent</h2>
 
               <div className="mt-4 space-y-3 text-slate-700">
@@ -2066,8 +1997,194 @@ function toggleLogMonth(monthYear: string) {
                 <p className="mt-2">{weeklyAIReview.mainAction}</p>
               </div>
             </section>
+</>
+)}
 
+{showPlan && (
+<>
+<GoalAdaptationCard
+  goalAdaptation={goalAdaptation}
+  applyGoalDate={applyGoalDateSuggestion}
+  applyCalories={applyCalorieSuggestion}
+  rejectGoalAdaptation={rejectGoalAdaptation}
+  currentGoalDate={goalDate}
+  currentGoalWeight={goalWeight}
+  adaptationHistory={goalAdaptationHistory}
+/>
 
+<div className="grid gap-6 xl:grid-cols-2">
+  <WeeklyPlanCard weeklyPlan={weeklyPlan} />
+  <NutritionTargetsCard nutritionTargets={nutritionTargets} />
+</div>
+
+<PlanAdherenceCard planAdherence={planAdherence} />
+
+<RecoveryRiskCard recoveryRisk={recoveryRisk} />
+<section className="rounded-3xl bg-white p-6 shadow-sm">
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Maintenance Estimate
+      </p>
+      <h2 className="mt-1 text-2xl font-semibold">
+        {maintenanceHeadline}
+      </h2>
+      <p className="mt-2 max-w-3xl text-sm text-slate-500">
+        {maintenanceSubhead}
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Coach Action
+      </p>
+      <p className="mt-1 text-lg font-semibold text-slate-950">
+        {maintenanceAction}
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-5 grid gap-4 md:grid-cols-3">
+    <Stat
+      label="Confidence"
+      value={maintenanceEstimate.confidence}
+    />
+
+    <Stat
+      label="Method"
+      value={maintenanceEstimate.calculationMethod}
+    />
+
+    <Stat
+      label="Point Estimate"
+      value={
+        maintenanceIsUncertain
+          ? "Hidden until stable"
+          : `${maintenanceEstimate.estimatedMaintenance.toFixed(0)} cal/day`
+      }
+    />
+  </div>
+
+  {maintenanceEstimate.calorieTargetsReliable ? (
+    <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <Stat
+        label="~1 lb/week loss"
+        value={
+          maintenanceEstimate.fatLossCaloriesOnePound > 0
+            ? `${maintenanceEstimate.fatLossCaloriesOnePound.toFixed(
+                0
+              )} cal/day`
+            : "Need more data"
+        }
+      />
+
+      <Stat
+        label="~1.5 lb/week loss"
+        value={
+          maintenanceEstimate.fatLossCaloriesOnePointFivePounds > 0
+            ? `${maintenanceEstimate.fatLossCaloriesOnePointFivePounds.toFixed(
+                0
+              )} cal/day`
+            : "Need more data"
+        }
+      />
+
+      <Stat
+        label="~2 lb/week loss"
+        value={
+          maintenanceEstimate.fatLossCaloriesTwoPounds > 0
+            ? `${maintenanceEstimate.fatLossCaloriesTwoPounds.toFixed(
+                0
+              )} cal/day`
+            : "Need more data"
+        }
+      />
+    </div>
+  ) : (
+    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      <p className="font-semibold text-amber-950">
+        Fat-loss calorie targets are paused.
+      </p>
+      <p className="mt-1 text-sm text-amber-900">
+        FitCheck will not show 1, 1.5, or 2 lb/week targets while the estimate
+        is low-confidence. Keep the cut consistent, audit tracking, and reassess
+        after the next trend window.
+      </p>
+    </div>
+  )}
+
+  <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+    <div className="rounded-2xl bg-slate-100 p-4">
+      <p className="font-semibold">Why confidence is {maintenanceEstimate.confidence.toLowerCase()}</p>
+      <p className="mt-2 text-sm text-slate-600">
+        {maintenanceEstimate.confidenceReason}
+      </p>
+      {maintenanceEstimate.trendWarning && (
+        <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-medium text-amber-900">
+          {maintenanceEstimate.trendWarning}
+        </p>
+      )}
+    </div>
+
+    <div className="rounded-2xl bg-slate-100 p-4">
+      <p className="font-semibold">Next best move</p>
+      <p className="mt-2 text-sm text-slate-700">
+        {maintenanceEstimate.adjustmentGuidance}
+      </p>
+      <p className="mt-3 border-t border-slate-200 pt-3 text-sm text-slate-500">
+        {maintenanceEstimate.explanation}
+      </p>
+    </div>
+  </div>
+</section>
+<GoalStrategyCard
+  goalStrategy={goalStrategy}
+  isGoalStrategyLoading={isGoalStrategyLoading}
+  generateGoalStrategy={generateGoalStrategy}
+/>
+</>
+)}
+
+{showCoach && (
+<AskAICard
+  coachQuestion={coachQuestion}
+  setCoachQuestion={setCoachQuestion}
+  coachAnswer={coachAnswer}
+  isCoachLoading={isCoachLoading}
+  askFitCheckAILLM={askFitCheckAILLM}
+/>
+)}
+
+{showTraining && (
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold">Strength Analytics</h2>
+
+              <div className="mt-4 space-y-3 text-slate-700">
+                <p>
+                  Latest workout volume:{" "}
+                  <strong>{latestWorkoutVolume.toFixed(0)}</strong>
+                </p>
+
+                <p>
+                  Previous workout volume:{" "}
+                  <strong>{previousWorkoutVolume.toFixed(0)}</strong>
+                </p>
+
+                <p>
+                  Volume change: <strong>{volumeChange.toFixed(1)}%</strong>
+                </p>
+
+                <p>
+                  Strength status: <strong>{strengthStatus}</strong>
+                </p>
+
+                <p>{strengthInsight}</p>
+              </div>
+            </section>
+)}
+
+{showHistory && (
+<>
             <AIWeeklyReportCard
   aiWeeklyReport={aiWeeklyReport}
   isWeeklyReportLoading={isWeeklyReportLoading}
@@ -2175,11 +2292,17 @@ function toggleLogMonth(monthYear: string) {
   </div>
 </section>
             </section>
+</>
+)}
           </section>
         </section>
       </div>
     </main>
   );
+}
+
+export default function Home() {
+  return <FitCheckApp />;
 }
 
 function getRecommendation({
