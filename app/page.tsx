@@ -329,6 +329,8 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
   if (validLogs.length < 14) {
     return {
       estimatedMaintenance: 0,
+	      trendBasedMaintenance: 0,
+	      plausibilityFloor: 0,
 	      maintenanceRangeLow: 0,
 	      maintenanceRangeHigh: 0,
 	      fatLossCaloriesOnePound: 0,
@@ -378,8 +380,15 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     (goal === "Bulking" && weeklyWeightChange < -0.1);
 
   const estimatedDailyDeficit = -weeklyWeightChange * 500;
-
-  const estimatedMaintenance = averageCalories + estimatedDailyDeficit;
+  const trendBasedMaintenance = averageCalories + estimatedDailyDeficit;
+  const bodyWeightForSanity = last7Average || latestWeight;
+  const activityMultiplier =
+    avgSteps >= 10000 ? 14.5 : avgSteps >= 8000 ? 13.5 : avgSteps >= 5000 ? 12.5 : 11.5;
+  const plausibilityFloor = bodyWeightForSanity * activityMultiplier;
+  const sanityFloorApplied = trendBasedMaintenance < plausibilityFloor;
+  const estimatedMaintenance = sanityFloorApplied
+    ? plausibilityFloor
+    : trendBasedMaintenance;
 
   let confidence: MaintenanceEstimate["confidence"] = "Medium";
 
@@ -395,7 +404,12 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 
   const rangeBuffer =
     confidence === "High" ? 100 : confidence === "Medium" ? 175 : 300;
-  const maintenanceRangeLow = Math.max(0, estimatedMaintenance - rangeBuffer);
+  const maintenanceRangeLow = Math.max(
+    0,
+    sanityFloorApplied
+      ? plausibilityFloor - Math.min(rangeBuffer, 175)
+      : estimatedMaintenance - rangeBuffer
+  );
   const maintenanceRangeHigh = estimatedMaintenance + rangeBuffer;
 
   const confidenceReasons: string[] = [];
@@ -422,6 +436,12 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
     confidenceReasons.push("The weight trend is moving against your goal.");
   }
 
+  if (sanityFloorApplied) {
+    confidenceReasons.push(
+      "The raw trend estimate was below a bodyweight-and-steps sanity floor."
+    );
+  }
+
   const confidenceReason = confidenceReasons.join(" ");
   const adjustmentGuidance =
     confidence === "Low"
@@ -436,6 +456,8 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 
   return {
     estimatedMaintenance,
+	    trendBasedMaintenance,
+	    plausibilityFloor,
 	    maintenanceRangeLow,
 	    maintenanceRangeHigh,
 	    fatLossCaloriesOnePound: estimatedMaintenance - 500,
@@ -462,11 +484,19 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
       1
     )} lbs/week and an estimated maintenance of about ${estimatedMaintenance.toFixed(
       0
-    )} calories/day. Treat the useful range as roughly ${maintenanceRangeLow.toFixed(
+    )} calories/day. ${
+      sanityFloorApplied
+        ? `The trend-only calculation was ${trendBasedMaintenance.toFixed(
+            0
+          )} calories/day, but FitCheck raised the displayed estimate because that was below a bodyweight-and-steps plausibility floor of ${plausibilityFloor.toFixed(
+            0
+          )} calories/day. `
+        : ""
+    }Treat the useful range as roughly ${maintenanceRangeLow.toFixed(
       0
     )}-${maintenanceRangeHigh.toFixed(0)} calories/day.`,
   };
-}, [goal, sortedLogs]);
+}, [avgSteps, goal, latestWeight, sortedLogs]);
 
   const projectedGoalDate =
     currentPace > 0 && poundsRemaining > 0

@@ -76,6 +76,8 @@ export type AgentDecision = {
 
 export type MaintenanceEstimate = {
   estimatedMaintenance: number;
+  trendBasedMaintenance: number;
+  plausibilityFloor: number;
   maintenanceRangeLow: number;
   maintenanceRangeHigh: number;
   fatLossCaloriesOnePound: number;
