@@ -1,13 +1,21 @@
-import type { GoalAdaptation } from "@/types/fitness";
+import type { GoalAdaptation, GoalAdaptationRecord } from "@/types/fitness";
 
 export function GoalAdaptationCard({
   goalAdaptation,
   applyGoalDate,
   applyCalories,
+  rejectGoalAdaptation,
+  currentGoalDate,
+  currentGoalWeight,
+  adaptationHistory,
 }: {
   goalAdaptation: GoalAdaptation;
   applyGoalDate: () => void;
   applyCalories: () => void;
+  rejectGoalAdaptation: () => void;
+  currentGoalDate: string;
+  currentGoalWeight: number;
+  adaptationHistory: GoalAdaptationRecord[];
 }) {
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -35,6 +43,24 @@ export function GoalAdaptationCard({
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl bg-slate-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Current Goal Date
+          </p>
+          <p className="mt-1 font-semibold text-slate-900">{currentGoalDate}</p>
+        </div>
+
+        <div className="rounded-2xl bg-slate-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Current Goal Weight
+          </p>
+          <p className="mt-1 font-semibold text-slate-900">
+            {currentGoalWeight.toFixed(1)} lbs
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
         <AdjustmentButton
           label="Suggested Goal Date"
           value={goalAdaptation.suggestedGoalDate ?? "No date change"}
@@ -52,6 +78,38 @@ export function GoalAdaptationCard({
           disabled={!goalAdaptation.suggestedCalories}
         />
       </div>
+
+      <button
+        onClick={rejectGoalAdaptation}
+        className="mt-3 w-full rounded-2xl bg-slate-100 px-4 py-3 font-semibold text-slate-700"
+      >
+        Reject Current Suggestion
+      </button>
+
+      {adaptationHistory.length > 0 && (
+        <div className="mt-5 rounded-2xl bg-slate-100 p-4">
+          <p className="font-semibold text-slate-900">Adaptation History</p>
+
+          <div className="mt-3 space-y-3">
+            {adaptationHistory.slice(0, 4).map((item) => (
+              <div key={item.id} className="rounded-xl bg-white p-3 text-sm">
+                <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                  <p className="font-semibold text-slate-900">
+                    {item.status} {item.changeType}
+                  </p>
+                  <p className="text-slate-500">{item.createdAt}</p>
+                </div>
+
+                <p className="mt-2 text-slate-700">{item.reason}</p>
+                <p className="mt-2 text-slate-500">
+                  Previous: {item.previousGoalWeight.toFixed(1)} lbs by{" "}
+                  {item.previousGoalDate}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

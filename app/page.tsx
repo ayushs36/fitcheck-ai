@@ -19,6 +19,7 @@ import type {
   AIConversation,
   MaintenanceEstimate,
   AgentCheck,
+  GoalAdaptationRecord,
 } from "@/types/fitness";
 import {
   calculateExerciseVolume,
@@ -85,6 +86,7 @@ const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
 const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
+const GOAL_ADAPTATION_HISTORY_KEY = "fitcheck-goal-adaptation-history-v1";
 
 export default function Home() {
   const [goal, setGoal] = useState<Goal>("Cutting");
@@ -138,6 +140,9 @@ const [isAgentLoading, setIsAgentLoading] = useState(false);
 const [agentHistory, setAgentHistory] = useState<AgentCheck[]>([]);
 const [expandedAgentCheckId, setExpandedAgentCheckId] =
   useState<string | null>(null);
+const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
+  GoalAdaptationRecord[]
+>([]);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -181,6 +186,21 @@ useEffect(() => {
 useEffect(() => {
   localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(agentHistory));
 }, [agentHistory]);
+useEffect(() => {
+  const savedGoalAdaptationHistory = localStorage.getItem(
+    GOAL_ADAPTATION_HISTORY_KEY
+  );
+
+  if (savedGoalAdaptationHistory) {
+    setGoalAdaptationHistory(JSON.parse(savedGoalAdaptationHistory));
+  }
+}, []);
+useEffect(() => {
+  localStorage.setItem(
+    GOAL_ADAPTATION_HISTORY_KEY,
+    JSON.stringify(goalAdaptationHistory)
+  );
+}, [goalAdaptationHistory]);
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
@@ -309,18 +329,34 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
   if (validLogs.length < 14) {
     return {
       estimatedMaintenance: 0,
-      fatLossCaloriesOnePound: 0,
-      fatLossCaloriesOnePointFivePounds: 0,
-      fatLossCaloriesTwoPounds: 0,
-      confidence: "Low",
-      explanation:
-        "Log at least 14 days with weight and calories to estimate maintenance calories.",
-    };
-  }
+	      fatLossCaloriesOnePound: 0,
+	      fatLossCaloriesOnePointFivePounds: 0,
+	      fatLossCaloriesTwoPounds: 0,
+	      confidence: "Low",
+	      calculationMethod: "Lag-adjusted calories",
+	      explanation:
+	        "Log at least 14 days with weight and calories to estimate maintenance calories.",
+	    };
+	  }
+	
+	  const recentLogs = validLogs.slice(-14);
+	
+	  const caloriesByDate = new Map(
+	    validLogs.map((log) => [log.date, log.calories])
+	  );
+	  const laggedCalories = recentLogs
+	    .map((log) => {
+	      const previousDate = new Date(`${log.date}T00:00:00`);
+	      previousDate.setDate(previousDate.getDate() - 1);
 
-  const recentLogs = validLogs.slice(-14);
-
-  const averageCalories = average(recentLogs.map((log) => log.calories));
+	      return caloriesByDate.get(previousDate.toISOString().slice(0, 10)) ?? 0;
+	    })
+	    .filter((calories) => calories > 0);
+	  const useLagAdjustedCalories = laggedCalories.length >= 10;
+	
+	  const averageCalories = useLagAdjustedCalories
+	    ? average(laggedCalories)
+	    : average(recentLogs.map((log) => log.calories));
 
   const first7Logs = recentLogs.slice(0, 7);
   const last7LogsForMaintenance = recentLogs.slice(7);
@@ -346,14 +382,21 @@ const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
 
   return {
     estimatedMaintenance,
-    fatLossCaloriesOnePound: estimatedMaintenance - 500,
-    fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
-    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
-    confidence,
-    explanation: `Based on your last 14 valid logs, your average intake is ${averageCalories.toFixed(
-      0
-    )} calories/day. Your first 7-day average weight was ${first7Average.toFixed(
-      1
+	    fatLossCaloriesOnePound: estimatedMaintenance - 500,
+	    fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
+	    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
+	    confidence,
+	    calculationMethod: useLagAdjustedCalories
+	      ? "Lag-adjusted calories"
+	      : "Same-day calories",
+	    explanation: `Based on your last 14 valid logs, your average intake is ${averageCalories.toFixed(
+	      0
+	    )} calories/day using ${
+	      useLagAdjustedCalories
+	        ? "previous-day calories matched to next-morning weigh-ins"
+	        : "same-day calories because there were not enough previous-day calorie pairs"
+	    }. Your first 7-day average weight was ${first7Average.toFixed(
+	      1
     )} lbs and your most recent 7-day average weight is ${last7Average.toFixed(
       1
     )} lbs. This suggests a weekly weight change of ${weeklyWeightChange.toFixed(
@@ -876,6 +919,7 @@ AI Confidence Score: ${confidenceScore}%
     setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
     setLogs(demoLogs);
     setAgentHistory(createDemoAgentHistory());
+    setGoalAdaptationHistory([]);
     setExpandedLogMonths([]);
     setEntry({
       id: crypto.randomUUID(),
@@ -894,14 +938,39 @@ AI Confidence Score: ${confidenceScore}%
 
   function applyGoalDateSuggestion() {
     if (goalAdaptation.suggestedGoalDate) {
+      saveGoalAdaptationRecord("Accepted", "Goal date");
       setGoalDate(goalAdaptation.suggestedGoalDate);
     }
   }
 
   function applyCalorieSuggestion() {
     if (goalAdaptation.suggestedCalories) {
+      saveGoalAdaptationRecord("Accepted", "Calories");
       setEntry({ ...entry, calories: goalAdaptation.suggestedCalories });
     }
+  }
+
+  function rejectGoalAdaptation() {
+    saveGoalAdaptationRecord("Rejected", "Full suggestion");
+  }
+
+  function saveGoalAdaptationRecord(
+    status: GoalAdaptationRecord["status"],
+    changeType: GoalAdaptationRecord["changeType"]
+  ) {
+    const newRecord: GoalAdaptationRecord = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toLocaleString(),
+      status,
+      changeType,
+      previousGoalDate: goalDate,
+      previousGoalWeight: goalWeight,
+      suggestedGoalDate: goalAdaptation.suggestedGoalDate,
+      suggestedCalories: goalAdaptation.suggestedCalories,
+      reason: goalAdaptation.reason,
+    };
+
+    setGoalAdaptationHistory((current) => [newRecord, ...current]);
   }
 
 
@@ -1495,6 +1564,10 @@ function toggleLogMonth(monthYear: string) {
   goalAdaptation={goalAdaptation}
   applyGoalDate={applyGoalDateSuggestion}
   applyCalories={applyCalorieSuggestion}
+  rejectGoalAdaptation={rejectGoalAdaptation}
+  currentGoalDate={goalDate}
+  currentGoalWeight={goalWeight}
+  adaptationHistory={goalAdaptationHistory}
 />
 
 <div className="grid gap-6 xl:grid-cols-2">
@@ -1711,12 +1784,15 @@ function toggleLogMonth(monthYear: string) {
     />
   </div>
 
-  <div className="mt-5 rounded-2xl bg-slate-100 p-4">
-    <p className="font-semibold">
-      Confidence: {maintenanceEstimate.confidence}
-    </p>
+	  <div className="mt-5 rounded-2xl bg-slate-100 p-4">
+	    <p className="font-semibold">
+	      Confidence: {maintenanceEstimate.confidence}
+	    </p>
+	    <p className="mt-1 text-sm text-slate-500">
+	      Method: {maintenanceEstimate.calculationMethod}
+	    </p>
 
-    <p className="mt-2">
+	    <p className="mt-2">
       {maintenanceEstimate.explanation}
     </p>
   </div>

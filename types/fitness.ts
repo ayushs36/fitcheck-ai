@@ -80,6 +80,7 @@ export type MaintenanceEstimate = {
   fatLossCaloriesOnePointFivePounds: number;
   fatLossCaloriesTwoPounds: number;
   confidence: "Low" | "Medium" | "High";
+  calculationMethod: "Same-day calories" | "Lag-adjusted calories";
   explanation: string;
 };
 
@@ -90,6 +91,18 @@ export type GoalAdaptation = {
   recommendation: string;
   reason: string;
   confidence: "Low" | "Medium" | "High";
+};
+
+export type GoalAdaptationRecord = {
+  id: string;
+  createdAt: string;
+  status: "Accepted" | "Rejected";
+  changeType: "Goal date" | "Calories" | "Full suggestion";
+  previousGoalDate: string;
+  previousGoalWeight: number;
+  suggestedGoalDate: string | null;
+  suggestedCalories: number | null;
+  reason: string;
 };
 
 export type NutritionTargets = {
