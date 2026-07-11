@@ -92,6 +92,7 @@ const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
 const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
 const GOAL_ADAPTATION_HISTORY_KEY = "fitcheck-goal-adaptation-history-v1";
 const COACHING_PLAN_HISTORY_KEY = "fitcheck-coaching-plan-history-v1";
+const EDIT_LOG_ID_KEY = "fitcheck-edit-log-id-v1";
 
 const APP_NAV_ITEMS = [
   { href: "/", label: "Today", view: "today" },
@@ -250,6 +251,28 @@ useEffect(() => {
     JSON.stringify(coachingPlanHistory)
   );
 }, [coachingPlanHistory]);
+useEffect(() => {
+  if (pathname !== "/" || logs.length === 0) {
+    return;
+  }
+
+  const pendingEditLogId = localStorage.getItem(EDIT_LOG_ID_KEY);
+
+  if (!pendingEditLogId) {
+    return;
+  }
+
+  const logToEdit = logs.find((log) => log.id === pendingEditLogId);
+  localStorage.removeItem(EDIT_LOG_ID_KEY);
+
+  if (!logToEdit) {
+    return;
+  }
+
+  setEntry({ ...logToEdit, exercises: [...logToEdit.exercises] });
+  setEditingId(logToEdit.id);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}, [logs, pathname]);
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
@@ -1095,6 +1118,7 @@ AI Confidence Score: ${confidenceScore}%
   }
 
   function editLog(log: LogEntry) {
+    localStorage.setItem(EDIT_LOG_ID_KEY, log.id);
     setEntry({ ...log, exercises: [...log.exercises] });
     setEditingId(log.id);
     router.push("/");
