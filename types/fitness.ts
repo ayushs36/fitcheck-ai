@@ -134,6 +134,16 @@ export type WeeklyPlan = {
   adherenceSummary: string;
 };
 
+export type CoachingPlanRecord = {
+  id: string;
+  createdAt: string;
+  plan: WeeklyPlan;
+  decision: AgentDecisionAction;
+  priority: string;
+  confidence: "Low" | "Medium" | "High";
+  changesFromPrevious: string[];
+};
+
 export type RecoveryRisk = {
   score: number;
   level: "Low" | "Medium" | "High";

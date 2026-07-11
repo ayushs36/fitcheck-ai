@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LineChart,
   Line,
@@ -22,6 +22,7 @@ import type {
   MaintenanceEstimate,
   AgentCheck,
   GoalAdaptationRecord,
+  CoachingPlanRecord,
 } from "@/types/fitness";
 import {
   calculateExerciseVolume,
@@ -83,12 +84,14 @@ import { DataFreshnessCard } from "@/components/DataFreshnessCard";
 import { PlanAdherenceCard } from "@/components/PlanAdherenceCard";
 
 import { ReadinessScoreCard } from "@/components/ReadinessScoreCard";
+import { CoachingPlanHistoryCard } from "@/components/CoachingPlanHistoryCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
 const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
 const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
 const GOAL_ADAPTATION_HISTORY_KEY = "fitcheck-goal-adaptation-history-v1";
+const COACHING_PLAN_HISTORY_KEY = "fitcheck-coaching-plan-history-v1";
 
 const APP_NAV_ITEMS = [
   { href: "/", label: "Today", view: "today" },
@@ -108,6 +111,7 @@ function getViewFromPath(pathname: string): AppView {
 
 export function FitCheckApp() {
   const pathname = usePathname();
+  const router = useRouter();
   const activeView = getViewFromPath(pathname);
   const showToday = activeView === "today";
   const showDashboard = activeView === "dashboard";
@@ -170,6 +174,9 @@ const [expandedAgentCheckId, setExpandedAgentCheckId] =
 const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
   GoalAdaptationRecord[]
 >([]);
+const [coachingPlanHistory, setCoachingPlanHistory] = useState<
+  CoachingPlanRecord[]
+>([]);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -228,6 +235,21 @@ useEffect(() => {
     JSON.stringify(goalAdaptationHistory)
   );
 }, [goalAdaptationHistory]);
+useEffect(() => {
+  const savedCoachingPlanHistory = localStorage.getItem(
+    COACHING_PLAN_HISTORY_KEY
+  );
+
+  if (savedCoachingPlanHistory) {
+    setCoachingPlanHistory(JSON.parse(savedCoachingPlanHistory));
+  }
+}, []);
+useEffect(() => {
+  localStorage.setItem(
+    COACHING_PLAN_HISTORY_KEY,
+    JSON.stringify(coachingPlanHistory)
+  );
+}, [coachingPlanHistory]);
   useEffect(() => {
     localStorage.setItem(
       SETTINGS_KEY,
@@ -959,6 +981,48 @@ AI Confidence Score: ${confidenceScore}%
     readinessScore
   );
 
+  function getPlanChanges(previousPlan: CoachingPlanRecord | undefined) {
+    if (!previousPlan) {
+      return [];
+    }
+
+    const fields: Array<[string, keyof typeof weeklyPlan]> = [
+      ["Focus", "focus"],
+      ["Calories", "calories"],
+      ["Protein", "protein"],
+      ["Steps", "steps"],
+      ["Training", "training"],
+      ["Recovery", "recovery"],
+    ];
+
+    return fields
+      .filter(([, key]) => previousPlan.plan[key] !== weeklyPlan[key])
+      .map(
+        ([label, key]) =>
+          `${label}: ${previousPlan.plan[key]} -> ${weeklyPlan[key]}`
+      );
+  }
+
+  function saveCurrentCoachingPlan() {
+    const newRecord: CoachingPlanRecord = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      plan: weeklyPlan,
+      decision: agentDecision.action,
+      priority: agentDecision.priority,
+      confidence: agentDecision.confidence,
+      changesFromPrevious: getPlanChanges(coachingPlanHistory[0]),
+    };
+
+    setCoachingPlanHistory((current) => [newRecord, ...current].slice(0, 12));
+  }
+
+  function clearCoachingPlanHistory() {
+    if (confirm("Clear saved coaching plans?")) {
+      setCoachingPlanHistory([]);
+    }
+  }
+
   function resetEntry() {
     setEntry({
       id: crypto.randomUUID(),
@@ -1031,8 +1095,9 @@ AI Confidence Score: ${confidenceScore}%
   }
 
   function editLog(log: LogEntry) {
-    setEntry(log);
+    setEntry({ ...log, exercises: [...log.exercises] });
     setEditingId(log.id);
+    router.push("/");
   }
 
   function deleteLog(id: string) {
@@ -2018,6 +2083,13 @@ function toggleLogMonth(monthYear: string) {
   <WeeklyPlanCard weeklyPlan={weeklyPlan} />
   <NutritionTargetsCard nutritionTargets={nutritionTargets} />
 </div>
+
+<CoachingPlanHistoryCard
+  weeklyPlan={weeklyPlan}
+  planHistory={coachingPlanHistory}
+  saveCurrentPlan={saveCurrentCoachingPlan}
+  clearPlanHistory={clearCoachingPlanHistory}
+/>
 
 <PlanAdherenceCard planAdherence={planAdherence} />
 
