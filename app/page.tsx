@@ -95,12 +95,42 @@ const COACHING_PLAN_HISTORY_KEY = "fitcheck-coaching-plan-history-v1";
 const EDIT_LOG_ID_KEY = "fitcheck-edit-log-id-v1";
 
 const APP_NAV_ITEMS = [
-  { href: "/", label: "Today", view: "today" },
-  { href: "/dashboard", label: "Dashboard", view: "dashboard" },
-  { href: "/coach", label: "Coach", view: "coach" },
-  { href: "/plan", label: "Plan", view: "plan" },
-  { href: "/training", label: "Training", view: "training" },
-  { href: "/history", label: "History", view: "history" },
+  {
+    href: "/",
+    label: "Today",
+    view: "today",
+    description: "Log today's inputs and see the current coaching priority.",
+  },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    view: "dashboard",
+    description: "Review progress, trend quality, goal pace, and readiness.",
+  },
+  {
+    href: "/coach",
+    label: "Coach",
+    view: "coach",
+    description: "Run FitCheck Agent and review decision history.",
+  },
+  {
+    href: "/plan",
+    label: "Plan",
+    view: "plan",
+    description: "Manage targets, maintenance, adherence, and plan snapshots.",
+  },
+  {
+    href: "/training",
+    label: "Training",
+    view: "training",
+    description: "Inspect strength trend and workout performance signals.",
+  },
+  {
+    href: "/history",
+    label: "History",
+    view: "history",
+    description: "Review saved reports, agent decisions, and past logs.",
+  },
 ] as const;
 
 type AppView = (typeof APP_NAV_ITEMS)[number]["view"];
@@ -114,6 +144,8 @@ export function FitCheckApp() {
   const pathname = usePathname();
   const router = useRouter();
   const activeView = getViewFromPath(pathname);
+  const activeNavItem =
+    APP_NAV_ITEMS.find((item) => item.view === activeView) ?? APP_NAV_ITEMS[0];
   const showToday = activeView === "today";
   const showDashboard = activeView === "dashboard";
   const showCoach = activeView === "coach";
@@ -1732,10 +1764,64 @@ function toggleLogMonth(monthYear: string) {
       : [...current, monthYear]
   );
 }
+
+const pageStats = (() => {
+  if (showToday) {
+    return [
+      { label: "Saved logs", value: `${logs.length}` },
+      { label: "Latest weight", value: latestWeight > 0 ? `${latestWeight.toFixed(1)} lbs` : "No data" },
+      { label: "Next action", value: agentDecision.action },
+    ];
+  }
+
+  if (showDashboard) {
+    return [
+      { label: "Goal status", value: goalStatus },
+      { label: "Readiness", value: readinessScore.status },
+      { label: "Data quality", value: dataFreshness.status },
+    ];
+  }
+
+  if (showCoach) {
+    return [
+      { label: "Current decision", value: agentDecision.action },
+      { label: "Confidence", value: agentDecision.confidence },
+      {
+        label: "Last check",
+        value: latestAgentCheck
+          ? new Date(latestAgentCheck.date).toLocaleDateString()
+          : "None",
+      },
+    ];
+  }
+
+  if (showPlan) {
+    return [
+      { label: "Plan focus", value: weeklyPlan.focus },
+      { label: "Adherence", value: `${planAdherence.score}/100` },
+      { label: "Saved plans", value: `${coachingPlanHistory.length}` },
+    ];
+  }
+
+  if (showTraining) {
+    return [
+      { label: "Strength status", value: strengthStatus },
+      { label: "Volume change", value: `${volumeChange.toFixed(1)}%` },
+      { label: "Exercises logged", value: `${totalExercises}` },
+    ];
+  }
+
+  return [
+    { label: "Saved logs", value: `${logs.length}` },
+    { label: "Agent checks", value: `${agentHistory.length}` },
+    { label: "Saved plans", value: `${coachingPlanHistory.length}` },
+  ];
+})();
+
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-6 rounded-3xl bg-white p-6 shadow-sm">
+        <header className="mb-4 rounded-3xl bg-white p-6 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Fitness Analytics Agent
           </p>
@@ -1743,9 +1829,9 @@ function toggleLogMonth(monthYear: string) {
           <h1 className="mt-1 text-4xl font-bold">FitCheck AI</h1>
 
           <p className="mt-2 max-w-3xl text-slate-600">
-            Track weight, calories, protein, steps, workouts, exercises, moving
-            averages, goal pace, charts, strength analytics, plateau detection,
-            and AI-style coaching recommendations.
+            A fitness coaching workspace for logging daily inputs, reading
+            trend quality, and turning AI agent decisions into practical next
+            actions.
           </p>
 
           <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl bg-slate-100 p-2">
@@ -1768,6 +1854,35 @@ function toggleLogMonth(monthYear: string) {
             })}
           </nav>
         </header>
+
+        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {activeNavItem.label}
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                {activeNavItem.description}
+              </h2>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+              {pageStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    {stat.label}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <section className={showToday ? "grid gap-6 lg:grid-cols-3" : "space-y-6"}>
 {showToday && (
