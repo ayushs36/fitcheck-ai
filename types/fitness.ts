@@ -32,6 +32,29 @@ export type GoalFeasibility = {
   recommendation: string;
 };
 
+export type ForecastScenario = {
+  label: "Conservative" | "Expected" | "Optimistic";
+  weeklyPace: number;
+  projectedDate: string;
+  projectedDays: number;
+  projectedWeightAtTargetDate: number;
+  summary: string;
+};
+
+export type GoalForecast = {
+  status: "Need more data" | "On track" | "At risk" | "Unrealistic";
+  confidence: "Low" | "Medium" | "High";
+  confidenceReason: string;
+  targetDate: string;
+  targetWeight: number;
+  currentWeight: number;
+  poundsRemaining: number;
+  requiredWeeklyPace: number;
+  expectedWeeklyPace: number;
+  scenarios: ForecastScenario[];
+  recommendation: string;
+};
+
 export type AIConversation = {
   id: string;
   type: "Ask AI" | "Weekly Report";
