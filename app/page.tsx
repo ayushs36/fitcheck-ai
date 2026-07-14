@@ -42,6 +42,7 @@ import {
   getDataFreshness,
 } from "@/lib/dataFreshness";
 import { getPlanAdherence } from "@/lib/planAdherence";
+import { getNutritionDiagnosis } from "@/lib/nutritionDiagnosis";
 import {
   adjustDecisionForReadiness,
   getReadinessScore,
@@ -87,6 +88,7 @@ import { PlanAdherenceCard } from "@/components/PlanAdherenceCard";
 import { ReadinessScoreCard } from "@/components/ReadinessScoreCard";
 import { CoachingPlanHistoryCard } from "@/components/CoachingPlanHistoryCard";
 import { GoalForecastCard } from "@/components/GoalForecastCard";
+import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -1030,6 +1032,10 @@ AI Confidence Score: ${confidenceScore}%
   };
   const goalAdaptation = getGoalAdaptation(advancedInsightInput);
   const nutritionTargets = getNutritionTargets(advancedInsightInput);
+  const nutritionDiagnosis = getNutritionDiagnosis({
+    logs: sortedLogs,
+    nutritionTargets,
+  });
   const weeklyPlan = getWeeklyPlan(advancedInsightInput);
   const recoveryRisk = getRecoveryRisk(advancedInsightInput);
   const planAdherence = getPlanAdherence({
@@ -1710,6 +1716,7 @@ async function runFitCheckAgent() {
     dataFreshness,
     readinessScore,
     planAdherence,
+    nutritionDiagnosis,
     goalForecast,
     logsCount: logs.length,
   };
@@ -1722,7 +1729,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore to decide whether to train hard, maintain the plan, manage load, or prioritize recovery. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore to decide whether to train hard, maintain the plan, manage load, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Nutrition Diagnosis, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1811,7 +1818,7 @@ const pageStats = (() => {
   if (showPlan) {
     return [
       { label: "Plan focus", value: weeklyPlan.focus },
-      { label: "Adherence", value: `${planAdherence.score}/100` },
+      { label: "Nutrition", value: `${nutritionDiagnosis.score}/100` },
       { label: "Saved plans", value: `${coachingPlanHistory.length}` },
     ];
   }
@@ -2237,6 +2244,8 @@ const pageStats = (() => {
   <WeeklyPlanCard weeklyPlan={weeklyPlan} />
   <NutritionTargetsCard nutritionTargets={nutritionTargets} />
 </div>
+
+<NutritionDiagnosisCard nutritionDiagnosis={nutritionDiagnosis} />
 
 <CoachingPlanHistoryCard
   weeklyPlan={weeklyPlan}

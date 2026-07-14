@@ -146,6 +146,28 @@ export type NutritionTargets = {
   confidence: "Low" | "Medium" | "High";
 };
 
+export type NutritionDiagnosisMetric = {
+  label: string;
+  score: number;
+  target: string;
+  actual: string;
+  status: "Strong" | "Watch" | "Needs work";
+};
+
+export type NutritionDiagnosis = {
+  score: number;
+  status: "Dialed in" | "Mostly consistent" | "Needs attention" | "Insufficient data";
+  biggestBlocker: string;
+  agentAction: string;
+  calorieAverage: number;
+  calorieVariance: number;
+  proteinAverage: number;
+  proteinHitRate: number;
+  loggingCompleteness: number;
+  metrics: NutritionDiagnosisMetric[];
+  recommendation: string;
+};
+
 export type WeeklyPlan = {
   focus: string;
   calories: string;
