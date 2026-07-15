@@ -2029,6 +2029,7 @@ const pageStats = (() => {
 
 <GoalForecastCard goalForecast={goalForecast} />
 
+<div className="grid gap-6 xl:grid-cols-3">
   <section className="rounded-3xl bg-white p-6 shadow-sm">
     <h2 className="text-2xl font-semibold">Weight Trend</h2>
 
@@ -2039,7 +2040,7 @@ const pageStats = (() => {
     {chartData.length === 0 ? (
       <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
     ) : (
-      <div className="mt-5 h-80">
+      <div className="mt-5 h-72">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -2069,6 +2070,82 @@ const pageStats = (() => {
       </div>
     )}
   </section>
+
+  <section className="rounded-3xl bg-white p-6 shadow-sm">
+    <h2 className="text-2xl font-semibold">Calories Trend</h2>
+
+    <p className="mt-2 text-sm text-slate-500">
+      Daily calories from your saved logs.
+    </p>
+
+    {chartData.length === 0 ? (
+      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    ) : (
+      <div className="mt-5 h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" interval="preserveStartEnd" />
+            <YAxis domain={[0, "auto"]} />
+            <Tooltip
+              formatter={(value) => [
+                `${Number(value).toLocaleString()} calories`,
+                "Calories",
+              ]}
+            />
+            <Line
+              type="monotone"
+              dataKey="calories"
+              name="Calories"
+              strokeWidth={3}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    )}
+  </section>
+
+  <section className="rounded-3xl bg-white p-6 shadow-sm">
+    <h2 className="text-2xl font-semibold">Steps Trend</h2>
+
+    <p className="mt-2 text-sm text-slate-500">
+      Daily steps from your saved logs.
+    </p>
+
+    {chartData.length === 0 ? (
+      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    ) : (
+      <div className="mt-5 h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" interval="preserveStartEnd" />
+            <YAxis
+              domain={[0, "auto"]}
+              tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
+            />
+            <Tooltip
+              formatter={(value) => [
+                `${Number(value).toLocaleString()} steps`,
+                "Steps",
+              ]}
+            />
+            <Line
+              type="monotone"
+              dataKey="steps"
+              name="Steps"
+              strokeWidth={3}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    )}
+  </section>
+</div>
 </>
 )}
 
