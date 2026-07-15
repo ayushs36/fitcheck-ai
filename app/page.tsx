@@ -43,6 +43,7 @@ import {
 } from "@/lib/dataFreshness";
 import { getPlanAdherence } from "@/lib/planAdherence";
 import { getNutritionDiagnosis } from "@/lib/nutritionDiagnosis";
+import { getTrainingSignal } from "@/lib/trainingSignals";
 import {
   adjustDecisionForReadiness,
   getReadinessScore,
@@ -73,6 +74,7 @@ import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
 
 import { GoalForecastCard } from "@/components/GoalForecastCard";
 import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
+import { TrainingSignalCard } from "@/components/TrainingSignalCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -823,6 +825,7 @@ const volumeChange =
         previousWorkoutVolume) *
       100
     : 0;
+const trainingSignal = getTrainingSignal(sortedLogs);
 
 let strengthStatus = "Need more matching workout data";
 
@@ -1652,6 +1655,7 @@ async function generateGoalStrategy() {
     avgSteps,
     strengthStatus,
     strengthInsight,
+    trainingSignal,
     maintenanceEstimate,
     goalFeasibility,
     weeklyAIReview,
@@ -1744,7 +1748,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore to decide whether to train hard, maintain the plan, manage load, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Nutrition Diagnosis, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -1840,9 +1844,9 @@ const pageStats = (() => {
 
   if (showTraining) {
     return [
-      { label: "Strength status", value: strengthStatus },
-      { label: "Volume change", value: `${volumeChange.toFixed(1)}%` },
-      { label: "Exercises logged", value: `${totalExercises}` },
+      { label: "Training signal", value: trainingSignal.status },
+      { label: "Agent action", value: trainingSignal.agentAction },
+      { label: "Recent workouts", value: `${trainingSignal.workoutFrequency}` },
     ];
   }
 
@@ -2288,31 +2292,7 @@ const pageStats = (() => {
 )}
 
 {showTraining && (
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Strength Analytics</h2>
-
-              <div className="mt-4 space-y-3 text-slate-700">
-                <p>
-                  Latest workout volume:{" "}
-                  <strong>{latestWorkoutVolume.toFixed(0)}</strong>
-                </p>
-
-                <p>
-                  Previous workout volume:{" "}
-                  <strong>{previousWorkoutVolume.toFixed(0)}</strong>
-                </p>
-
-                <p>
-                  Volume change: <strong>{volumeChange.toFixed(1)}%</strong>
-                </p>
-
-                <p>
-                  Strength status: <strong>{strengthStatus}</strong>
-                </p>
-
-                <p>{strengthInsight}</p>
-              </div>
-            </section>
+<TrainingSignalCard trainingSignal={trainingSignal} />
 )}
 
 {showHistory && (

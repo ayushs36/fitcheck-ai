@@ -8,6 +8,15 @@ export type Exercise = {
   weight: number;
 };
 
+export type ExerciseSignal = {
+  name: string;
+  status: "Improving" | "Stable" | "Stalled" | "Declining";
+  latestVolume: number;
+  previousVolume: number;
+  volumeChange: number;
+  summary: string;
+};
+
 export type LogEntry = {
   id: string;
   date: string;
@@ -52,6 +61,20 @@ export type GoalForecast = {
   requiredWeeklyPace: number;
   expectedWeeklyPace: number;
   scenarios: ForecastScenario[];
+  recommendation: string;
+};
+
+export type TrainingSignal = {
+  status: "Progressing" | "Stable" | "Stalled" | "Recovery risk" | "Need more data";
+  score: number;
+  agentAction: string;
+  workoutFrequency: number;
+  latestWorkoutVolume: number;
+  previousWorkoutVolume: number;
+  volumeChange: number;
+  improvingLifts: ExerciseSignal[];
+  stalledLifts: ExerciseSignal[];
+  decliningLifts: ExerciseSignal[];
   recommendation: string;
 };
 
