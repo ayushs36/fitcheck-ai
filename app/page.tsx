@@ -51,17 +51,11 @@ import { getGoalForecast } from "@/lib/forecasting";
 
 import { Stat } from "@/components/Stat";
 
-import { StatusBadge } from "@/components/StatusBadge";
-
 import { GoalProgressBar } from "@/components/GoalProgressBar";
-
-import { Input, NumberInput, Select } from "@/components/FormInputs";
 
 import { AskAICard } from "@/components/AskAICard";
 
 import { AIWeeklyReportCard } from "@/components/AIWeeklyReportCard";
-
-import { GoalStrategyCard } from "@/components/GoalStrategyCard";
 
 import { DailyLogCard } from "@/components/DailyLogCard";
 
@@ -71,22 +65,12 @@ import { AgentHistoryCard } from "@/components/AgentHistoryCard";
 
 import { AgentDashboardCard } from "@/components/AgentDashboardCard";
 
-import { GoalAdaptationCard } from "@/components/GoalAdaptationCard";
-
 import { DemoModeCard } from "@/components/DemoModeCard";
 
 import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 
 import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
 
-import { RecoveryRiskCard } from "@/components/RecoveryRiskCard";
-
-import { DataFreshnessCard } from "@/components/DataFreshnessCard";
-
-import { PlanAdherenceCard } from "@/components/PlanAdherenceCard";
-
-import { ReadinessScoreCard } from "@/components/ReadinessScoreCard";
-import { CoachingPlanHistoryCard } from "@/components/CoachingPlanHistoryCard";
 import { GoalForecastCard } from "@/components/GoalForecastCard";
 import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
 
@@ -1993,10 +1977,6 @@ const pageStats = (() => {
 
 {showDashboard && (
 <>
-<DataFreshnessCard dataFreshness={dataFreshness} />
-
-<ReadinessScoreCard readinessScore={readinessScore} />
-
             <section className="rounded-3xl bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold">Dashboard</h2>
 
@@ -2049,7 +2029,6 @@ const pageStats = (() => {
 
 <GoalForecastCard goalForecast={goalForecast} />
 
-<div className="grid gap-6 xl:grid-cols-2">
   <section className="rounded-3xl bg-white p-6 shadow-sm">
     <h2 className="text-2xl font-semibold">Weight Trend</h2>
 
@@ -2090,196 +2069,17 @@ const pageStats = (() => {
       </div>
     )}
   </section>
-
-  <section className="rounded-3xl bg-white p-6 shadow-sm">
-    <h2 className="text-2xl font-semibold">Steps Trend</h2>
-
-    <p className="mt-2 text-sm text-slate-500">
-      Daily step count across your saved logs.
-    </p>
-
-    {chartData.length === 0 ? (
-      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
-    ) : (
-      <div className="mt-5 h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis
-              domain={[0, "auto"]}
-              tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`}
-            />
-            <Tooltip
-              formatter={(value) => [
-                `${Number(value).toLocaleString()} steps`,
-                "Daily Steps",
-              ]}
-            />
-
-            <Line
-              type="monotone"
-              dataKey="steps"
-              name="Daily Steps"
-              strokeWidth={3}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    )}
-  </section>
-</div>
-<section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Plateau Detection Agent</h2>
-
-              <div className="mt-4 space-y-3 text-slate-700">
-                <p>
-                  7-day average:{" "}
-                  <strong>{movingAverage.toFixed(1)} lbs</strong>
-                </p>
-
-                <p>
-                  14-day average:{" "}
-                  <strong>{fourteenDayAverage.toFixed(1)} lbs</strong>
-                </p>
-
-                <p>
-                  Difference:{" "}
-                  <strong>{plateauDifference.toFixed(1)} lbs</strong>
-                </p>
-
-                <p>
-                  Status: <strong>{plateauStatus}</strong>
-                </p>
-
-                <p>{plateauRecommendation}</p>
-              </div>
-            </section>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Goal Feasibility Agent</h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                Evaluates whether your goal is realistic using your
-                7-day average weight, average-based pace, required pace, and
-                deadline.
-              </p>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Stat
-                  label="Feasibility Score"
-                  value={`${goalFeasibility.score}/100`}
-                />
-                <Stat label="Verdict" value={goalFeasibility.verdict} />
-                <Stat
-                  label="Current Average Weight"
-                  value={`${goalFeasibility.currentWeight.toFixed(1)} lbs`}
-                />
-                <Stat
-                  label="Goal Weight"
-                  value={`${goalFeasibility.goalWeight.toFixed(1)} lbs`}
-                />
-                <Stat
-                  label="Pounds Remaining"
-                  value={`${goalFeasibility.poundsRemaining.toFixed(1)} lbs`}
-                />
-                <Stat
-                  label="Days Remaining"
-                  value={`${goalFeasibility.daysRemaining} days`}
-                />
-                <Stat
-                  label="Current Loss Rate"
-                  value={`${goalFeasibility.currentLossRate.toFixed(
-                    1
-                  )} lbs/week`}
-                />
-                <Stat
-                  label="Required Loss Rate"
-                  value={`${goalFeasibility.requiredLossRate.toFixed(
-                    1
-                  )} lbs/week`}
-                />
-              </div>
-
-              <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
-                <p className="font-semibold">Recommendation</p>
-                <p className="mt-2">{goalFeasibility.recommendation}</p>
-              </div>
-            </section>
-
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold">Weekly AI Review</h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                Summarizes your week and gives one focused action for
-                next week. Improves the wording and uses average-based
-                pace.
-              </p>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Stat label="Weekly Trend" value={weeklyAIReview.trend} />
-                <Stat label="Goal Status" value={goalStatus} />
-                <Stat
-                  label="Weekly Weight Change"
-                  value={`${weeklyWeightChange.toFixed(1)} lbs`}
-                />
-                <Stat
-                  label="Trend Pace"
-                  value={trendPaceLabel}
-                />
-                <Stat label="Goal Trend" value={goalTrendStatus} />
-                <Stat label="Average Calories" value={avgCalories.toFixed(0)} />
-                <Stat
-                  label="Average Protein"
-                  value={`${avgProtein.toFixed(0)}g`}
-                />
-                <Stat label="Average Steps" value={avgSteps.toFixed(0)} />
-              </div>
-
-              <div className="mt-5 rounded-2xl bg-slate-100 p-4 text-slate-700">
-                <p className="font-semibold">Weekly Summary</p>
-                <p className="mt-2">{weeklyAIReview.summary}</p>
-              </div>
-
-              <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-slate-700">
-                <p className="font-semibold">Main Action for Next Week</p>
-                <p className="mt-2">{weeklyAIReview.mainAction}</p>
-              </div>
-            </section>
 </>
 )}
 
 {showPlan && (
 <>
-<GoalAdaptationCard
-  goalAdaptation={goalAdaptation}
-  applyGoalDate={applyGoalDateSuggestion}
-  applyCalories={applyCalorieSuggestion}
-  rejectGoalAdaptation={rejectGoalAdaptation}
-  currentGoalDate={goalDate}
-  currentGoalWeight={goalWeight}
-  adaptationHistory={goalAdaptationHistory}
-/>
-
 <div className="grid gap-6 xl:grid-cols-2">
   <WeeklyPlanCard weeklyPlan={weeklyPlan} />
   <NutritionTargetsCard nutritionTargets={nutritionTargets} />
 </div>
 
 <NutritionDiagnosisCard nutritionDiagnosis={nutritionDiagnosis} />
-
-<CoachingPlanHistoryCard
-  weeklyPlan={weeklyPlan}
-  planHistory={coachingPlanHistory}
-  saveCurrentPlan={saveCurrentCoachingPlan}
-  clearPlanHistory={clearCoachingPlanHistory}
-/>
-
-<PlanAdherenceCard planAdherence={planAdherence} />
-
-<RecoveryRiskCard recoveryRisk={recoveryRisk} />
 <section className="rounded-3xl bg-white p-6 shadow-sm">
   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div>
@@ -2397,11 +2197,6 @@ const pageStats = (() => {
     </div>
   </div>
 </section>
-<GoalStrategyCard
-  goalStrategy={goalStrategy}
-  isGoalStrategyLoading={isGoalStrategyLoading}
-  generateGoalStrategy={generateGoalStrategy}
-/>
 </>
 )}
 
