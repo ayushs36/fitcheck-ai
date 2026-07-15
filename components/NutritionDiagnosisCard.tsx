@@ -21,7 +21,7 @@ export function NutritionDiagnosisCard({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-4">
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
         <DiagnosisStat
           label="Calorie avg"
           value={
@@ -31,10 +31,10 @@ export function NutritionDiagnosisCard({
           }
         />
         <DiagnosisStat
-          label="Calorie swing"
+          label="Calorie consistency"
           value={
             nutritionDiagnosis.calorieVariance > 0
-              ? `${nutritionDiagnosis.calorieVariance.toFixed(0)} cal`
+              ? `${nutritionDiagnosis.calorieVariance.toFixed(0)} cal swing`
               : "Need data"
           }
         />
@@ -45,10 +45,6 @@ export function NutritionDiagnosisCard({
               ? `${nutritionDiagnosis.proteinAverage.toFixed(0)}g`
               : "Need data"
           }
-        />
-        <DiagnosisStat
-          label="Protein hit rate"
-          value={`${Math.round(nutritionDiagnosis.proteinHitRate * 100)}%`}
         />
       </div>
 
@@ -80,13 +76,16 @@ export function NutritionDiagnosisCard({
       )}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.3fr]">
-        <div className="rounded-2xl bg-slate-100 p-4">
-          <p className="font-semibold">Biggest blocker</p>
-          <p className="mt-2 text-sm text-slate-700">
-            {nutritionDiagnosis.biggestBlocker}
-          </p>
-          <p className="mt-3 text-sm font-semibold text-slate-950">
+        <div className="rounded-2xl bg-slate-950 p-4 text-white">
+          <p className="text-sm font-semibold text-slate-300">Agent action</p>
+          <p className="mt-2 text-lg font-semibold">
             {nutritionDiagnosis.agentAction}
+          </p>
+          <p className="mt-3 text-sm text-slate-300">
+            Biggest blocker:{" "}
+            <span className="font-semibold text-white">
+              {nutritionDiagnosis.biggestBlocker}
+            </span>
           </p>
         </div>
 

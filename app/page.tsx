@@ -428,7 +428,29 @@ const fourteenDayAverage =
   return recent7Average - previous7Average;
 }, [sortedLogs]);
 
-const currentPace = weeklyAverageChange < 0 ? Math.abs(weeklyAverageChange) : 0;
+const trendPace = Math.abs(weeklyAverageChange);
+const trendDirection =
+  weeklyAverageChange > 0.1
+    ? "up"
+    : weeklyAverageChange < -0.1
+    ? "down"
+    : "flat";
+const trendArrow =
+  trendDirection === "up" ? "↑" : trendDirection === "down" ? "↓" : "→";
+const trendPaceLabel =
+  logs.length >= 14
+    ? `${trendArrow} ${trendPace.toFixed(1)} lbs/week`
+    : "Need 14 logs";
+const currentPace =
+  (goal === "Cutting" && weeklyAverageChange < 0) ||
+  (goal === "Bulking" && weeklyAverageChange > 0)
+    ? trendPace
+    : 0;
+const goalTrendStatus = getGoalTrendStatus({
+  goal,
+  trendDirection,
+  trendPace,
+});
       const maintenanceEstimate: MaintenanceEstimate = useMemo(() => {
   const validLogs = sortedLogs.filter(
     (log) => log.weight > 0 && log.calories > 0
@@ -862,10 +884,10 @@ if (strengthStatus === "Strength/performance improving") {
   const enoughData = logs.length >= 3;
 
   const trend =
-    currentPace > 1
-      ? "Losing"
-      : weeklyWeightChange > 0.5
-      ? "Gaining"
+    trendDirection === "down"
+      ? "Trending down"
+      : trendDirection === "up"
+      ? "Trending up"
       : "Maintaining / Flat";
 
   const weeklyAIReview = useMemo(() => {
@@ -881,26 +903,30 @@ if (strengthStatus === "Strength/performance improving") {
     let weeklyTrend = "Stable";
     let mainAction = "Stay consistent with your current plan.";
 
-    if (currentPace >= 1.3) {
+    if (goal === "Cutting" && trendDirection === "down" && trendPace >= 1.3) {
       weeklyTrend = "Strong fat-loss pace";
       mainAction =
-        "Your average-based pace is strong. Keep protein high and monitor training performance.";
-    } else if (currentPace >= 0.7) {
+        "Your trend is moving down quickly. Keep protein high and monitor training performance.";
+    } else if (goal === "Cutting" && trendDirection === "down" && trendPace >= 0.7) {
       weeklyTrend = "Steady fat loss";
       mainAction =
         "Continue your current calorie, protein, step, and training routine.";
-    } else if (currentPace > 0) {
+    } else if (goal === "Cutting" && trendDirection === "down") {
       weeklyTrend = "Slow fat loss";
       mainAction =
         "Check calorie consistency, sodium, sleep, and steps before making a change.";
-    } else if (weeklyWeightChange > 0.5) {
-      weeklyTrend = "Weight trending up";
+    } else if (trendDirection === "up") {
+      weeklyTrend = goal === "Bulking" ? "Weight trending up" : "Weight trending up against goal";
       mainAction =
-        "Review recent calories, sodium, carbs, and untracked meals before changing the plan.";
+        goal === "Bulking"
+          ? "Weight is moving in the direction of your bulk. Keep protein and training progression consistent."
+          : "Review recent calories, sodium, carbs, and untracked meals before changing the plan.";
     } else {
       weeklyTrend = "Flat / maintenance trend";
       mainAction =
-        "If your goal is cutting, improve consistency or slightly increase steps.";
+        goal === "Maintaining"
+          ? "Weight is staying stable. Keep the current routine unless performance or adherence changes."
+          : "Improve consistency or slightly increase steps before changing calories.";
     }
 
     if (goalFeasibility.verdict === "Unlikely") {
@@ -917,9 +943,7 @@ if (strengthStatus === "Strength/performance improving") {
       trend: weeklyTrend,
       summary: `This week, your latest logged weight changed by ${weeklyWeightChange.toFixed(
         1
-      )} lbs, while your average-based pace is ${currentPace.toFixed(
-        1
-      )} lbs/week. You averaged ${avgCalories.toFixed(
+      )} lbs, while your trend pace is ${trendPaceLabel}. For your ${goal.toLowerCase()} goal, FitCheck reads this as: ${goalTrendStatus}. You averaged ${avgCalories.toFixed(
         0
       )} calories, ${avgProtein.toFixed(0)}g protein, and ${avgSteps.toFixed(
         0
@@ -929,7 +953,11 @@ if (strengthStatus === "Strength/performance improving") {
   }, [
     logs.length,
     weeklyWeightChange,
-    currentPace,
+    trendPaceLabel,
+    trendDirection,
+    trendPace,
+    goal,
+    goalTrendStatus,
     avgCalories,
     avgProtein,
     avgSteps,
@@ -948,7 +976,8 @@ Average Calories: ${avgCalories.toFixed(0)}
 Average Protein: ${avgProtein.toFixed(0)}g
 Average Steps: ${avgSteps.toFixed(0)}
 Weekly Weight Change: ${weeklyWeightChange.toFixed(1)} lbs
-Current Pace: ${currentPace.toFixed(1)} lbs/week
+Trend Pace: ${trendPaceLabel}
+Goal Trend Status: ${goalTrendStatus}
 Required Weekly Loss: ${requiredWeeklyLoss.toFixed(1)} lbs/week
 Projected Goal Date: ${projectedGoalDateText}
 Goal Status: ${goalStatus}
@@ -1370,9 +1399,7 @@ function clearAgentHistory() {
           1
         )} lbs by ${goalDate}. You have ${poundsRemaining.toFixed(
           1
-        )} lbs remaining. Your current pace is ${currentPace.toFixed(
-          1
-        )} lbs/week and your required pace is ${requiredWeeklyLoss.toFixed(
+        )} lbs remaining. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. Your required pace is ${requiredWeeklyLoss.toFixed(
           1
         )} lbs/week. Verdict: ${goalFeasibility.verdict}. ${goalFeasibility.recommendation}`
       );
@@ -1387,9 +1414,7 @@ function clearAgentHistory() {
       setCoachAnswer(
         `Your 7-day average calorie intake is ${avgCalories.toFixed(
           0
-        )} calories. Your current pace is ${currentPace.toFixed(
-          1
-        )} lbs/week. If progress is too slow, improve calorie consistency first before making an aggressive cut.`
+        )} calories. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. If progress is too slow, improve calorie consistency first before making an aggressive cut.`
       );
       return;
     }
@@ -1442,9 +1467,7 @@ function clearAgentHistory() {
     setCoachAnswer(
       `Based on your current data: your forecast weight is ${effectiveWeight.toFixed(
         1
-      )} lbs, your current pace is ${currentPace.toFixed(
-        1
-      )} lbs/week, your plateau status is ${plateauStatus}, your goal feasibility is ${
+      )} lbs, your current trend pace is ${trendPaceLabel}, your goal trend is ${goalTrendStatus}, your plateau status is ${plateauStatus}, your goal feasibility is ${
         goalFeasibility.verdict
       }, and your strength status is ${strengthStatus}. ${recommendation}`
     );
@@ -1550,6 +1573,10 @@ async function generateAIWeeklyReport() {
     goalDate,
     poundsRemaining,
     currentPace,
+    trendPace,
+    trendDirection,
+    trendPaceLabel,
+    goalTrendStatus,
     requiredWeeklyLoss,
     goalStatus,
     plateauStatus,
@@ -1628,6 +1655,10 @@ async function generateGoalStrategy() {
     poundsToGoal,
     poundsRemaining,
     currentPace,
+    trendPace,
+    trendDirection,
+    trendPaceLabel,
+    goalTrendStatus,
     requiredWeeklyLoss,
     projectedGoalDateText,
     goalStatus,
@@ -1796,7 +1827,7 @@ const pageStats = (() => {
 
   if (showDashboard) {
     return [
-      { label: "Goal status", value: goalStatus },
+      { label: "Goal status", value: goalTrendStatus },
       { label: "Readiness", value: readinessScore.status },
       { label: "Data quality", value: dataFreshness.status },
     ];
@@ -2004,26 +2035,17 @@ const pageStats = (() => {
       : "Need 7 logs"
   }
 />
-                <Stat
-                  label="Required Weekly Loss"
-                  value={`${requiredWeeklyLoss.toFixed(1)} lbs/week`}
-                />
-                <Stat label="Goal Status" value={goalStatus} />
+                <Stat label="Trend Pace" value={trendPaceLabel} />
+                <Stat label="Goal Trend" value={goalTrendStatus} />
                 <Stat label="Plateau Status" value={plateauStatus} />
                 <Stat
                   label="Feasibility Score"
                   value={`${goalFeasibility.score}/100`}
                 />
-                <Stat label="Weekly Trend" value={weeklyAIReview.trend} />
                 <Stat label="Strength Status" value={strengthStatus} />
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <StatusBadge label="Goal" value={goalStatus} />
-                <StatusBadge label="Plateau" value={plateauStatus} />
-                <StatusBadge label="Feasibility" value={goalFeasibility.verdict} />
-                <StatusBadge label="Strength" value={strengthStatus} />
-              </div></section>
+              </section>
 
 <GoalForecastCard goalForecast={goalForecast} />
 
@@ -2204,9 +2226,10 @@ const pageStats = (() => {
                   value={`${weeklyWeightChange.toFixed(1)} lbs`}
                 />
                 <Stat
-                  label="Average-Based Pace"
-                  value={`${currentPace.toFixed(1)} lbs/week`}
+                  label="Trend Pace"
+                  value={trendPaceLabel}
                 />
+                <Stat label="Goal Trend" value={goalTrendStatus} />
                 <Stat label="Average Calories" value={avgCalories.toFixed(0)} />
                 <Stat
                   label="Average Protein"
@@ -2533,6 +2556,40 @@ const pageStats = (() => {
 
 export default function Home() {
   return <FitCheckApp />;
+}
+
+function getGoalTrendStatus({
+  goal,
+  trendDirection,
+  trendPace,
+}: {
+  goal: Goal;
+  trendDirection: "up" | "down" | "flat";
+  trendPace: number;
+}) {
+  if (trendDirection === "flat" || trendPace < 0.1) {
+    return goal === "Maintaining" ? "On target for maintenance" : "Trend is flat";
+  }
+
+  if (goal === "Cutting") {
+    if (trendDirection === "down") {
+      return trendPace >= 1.5 ? "Cutting fast" : "Cutting on track";
+    }
+
+    return "Trending against cut";
+  }
+
+  if (goal === "Bulking") {
+    if (trendDirection === "up") {
+      return trendPace >= 1 ? "Bulking fast" : "Bulking on track";
+    }
+
+    return "Trending against bulk";
+  }
+
+  return trendPace <= 0.3
+    ? "On target for maintenance"
+    : "Drifting away from maintenance";
 }
 
 function getRecommendation({
