@@ -39,6 +39,10 @@ export function DailyLogCard({
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm">
       <h2 className="text-2xl font-semibold">Daily Log</h2>
+      <p className="mt-2 text-sm text-slate-500">
+        Log whatever you have for the day. Missing weight, calories, protein,
+        steps, or workouts are treated as unknown, not as zero.
+      </p>
 
       <div className="mt-5 space-y-4">
         <Select

@@ -151,11 +151,11 @@ export function FitCheckApp() {
   const [entry, setEntry] = useState<LogEntry>({
     id: crypto.randomUUID(),
     date: new Date().toISOString().slice(0, 10),
-    weight: 138.3,
-    calories: 1850,
-    protein: 145,
-    steps: 12000,
-    workout: "Push Day",
+    weight: 0,
+    calories: 0,
+    protein: 0,
+    steps: 0,
+    workout: "",
     exercises: [],
   });
 
@@ -357,19 +357,25 @@ useEffect(() => {
     values.length === 0
       ? 0
       : values.reduce((sum, value) => sum + value, 0) / values.length;
+  const loggedAverage = (values: number[]) => {
+    const loggedValues = values.filter((value) => value > 0);
+
+    return average(loggedValues);
+  };
 
   const latestLog = sortedLogs[sortedLogs.length - 1];
-  const latestWeight = latestLog?.weight ?? 0;
+  const latestWeightLog = [...sortedLogs].reverse().find((log) => log.weight > 0);
+  const latestWeight = latestWeightLog?.weight ?? 0;
 
   const movingAverage =
-  last7Logs.length > 0 ? average(last7Logs.map((log) => log.weight)) : 0;
+  last7Logs.length > 0 ? loggedAverage(last7Logs.map((log) => log.weight)) : 0;
 
 const fourteenDayAverage =
-  last14Logs.length > 0 ? average(last14Logs.map((log) => log.weight)) : 0;
+  last14Logs.length > 0 ? loggedAverage(last14Logs.map((log) => log.weight)) : 0;
 
-  const avgCalories = average(last7Logs.map((log) => log.calories));
-  const avgProtein = average(last7Logs.map((log) => log.protein));
-  const avgSteps = average(last7Logs.map((log) => log.steps));
+  const avgCalories = loggedAverage(last7Logs.map((log) => log.calories));
+  const avgProtein = loggedAverage(last7Logs.map((log) => log.protein));
+  const avgSteps = loggedAverage(last7Logs.map((log) => log.steps));
 
   const plateauDifference = Math.abs(movingAverage - fourteenDayAverage);
 
@@ -447,8 +453,8 @@ const fourteenDayAverage =
   const previous7Logs = validWeightLogs.slice(-14, -7);
   const recent7Logs = validWeightLogs.slice(-7);
 
-  const previous7Average = average(previous7Logs.map((log) => log.weight));
-  const recent7Average = average(recent7Logs.map((log) => log.weight));
+  const previous7Average = loggedAverage(previous7Logs.map((log) => log.weight));
+  const recent7Average = loggedAverage(recent7Logs.map((log) => log.weight));
 
   return recent7Average - previous7Average;
 }, [sortedLogs]);
@@ -776,16 +782,16 @@ const goalTrendStatus = getGoalTrendStatus({
 
   return {
     date: log.date.slice(5),
-    weight: Number(log.weight.toFixed(1)),
+    weight: log.weight > 0 ? Number(log.weight.toFixed(1)) : null,
     movingAverage:
-  recentLogsForAverage.length > 0
+  recentLogsForAverage.some((item) => item.weight > 0)
     ? Number(
-        average(recentLogsForAverage.map((item) => item.weight)).toFixed(1)
+        loggedAverage(recentLogsForAverage.map((item) => item.weight)).toFixed(1)
       )
-    : Number(log.weight.toFixed(1)),
-    calories: log.calories,
-    protein: log.protein,
-    steps: log.steps,
+    : null,
+    calories: log.calories > 0 ? log.calories : null,
+    protein: log.protein > 0 ? log.protein : null,
+    steps: log.steps > 0 ? log.steps : null,
   };
 });
 
@@ -1155,10 +1161,10 @@ AI Confidence Score: ${confidenceScore}%
     setEntry({
       id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
-      weight: latestWeight,
-      calories: 1850,
-      protein: 145,
-      steps: 12000,
+      weight: 0,
+      calories: 0,
+      protein: 0,
+      steps: 0,
       workout: "",
       exercises: [],
     });
@@ -1195,7 +1201,19 @@ AI Confidence Score: ${confidenceScore}%
 
   function saveLog() {
     if (!entry.date) return alert("Please enter a date.");
-    if (entry.weight <= 0) return alert("Please enter a valid weight.");
+
+    const hasAnyLoggedData =
+      entry.weight > 0 ||
+      entry.calories > 0 ||
+      entry.protein > 0 ||
+      entry.steps > 0 ||
+      entry.workout.trim().length > 0 ||
+      entry.exercises.length > 0;
+
+    if (!hasAnyLoggedData) {
+      alert("Add at least one metric, workout, or exercise before saving.");
+      return;
+    }
 
     const duplicateDate = logs.some(
       (log) => log.date === entry.date && log.id !== editingId
@@ -2390,10 +2408,10 @@ const pageStats = (() => {
                     {group.logs.map((log) => (
                       <tr key={log.id} className="border-b align-top">
                         <td className="p-2">{log.date}</td>
-                        <td className="p-2">{log.weight}</td>
-                        <td className="p-2">{log.calories}</td>
-                        <td className="p-2">{log.protein}g</td>
-                        <td className="p-2">{log.steps}</td>
+                        <td className="p-2">{log.weight > 0 ? log.weight : "—"}</td>
+                        <td className="p-2">{log.calories > 0 ? log.calories : "—"}</td>
+                        <td className="p-2">{log.protein > 0 ? `${log.protein}g` : "—"}</td>
+                        <td className="p-2">{log.steps > 0 ? log.steps : "—"}</td>
                         <td className="p-2">{log.workout || "—"}</td>
                         <td className="p-2">
                           {log.exercises.length === 0 ? (
