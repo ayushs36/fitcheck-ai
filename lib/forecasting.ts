@@ -63,14 +63,15 @@ export function getGoalForecast(input: ForecastInput): GoalForecast {
   const confidence = getForecastConfidence(logs.length, dataFreshness);
   const effectivePace = getEffectivePace(goal, currentPace, requiredWeeklyPace);
   const scenarios = [
-    buildScenario("Conservative", effectivePace * 0.75, input, daysUntilTarget),
-    buildScenario("Expected", effectivePace, input, daysUntilTarget),
-    buildScenario("Optimistic", effectivePace * 1.2, input, daysUntilTarget),
+    buildScenario("1 lb/week", 1, input, daysUntilTarget),
+    buildScenario("1.5 lb/week", 1.5, input, daysUntilTarget),
+    buildScenario("2 lb/week", 2, input, daysUntilTarget),
   ];
 
-  const expectedScenario = scenarios[1];
+  const currentTrendProjectedDays =
+    effectivePace > 0 ? Math.ceil((poundsRemaining / effectivePace) * 7) : 0;
   const status = getForecastStatus(
-    expectedScenario.projectedDays,
+    currentTrendProjectedDays,
     daysUntilTarget,
     requiredWeeklyPace,
     effectivePace
@@ -112,7 +113,7 @@ function getEffectivePace(
 }
 
 function buildScenario(
-  label: "Conservative" | "Expected" | "Optimistic",
+  label: "1 lb/week" | "1.5 lb/week" | "2 lb/week",
   weeklyPace: number,
   input: ForecastInput,
   daysUntilTarget: number
@@ -137,9 +138,7 @@ function buildScenario(
     projectedDate,
     projectedDays,
     projectedWeightAtTargetDate,
-    summary: `${label} pace projects ${projectedDate} at ${safePace.toFixed(
-      1
-    )} lb/week.`,
+    summary: `${label} projects ${projectedDate}.`,
   };
 }
 

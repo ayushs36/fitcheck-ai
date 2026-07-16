@@ -11,8 +11,8 @@ export function GoalForecastCard({
         <div>
           <h2 className="text-2xl font-semibold">Goal Forecast</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Projects conservative, expected, and optimistic timelines from your
-            current trend and data quality.
+            Compares projected goal dates at 1, 1.5, and 2 lb/week so you can
+            see what each pace would require.
           </p>
         </div>
 
@@ -54,8 +54,8 @@ export function GoalForecastCard({
                 {scenario.projectedDate}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                {scenario.weeklyPace.toFixed(1)} lb/week for{" "}
-                {scenario.projectedDays} days
+                {scenario.projectedDays} days at{" "}
+                {scenario.weeklyPace.toFixed(1)} lb/week
               </p>
               <p className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-600">
                 Target-date weight:{" "}

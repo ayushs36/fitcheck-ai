@@ -42,7 +42,7 @@ export type GoalFeasibility = {
 };
 
 export type ForecastScenario = {
-  label: "Conservative" | "Expected" | "Optimistic";
+  label: "1 lb/week" | "1.5 lb/week" | "2 lb/week";
   weeklyPace: number;
   projectedDate: string;
   projectedDays: number;
