@@ -83,6 +83,7 @@ const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
 const GOAL_ADAPTATION_HISTORY_KEY = "fitcheck-goal-adaptation-history-v1";
 const COACHING_PLAN_HISTORY_KEY = "fitcheck-coaching-plan-history-v1";
 const EDIT_LOG_ID_KEY = "fitcheck-edit-log-id-v1";
+const DAILY_LOG_DRAFT_KEY = "fitcheck-daily-log-draft-v1";
 
 const APP_NAV_ITEMS = [
   {
@@ -168,6 +169,7 @@ export function FitCheckApp() {
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [dailyLogDraftReady, setDailyLogDraftReady] = useState(false);
   const [expandedLogMonths, setExpandedLogMonths] = useState<string[]>([]);
   const [coachQuestion, setCoachQuestion] = useState("");
 const [coachAnswer, setCoachAnswer] = useState(
@@ -200,6 +202,43 @@ const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
 const [coachingPlanHistory, setCoachingPlanHistory] = useState<
   CoachingPlanRecord[]
 >([]);
+useEffect(() => {
+  const savedDraft = localStorage.getItem(DAILY_LOG_DRAFT_KEY);
+
+  if (savedDraft) {
+    try {
+      const draft = JSON.parse(savedDraft) as {
+        entry?: LogEntry;
+        exercise?: Exercise;
+        editingId?: string | null;
+      };
+
+      if (draft.entry) {
+        setEntry(draft.entry);
+      }
+
+      if (draft.exercise) {
+        setExercise(draft.exercise);
+      }
+
+      setEditingId(draft.editingId ?? null);
+    } catch {
+      localStorage.removeItem(DAILY_LOG_DRAFT_KEY);
+    }
+  }
+
+  setDailyLogDraftReady(true);
+}, []);
+useEffect(() => {
+  if (!dailyLogDraftReady) {
+    return;
+  }
+
+  localStorage.setItem(
+    DAILY_LOG_DRAFT_KEY,
+    JSON.stringify({ entry, exercise, editingId })
+  );
+}, [dailyLogDraftReady, editingId, entry, exercise]);
   useEffect(() => {
     const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
     if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
