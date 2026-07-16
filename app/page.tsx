@@ -405,21 +405,6 @@ useEffect(() => {
     return Array.from(savedExercises.values());
   }, [entry.workout, sortedLogs]);
 
-  const latestWorkoutTemplate = useMemo(() => {
-    const latestWorkoutLog = [...sortedLogs]
-      .reverse()
-      .find((log) => log.workout.trim() || log.exercises.length > 0);
-
-    if (!latestWorkoutLog) {
-      return null;
-    }
-
-    return {
-      workout: latestWorkoutLog.workout,
-      exercises: latestWorkoutLog.exercises,
-    };
-  }, [sortedLogs]);
-
   const currentLogCoverage = useMemo(() => getLogCoverage(entry), [entry]);
   const loggingQuality = useMemo(
     () => getLoggingQuality(sortedLogs),
@@ -2073,7 +2058,6 @@ const pageStats = (() => {
   setGoalDate={setGoalDate}
   workoutTypes={workoutTypes}
   suggestedExercises={suggestedExercises}
-  latestWorkoutTemplate={latestWorkoutTemplate}
   currentLogCoverage={currentLogCoverage}
   editingId={editingId}
   addExercise={addExercise}

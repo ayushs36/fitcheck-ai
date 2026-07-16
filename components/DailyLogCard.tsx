@@ -15,7 +15,6 @@ export function DailyLogCard({
   setGoalDate,
   workoutTypes,
   suggestedExercises,
-  latestWorkoutTemplate,
   currentLogCoverage,
   editingId,
   addExercise,
@@ -36,7 +35,6 @@ export function DailyLogCard({
   setGoalDate: (value: string) => void;
   workoutTypes: string[];
   suggestedExercises: string[];
-  latestWorkoutTemplate: Pick<LogEntry, "workout" | "exercises"> | null;
   currentLogCoverage: LogCoverage;
   editingId: string | null;
   addExercise: () => void;
@@ -139,38 +137,6 @@ export function DailyLogCard({
           onChange={(value) => setEntry({ ...entry, workout: value })}
           placeholder="Push, Pull, Legs, Rest..."
         />
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (!latestWorkoutTemplate) {
-                return;
-              }
-
-              setEntry({
-                ...entry,
-                workout: latestWorkoutTemplate.workout,
-                exercises: latestWorkoutTemplate.exercises.map((item) => ({
-                  ...item,
-                  id: crypto.randomUUID(),
-                })),
-              });
-            }}
-            disabled={!latestWorkoutTemplate}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300"
-          >
-            Use Last Workout
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setEntry({ ...entry, workout: "Rest Day", exercises: [] })}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-          >
-            Rest Day
-          </button>
-        </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between gap-3">
