@@ -1,5 +1,6 @@
 import type { Exercise, Goal, LogEntry } from "@/types/fitness";
 import { Input, NumberInput, Select } from "@/components/FormInputs";
+import type { LogCoverage } from "@/lib/logQuality";
 
 export function DailyLogCard({
   goal,
@@ -14,6 +15,8 @@ export function DailyLogCard({
   setGoalDate,
   workoutTypes,
   suggestedExercises,
+  latestWorkoutTemplate,
+  currentLogCoverage,
   editingId,
   addExercise,
   deleteExercise,
@@ -33,6 +36,8 @@ export function DailyLogCard({
   setGoalDate: (value: string) => void;
   workoutTypes: string[];
   suggestedExercises: string[];
+  latestWorkoutTemplate: Pick<LogEntry, "workout" | "exercises"> | null;
+  currentLogCoverage: LogCoverage;
   editingId: string | null;
   addExercise: () => void;
   deleteExercise: (id: string) => void;
@@ -134,6 +139,53 @@ export function DailyLogCard({
           onChange={(value) => setEntry({ ...entry, workout: value })}
           placeholder="Push, Pull, Legs, Rest..."
         />
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!latestWorkoutTemplate) {
+                return;
+              }
+
+              setEntry({
+                ...entry,
+                workout: latestWorkoutTemplate.workout,
+                exercises: latestWorkoutTemplate.exercises.map((item) => ({
+                  ...item,
+                  id: crypto.randomUUID(),
+                })),
+              });
+            }}
+            disabled={!latestWorkoutTemplate}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-300"
+          >
+            Use Last Workout
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setEntry({ ...entry, workout: "Rest Day", exercises: [] })}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+          >
+            Rest Day
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-900">
+              Log Coverage
+            </p>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+              {currentLogCoverage.status} · {currentLogCoverage.score}%
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">
+            {currentLogCoverage.summary}. Missing fields stay unknown and will
+            not count as zero.
+          </p>
+        </div>
 
         <div className="rounded-2xl bg-slate-50 p-4">
           <h3 className="font-semibold">Add Exercise</h3>

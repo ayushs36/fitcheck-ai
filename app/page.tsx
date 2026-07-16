@@ -49,6 +49,7 @@ import {
   getReadinessScore,
 } from "@/lib/readiness";
 import { getGoalForecast } from "@/lib/forecasting";
+import { getLogCoverage, getLoggingQuality } from "@/lib/logQuality";
 
 import { Stat } from "@/components/Stat";
 
@@ -403,6 +404,27 @@ useEffect(() => {
 
     return Array.from(savedExercises.values());
   }, [entry.workout, sortedLogs]);
+
+  const latestWorkoutTemplate = useMemo(() => {
+    const latestWorkoutLog = [...sortedLogs]
+      .reverse()
+      .find((log) => log.workout.trim() || log.exercises.length > 0);
+
+    if (!latestWorkoutLog) {
+      return null;
+    }
+
+    return {
+      workout: latestWorkoutLog.workout,
+      exercises: latestWorkoutLog.exercises,
+    };
+  }, [sortedLogs]);
+
+  const currentLogCoverage = useMemo(() => getLogCoverage(entry), [entry]);
+  const loggingQuality = useMemo(
+    () => getLoggingQuality(sortedLogs),
+    [sortedLogs]
+  );
 
   const last7Logs = sortedLogs.slice(-7);
   const last14Logs = sortedLogs.slice(-14);
@@ -1847,6 +1869,7 @@ async function runFitCheckAgent() {
     readinessScore,
     planAdherence,
     nutritionDiagnosis,
+    loggingQuality,
     goalForecast,
     logsCount: logs.length,
   };
@@ -1859,7 +1882,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -2050,6 +2073,8 @@ const pageStats = (() => {
   setGoalDate={setGoalDate}
   workoutTypes={workoutTypes}
   suggestedExercises={suggestedExercises}
+  latestWorkoutTemplate={latestWorkoutTemplate}
+  currentLogCoverage={currentLogCoverage}
   editingId={editingId}
   addExercise={addExercise}
   deleteExercise={deleteExercise}
@@ -2450,6 +2475,7 @@ const pageStats = (() => {
                   <thead>
                     <tr className="border-b text-slate-500">
                       <th className="p-2">Date</th>
+                      <th className="p-2">Coverage</th>
                       <th className="p-2">Weight</th>
                       <th className="p-2">Calories</th>
                       <th className="p-2">Protein</th>
@@ -2461,45 +2487,60 @@ const pageStats = (() => {
                   </thead>
 
                   <tbody>
-                    {group.logs.map((log) => (
-                      <tr key={log.id} className="border-b align-top">
-                        <td className="p-2">{log.date}</td>
-                        <td className="p-2">{log.weight > 0 ? log.weight : "—"}</td>
-                        <td className="p-2">{log.calories > 0 ? log.calories : "—"}</td>
-                        <td className="p-2">{log.protein > 0 ? `${log.protein}g` : "—"}</td>
-                        <td className="p-2">{log.steps > 0 ? log.steps : "—"}</td>
-                        <td className="p-2">{log.workout || "—"}</td>
-                        <td className="p-2">
-                          {log.exercises.length === 0 ? (
-                            "—"
-                          ) : (
-                            <ul className="space-y-1">
-                              {log.exercises.map((item) => (
-                                <li key={item.id}>
-                                  {item.name}: {item.sets}x{item.reps} @{" "}
-                                  {item.weight} lbs
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </td>
-                        <td className="flex gap-2 p-2">
-                          <button
-                            onClick={() => editLog(log)}
-                            className="rounded-lg bg-slate-200 px-3 py-1"
-                          >
-                            Edit
-                          </button>
+                    {group.logs.map((log) => {
+                      const coverage = getLogCoverage(log);
 
-                          <button
-                            onClick={() => deleteLog(log.id)}
-                            className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                      return (
+                        <tr key={log.id} className="border-b align-top">
+                          <td className="p-2">{log.date}</td>
+                          <td className="p-2">
+                            <LogCoverageBadge coverage={coverage} />
+                          </td>
+                          <td className="p-2">
+                            {log.weight > 0 ? log.weight : "—"}
+                          </td>
+                          <td className="p-2">
+                            {log.calories > 0 ? log.calories : "—"}
+                          </td>
+                          <td className="p-2">
+                            {log.protein > 0 ? `${log.protein}g` : "—"}
+                          </td>
+                          <td className="p-2">
+                            {log.steps > 0 ? log.steps : "—"}
+                          </td>
+                          <td className="p-2">{log.workout || "—"}</td>
+                          <td className="p-2">
+                            {log.exercises.length === 0 ? (
+                              "—"
+                            ) : (
+                              <ul className="space-y-1">
+                                {log.exercises.map((item) => (
+                                  <li key={item.id}>
+                                    {item.name}: {item.sets}x{item.reps} @{" "}
+                                    {item.weight} lbs
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </td>
+                          <td className="flex gap-2 p-2">
+                            <button
+                              onClick={() => editLog(log)}
+                              className="rounded-lg bg-slate-200 px-3 py-1"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() => deleteLog(log.id)}
+                              className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2521,6 +2562,30 @@ const pageStats = (() => {
 
 export default function Home() {
   return <FitCheckApp />;
+}
+
+function LogCoverageBadge({
+  coverage,
+}: {
+  coverage: ReturnType<typeof getLogCoverage>;
+}) {
+  const badgeClass =
+    coverage.status === "Complete"
+      ? "bg-emerald-50 text-emerald-700"
+      : coverage.status === "Partial"
+        ? "bg-amber-50 text-amber-700"
+        : "bg-slate-100 text-slate-500";
+
+  return (
+    <div>
+      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badgeClass}`}>
+        {coverage.status} · {coverage.score}%
+      </span>
+      {coverage.status === "Partial" && (
+        <p className="mt-1 text-xs text-slate-400">{coverage.summary}</p>
+      )}
+    </div>
+  );
 }
 
 function getGoalTrendStatus({
