@@ -12,6 +12,7 @@ export function DailyLogCard({
   setGoalWeight,
   goalDate,
   setGoalDate,
+  workoutTypes,
   editingId,
   addExercise,
   deleteExercise,
@@ -29,6 +30,7 @@ export function DailyLogCard({
   setGoalWeight: (value: number) => void;
   goalDate: string;
   setGoalDate: (value: string) => void;
+  workoutTypes: string[];
   editingId: string | null;
   addExercise: () => void;
   deleteExercise: (id: string) => void;
@@ -101,8 +103,30 @@ export function DailyLogCard({
           suffix="steps"
         />
 
+        {workoutTypes.length > 0 && (
+          <label className="block">
+            <span className="text-sm text-slate-500">Workout Type</span>
+            <select
+              className="mt-1 w-full rounded-xl border p-2"
+              value={workoutTypes.includes(entry.workout) ? entry.workout : ""}
+              onChange={(event) => {
+                if (event.target.value) {
+                  setEntry({ ...entry, workout: event.target.value });
+                }
+              }}
+            >
+              <option value="">Choose from previous workouts</option>
+              {workoutTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <Input
-          label="Workout"
+          label={workoutTypes.length > 0 ? "Custom Workout Type" : "Workout Type"}
           type="text"
           value={entry.workout}
           onChange={(value) => setEntry({ ...entry, workout: value })}

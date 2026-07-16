@@ -350,6 +350,28 @@ useEffect(() => {
     [logs]
   );
 
+  const workoutTypes = useMemo(() => {
+    const savedWorkoutTypes = new Map<string, string>();
+
+    sortedLogs.forEach((log) => {
+      const workout = log.workout.trim();
+
+      if (!workout) {
+        return;
+      }
+
+      const normalizedWorkout = workout.toLowerCase();
+
+      if (!savedWorkoutTypes.has(normalizedWorkout)) {
+        savedWorkoutTypes.set(normalizedWorkout, workout);
+      }
+    });
+
+    return Array.from(savedWorkoutTypes.values()).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [sortedLogs]);
+
   const last7Logs = sortedLogs.slice(-7);
   const last14Logs = sortedLogs.slice(-14);
 
@@ -1994,6 +2016,7 @@ const pageStats = (() => {
   setGoalWeight={setGoalWeight}
   goalDate={goalDate}
   setGoalDate={setGoalDate}
+  workoutTypes={workoutTypes}
   editingId={editingId}
   addExercise={addExercise}
   deleteExercise={deleteExercise}
