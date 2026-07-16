@@ -13,6 +13,7 @@ export function DailyLogCard({
   goalDate,
   setGoalDate,
   workoutTypes,
+  suggestedExercises,
   editingId,
   addExercise,
   deleteExercise,
@@ -31,6 +32,7 @@ export function DailyLogCard({
   goalDate: string;
   setGoalDate: (value: string) => void;
   workoutTypes: string[];
+  suggestedExercises: string[];
   editingId: string | null;
   addExercise: () => void;
   deleteExercise: (id: string) => void;
@@ -137,8 +139,40 @@ export function DailyLogCard({
           <h3 className="font-semibold">Add Exercise</h3>
 
           <div className="mt-3 space-y-3">
+            {suggestedExercises.length > 0 && (
+              <label className="block">
+                <span className="text-sm text-slate-500">
+                  Exercise for {entry.workout}
+                </span>
+                <select
+                  className="mt-1 w-full rounded-xl border p-2"
+                  value={
+                    suggestedExercises.includes(exercise.name)
+                      ? exercise.name
+                      : ""
+                  }
+                  onChange={(event) => {
+                    if (event.target.value) {
+                      setExercise({ ...exercise, name: event.target.value });
+                    }
+                  }}
+                >
+                  <option value="">Choose from previous exercises</option>
+                  {suggestedExercises.map((exerciseName) => (
+                    <option key={exerciseName} value={exerciseName}>
+                      {exerciseName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <Input
-              label="Exercise Name"
+              label={
+                suggestedExercises.length > 0
+                  ? "Custom Exercise Name"
+                  : "Exercise Name"
+              }
               type="text"
               value={exercise.name}
               onChange={(value) => setExercise({ ...exercise, name: value })}

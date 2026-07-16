@@ -372,6 +372,38 @@ useEffect(() => {
     );
   }, [sortedLogs]);
 
+  const suggestedExercises = useMemo(() => {
+    const selectedWorkout = entry.workout.trim().toLowerCase();
+
+    if (!selectedWorkout) {
+      return [];
+    }
+
+    const savedExercises = new Map<string, string>();
+
+    [...sortedLogs].reverse().forEach((log) => {
+      if (log.workout.trim().toLowerCase() !== selectedWorkout) {
+        return;
+      }
+
+      log.exercises.forEach((loggedExercise) => {
+        const exerciseName = loggedExercise.name.trim();
+
+        if (!exerciseName) {
+          return;
+        }
+
+        const normalizedExerciseName = exerciseName.toLowerCase();
+
+        if (!savedExercises.has(normalizedExerciseName)) {
+          savedExercises.set(normalizedExerciseName, exerciseName);
+        }
+      });
+    });
+
+    return Array.from(savedExercises.values());
+  }, [entry.workout, sortedLogs]);
+
   const last7Logs = sortedLogs.slice(-7);
   const last14Logs = sortedLogs.slice(-14);
 
@@ -2017,6 +2049,7 @@ const pageStats = (() => {
   goalDate={goalDate}
   setGoalDate={setGoalDate}
   workoutTypes={workoutTypes}
+  suggestedExercises={suggestedExercises}
   editingId={editingId}
   addExercise={addExercise}
   deleteExercise={deleteExercise}
