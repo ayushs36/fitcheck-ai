@@ -1,5 +1,5 @@
 import type { Exercise, ExerciseSignal, LogEntry, TrainingSignal } from "@/types/fitness";
-import { calculateExerciseVolume } from "./calculations";
+import { calculateExerciseTrainingOutput } from "./calculations";
 
 export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
   const workoutLogs = logs.filter((log) => log.exercises.length > 0);
@@ -18,13 +18,13 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
   );
   const latestWorkoutVolume = latestWorkout
     ? latestWorkout.exercises.reduce(
-        (total, exercise) => total + calculateExerciseVolume(exercise),
+        (total, exercise) => total + calculateExerciseTrainingOutput(exercise),
         0
       )
     : 0;
   const previousWorkoutVolume = previousWorkout
     ? previousWorkout.exercises.reduce(
-        (total, exercise) => total + calculateExerciseVolume(exercise),
+        (total, exercise) => total + calculateExerciseTrainingOutput(exercise),
         0
       )
     : 0;
@@ -122,28 +122,84 @@ function getExerciseSignal(
   latestExercise: Exercise,
   previousExercise: Exercise
 ): ExerciseSignal {
-  const latestVolume = calculateExerciseVolume(latestExercise);
-  const previousVolume = calculateExerciseVolume(previousExercise);
+  const latestVolume = calculateExerciseTrainingOutput(latestExercise);
+  const previousVolume = calculateExerciseTrainingOutput(previousExercise);
   const volumeChange = latestVolume - previousVolume;
   const latestReps = latestExercise.sets * latestExercise.reps;
   const previousReps = previousExercise.sets * previousExercise.reps;
+  const isBodyweightExercise =
+    latestExercise.weight <= 0 && previousExercise.weight <= 0;
   const status =
-    latestVolume > previousVolume || latestExercise.weight > previousExercise.weight
-      ? "Improving"
-      : latestVolume < previousVolume && latestReps < previousReps
-      ? "Declining"
-      : latestVolume === previousVolume
-      ? "Stalled"
-      : "Stable";
+    isBodyweightExercise
+      ? getBodyweightExerciseStatus(latestReps, previousReps)
+      : getWeightedExerciseStatus({
+          latestVolume,
+          previousVolume,
+          latestWeight: latestExercise.weight,
+          previousWeight: previousExercise.weight,
+          latestReps,
+          previousReps,
+        });
 
   return {
     name: latestExercise.name,
     status,
+    progressionBasis: isBodyweightExercise ? "Bodyweight reps" : "Load/volume",
     latestVolume,
     previousVolume,
     volumeChange,
-    summary: `${latestExercise.name}: ${status.toLowerCase()} compared with the previous matching workout.`,
+    latestTotalReps: latestReps,
+    previousTotalReps: previousReps,
+    repChange: latestReps - previousReps,
+    summary: isBodyweightExercise
+      ? `${latestExercise.name}: ${status.toLowerCase()} based on total reps compared with the previous matching workout.`
+      : `${latestExercise.name}: ${status.toLowerCase()} based on load and volume compared with the previous matching workout.`,
   };
+}
+
+function getBodyweightExerciseStatus(
+  latestReps: number,
+  previousReps: number
+): ExerciseSignal["status"] {
+  if (latestReps > previousReps) {
+    return "Improving";
+  }
+
+  if (latestReps < previousReps) {
+    return "Declining";
+  }
+
+  return "Stalled";
+}
+
+function getWeightedExerciseStatus({
+  latestVolume,
+  previousVolume,
+  latestWeight,
+  previousWeight,
+  latestReps,
+  previousReps,
+}: {
+  latestVolume: number;
+  previousVolume: number;
+  latestWeight: number;
+  previousWeight: number;
+  latestReps: number;
+  previousReps: number;
+}): ExerciseSignal["status"] {
+  if (latestVolume > previousVolume || latestWeight > previousWeight) {
+    return "Improving";
+  }
+
+  if (latestVolume < previousVolume && latestReps < previousReps) {
+    return "Declining";
+  }
+
+  if (latestVolume === previousVolume) {
+    return "Stalled";
+  }
+
+  return "Stable";
 }
 
 function getTrainingScore({

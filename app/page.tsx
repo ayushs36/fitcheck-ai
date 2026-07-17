@@ -25,7 +25,7 @@ import type {
   CoachingPlanRecord,
 } from "@/types/fitness";
 import {
-  calculateExerciseVolume,
+  calculateExerciseTrainingOutput,
   addDays,
   formatDate,
 } from "@/lib/calculations";
@@ -50,6 +50,7 @@ import {
 } from "@/lib/readiness";
 import { getGoalForecast } from "@/lib/forecasting";
 import { getLogCoverage, getLoggingQuality } from "@/lib/logQuality";
+import { getDailyBrief } from "@/lib/dailyBrief";
 
 import { Stat } from "@/components/Stat";
 
@@ -66,6 +67,7 @@ import { FitCheckAgentCard } from "@/components/FitCheckAgentCard";
 import { AgentHistoryCard } from "@/components/AgentHistoryCard";
 
 import { AgentDashboardCard } from "@/components/AgentDashboardCard";
+import { DailyBriefCard } from "@/components/DailyBriefCard";
 
 import { DemoModeCard } from "@/components/DemoModeCard";
 
@@ -895,8 +897,9 @@ const matchingExerciseComparisons =
           const latestTotalReps = latestExercise.sets * latestExercise.reps;
           const previousTotalReps = previousExercise.sets * previousExercise.reps;
 
-          const latestVolume = calculateExerciseVolume(latestExercise);
-          const previousVolume = calculateExerciseVolume(previousExercise);
+          const latestVolume = calculateExerciseTrainingOutput(latestExercise);
+          const previousVolume =
+            calculateExerciseTrainingOutput(previousExercise);
 
           return {
             name: latestExercise.name,
@@ -915,13 +918,13 @@ const matchingExerciseComparisons =
 
 const latestWorkoutVolume =
   latestWorkout?.exercises.reduce(
-    (total, exercise) => total + calculateExerciseVolume(exercise),
+    (total, exercise) => total + calculateExerciseTrainingOutput(exercise),
     0
   ) ?? 0;
 
 const previousWorkoutVolume =
   previousMatchingWorkout?.exercises.reduce(
-    (total, exercise) => total + calculateExerciseVolume(exercise),
+    (total, exercise) => total + calculateExerciseTrainingOutput(exercise),
     0
   ) ?? 0;
 
@@ -1175,6 +1178,16 @@ AI Confidence Score: ${confidenceScore}%
     freshnessAdjustedDecision,
     readinessScore
   );
+  const dailyBrief = getDailyBrief({
+    goal,
+    logs: sortedLogs,
+    agentDecision,
+    dataFreshness,
+    loggingQuality,
+    readinessScore,
+    nutritionDiagnosis,
+    trainingSignal,
+  });
 
   function getPlanChanges(previousPlan: CoachingPlanRecord | undefined) {
     if (!previousPlan) {
@@ -1855,6 +1868,7 @@ async function runFitCheckAgent() {
     planAdherence,
     nutritionDiagnosis,
     loggingQuality,
+    dailyBrief,
     goalForecast,
     logsCount: logs.length,
   };
@@ -1867,7 +1881,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output and dailyBrief as the current day control-center summary. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -2073,6 +2087,8 @@ const pageStats = (() => {
 
 
           <section className={showToday ? "space-y-6 lg:col-span-2" : "space-y-6"}>
+{showToday && <DailyBriefCard brief={dailyBrief} />}
+
 {(showToday || showCoach) && (
 <AgentDashboardCard
   agentDecision={agentDecision}

@@ -11,8 +11,8 @@ export function TrainingSignalCard({
         <div>
           <h2 className="text-2xl font-semibold">Agent Training Signal</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Compares repeat exercises and workout volume so the agent can tell
-            whether training is progressing, stable, stalled, or recovery-limited.
+            Compares repeat exercises using load/volume for weighted lifts and
+            total reps for bodyweight work.
           </p>
         </div>
 
@@ -28,7 +28,7 @@ export function TrainingSignalCard({
           value={`${trainingSignal.workoutFrequency}`}
         />
         <TrainingStat
-          label="Latest volume"
+          label="Latest output"
           value={trainingSignal.latestWorkoutVolume.toFixed(0)}
         />
         <TrainingStat
@@ -83,8 +83,13 @@ function LiftList({
             <div key={`${title}-${lift.name}`} className="rounded-xl bg-white p-3">
               <p className="text-sm font-semibold text-slate-950">{lift.name}</p>
               <p className="mt-1 text-xs text-slate-500">
-                Volume: {lift.previousVolume.toFixed(0)} to{" "}
-                {lift.latestVolume.toFixed(0)} ({lift.volumeChange.toFixed(0)})
+                {lift.progressionBasis}:{" "}
+                {lift.progressionBasis === "Bodyweight reps"
+                  ? `${lift.previousTotalReps} to ${lift.latestTotalReps} reps`
+                  : `${lift.previousVolume.toFixed(0)} to ${lift.latestVolume.toFixed(0)}`}
+                {lift.progressionBasis === "Bodyweight reps"
+                  ? ` (${lift.repChange > 0 ? "+" : ""}${lift.repChange})`
+                  : ` (${lift.volumeChange.toFixed(0)})`}
               </p>
             </div>
           ))}

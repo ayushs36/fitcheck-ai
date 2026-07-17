@@ -11,9 +11,13 @@ export type Exercise = {
 export type ExerciseSignal = {
   name: string;
   status: "Improving" | "Stable" | "Stalled" | "Declining";
+  progressionBasis: "Load/volume" | "Bodyweight reps";
   latestVolume: number;
   previousVolume: number;
   volumeChange: number;
+  latestTotalReps: number;
+  previousTotalReps: number;
+  repChange: number;
   summary: string;
 };
 
@@ -26,6 +30,15 @@ export type LogEntry = {
   steps: number;
   workout: string;
   exercises: Exercise[];
+};
+
+export type DailyBrief = {
+  status: "Progress day" | "Recovery watch" | "Data refresh" | "Nutrition focus" | "Normal day";
+  todayFocus: string;
+  changedSinceLastLog: string;
+  nextAction: string;
+  confidence: "Low" | "Medium" | "High";
+  evidence: string[];
 };
 
 export type GoalFeasibility = {
