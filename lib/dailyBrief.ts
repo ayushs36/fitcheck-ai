@@ -78,6 +78,10 @@ function getBriefStatus({
     return "Recovery watch";
   }
 
+  if (trainingSignal.status === "Technique watch") {
+    return "Normal day";
+  }
+
   if (nutritionDiagnosis.status === "Needs attention") {
     return "Nutrition focus";
   }

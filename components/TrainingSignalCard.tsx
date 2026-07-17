@@ -35,6 +35,14 @@ export function TrainingSignalCard({
           label="Volume change"
           value={`${trainingSignal.volumeChange.toFixed(1)}%`}
         />
+        <TrainingStat
+          label="2-3 week comparisons"
+          value={`${trainingSignal.weeklyComparisonCount}`}
+        />
+        <TrainingStat
+          label="Decline rate"
+          value={`${Math.round(trainingSignal.weeklyDeclineRate * 100)}%`}
+        />
       </div>
 
       <div className="mt-5 rounded-2xl bg-slate-100 p-4">

@@ -23,6 +23,7 @@ import type {
   AgentCheck,
   GoalAdaptationRecord,
   CoachingPlanRecord,
+  TrainingSignal,
 } from "@/types/fitness";
 import {
   calculateExerciseTrainingOutput,
@@ -936,44 +937,8 @@ const volumeChange =
     : 0;
 const trainingSignal = getTrainingSignal(sortedLogs);
 
-let strengthStatus = "Need more matching workout data";
-
-if (matchingExerciseComparisons.length > 0) {
-  const improved = matchingExerciseComparisons.filter(
-    (item) =>
-      item.latestTotalReps > item.previousTotalReps ||
-      item.latestWeight > item.previousWeight ||
-      item.latestVolume > item.previousVolume
-  ).length;
-
-  const declined = matchingExerciseComparisons.filter(
-    (item) =>
-      item.latestTotalReps < item.previousTotalReps &&
-      item.latestWeight <= item.previousWeight
-  ).length;
-
-  if (improved > declined) {
-    strengthStatus = "Strength/performance improving";
-  } else if (declined > improved) {
-    strengthStatus = "Strength/performance dropping";
-  } else {
-    strengthStatus = "Strength/performance stable";
-  }
-}
-
-let strengthInsight =
-  "Add at least 2 workouts with matching exercises to track strength trends. Rest days and different muscle groups are ignored.";
-
-if (strengthStatus === "Strength/performance improving") {
-  strengthInsight =
-    "Your matching exercises improved compared to the last time you performed them. This suggests strength or workout performance is improving.";
-} else if (strengthStatus === "Strength/performance dropping") {
-  strengthInsight =
-    "Your matching exercises dropped in reps, weight, or volume compared to the last time you performed them. Watch recovery, sleep, calories, and fatigue.";
-} else if (strengthStatus === "Strength/performance stable") {
-  strengthInsight =
-    "Your matching exercises are relatively stable. Rest days and unrelated workout days are not counted against your strength score.";
-}
+const strengthStatus = getStrengthStatusFromTrainingSignal(trainingSignal);
+const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
 
   const proteinTargetMet = avgProtein >= 130;
   const stepTargetMet = avgSteps >= 10000;
@@ -1881,7 +1846,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output and dailyBrief as the current day control-center summary. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output and dailyBrief as the current day control-center summary. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Do not call a one-week drop in load, reps, or workout output strength loss by itself; it may be intentional form or technique work. Only frame it as strength/performance dropping when trainingSignal shows sustained decline across the recent 2-3 week comparison window. Use nutritionDiagnosis to decide whether calorie consistency, protein execution, or logging accuracy is the biggest nutrition blocker before changing calories. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -2586,6 +2551,50 @@ function LogCoverageBadge({
       )}
     </div>
   );
+}
+
+function getStrengthStatusFromTrainingSignal(trainingSignal: TrainingSignal) {
+  if (trainingSignal.status === "Need more data") {
+    return "Need more matching workout data";
+  }
+
+  if (trainingSignal.status === "Progressing") {
+    return "Strength/performance improving";
+  }
+
+  if (trainingSignal.status === "Recovery risk") {
+    return "Strength/performance dropping";
+  }
+
+  if (trainingSignal.status === "Technique watch") {
+    return "Technique/form focus possible";
+  }
+
+  return "Strength/performance stable";
+}
+
+function getStrengthInsightFromTrainingSignal(trainingSignal: TrainingSignal) {
+  if (trainingSignal.status === "Need more data") {
+    return "Add at least 2 workouts with matching exercises to track strength trends. Rest days and different muscle groups are ignored.";
+  }
+
+  if (trainingSignal.status === "Progressing") {
+    return "Your repeat exercises are improving across the recent training window. This suggests strength or workout performance is improving.";
+  }
+
+  if (trainingSignal.status === "Recovery risk") {
+    return `Repeat exercises have declined across the recent 2-3 week training window (${Math.round(
+      trainingSignal.weeklyDeclineRate * 100
+    )}% declining across ${
+      trainingSignal.weeklyComparisonCount
+    } comparisons). Watch recovery, sleep, calories, and fatigue.`;
+  }
+
+  if (trainingSignal.status === "Technique watch") {
+    return "The latest workout dropped, but the 2-3 week pattern does not confirm strength loss. This may reflect intentional form or technique work, so wait for another repeat workout before treating it as a true decline.";
+  }
+
+  return "Your repeat exercises are relatively stable across the recent training window. Rest days and unrelated workout days are not counted against your strength score.";
 }
 
 function getGoalTrendStatus({

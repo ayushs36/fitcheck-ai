@@ -78,13 +78,21 @@ export type GoalForecast = {
 };
 
 export type TrainingSignal = {
-  status: "Progressing" | "Stable" | "Stalled" | "Recovery risk" | "Need more data";
+  status:
+    | "Progressing"
+    | "Stable"
+    | "Stalled"
+    | "Technique watch"
+    | "Recovery risk"
+    | "Need more data";
   score: number;
   agentAction: string;
   workoutFrequency: number;
   latestWorkoutVolume: number;
   previousWorkoutVolume: number;
   volumeChange: number;
+  weeklyDeclineRate: number;
+  weeklyComparisonCount: number;
   improvingLifts: ExerciseSignal[];
   stalledLifts: ExerciseSignal[];
   decliningLifts: ExerciseSignal[];

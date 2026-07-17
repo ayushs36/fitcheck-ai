@@ -1,12 +1,18 @@
 import type { Exercise, ExerciseSignal, LogEntry, TrainingSignal } from "@/types/fitness";
 import { calculateExerciseTrainingOutput } from "./calculations";
 
+const TRAINING_TREND_WINDOW_DAYS = 21;
+
 export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
   const workoutLogs = logs.filter((log) => log.exercises.length > 0);
   const recentWorkoutLogs = workoutLogs.slice(-14);
   const latestWorkout = workoutLogs[workoutLogs.length - 1];
   const previousWorkout = findPreviousMatchingWorkout(workoutLogs);
   const exerciseSignals = getExerciseSignals(latestWorkout, previousWorkout);
+  const trendSignals = getRecentExerciseSignals(
+    workoutLogs,
+    TRAINING_TREND_WINDOW_DAYS
+  );
   const improvingLifts = exerciseSignals.filter(
     (signal) => signal.status === "Improving"
   );
@@ -34,6 +40,12 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
         100
       : 0;
   const workoutFrequency = recentWorkoutLogs.length;
+  const weeklyComparisonCount = trendSignals.length;
+  const weeklyDeclineRate =
+    weeklyComparisonCount > 0
+      ? trendSignals.filter((signal) => signal.status === "Declining").length /
+        weeklyComparisonCount
+      : 0;
 
   if (workoutLogs.length < 2 || exerciseSignals.length === 0) {
     return {
@@ -44,6 +56,8 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
       latestWorkoutVolume,
       previousWorkoutVolume,
       volumeChange,
+      weeklyDeclineRate,
+      weeklyComparisonCount,
       improvingLifts,
       stalledLifts,
       decliningLifts,
@@ -58,8 +72,17 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     declining: decliningLifts.length,
     workoutFrequency,
     volumeChange,
+    weeklyDeclineRate,
+    weeklyComparisonCount,
   });
-  const status = getTrainingStatus(score, decliningLifts.length, volumeChange);
+  const status = getTrainingStatus({
+    score,
+    latestDecliningCount: decliningLifts.length,
+    latestComparisonCount: exerciseSignals.length,
+    volumeChange,
+    weeklyDeclineRate,
+    weeklyComparisonCount,
+  });
 
   return {
     status,
@@ -69,6 +92,8 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     latestWorkoutVolume,
     previousWorkoutVolume,
     volumeChange,
+    weeklyDeclineRate,
+    weeklyComparisonCount,
     improvingLifts,
     stalledLifts,
     decliningLifts,
@@ -116,6 +141,54 @@ function getExerciseSignals(
       return getExerciseSignal(latestExercise, previousExercise);
     })
     .filter((signal): signal is ExerciseSignal => signal !== null);
+}
+
+function getRecentExerciseSignals(
+  workoutLogs: LogEntry[],
+  windowDays: number
+): ExerciseSignal[] {
+  const latestWorkout = workoutLogs[workoutLogs.length - 1];
+
+  if (!latestWorkout) {
+    return [];
+  }
+
+  const latestDate = parseLogDate(latestWorkout.date);
+  const windowStart = new Date(latestDate);
+  windowStart.setDate(latestDate.getDate() - windowDays + 1);
+
+  return workoutLogs
+    .map((workout, index) => {
+      const workoutDate = parseLogDate(workout.date);
+
+      if (workoutDate < windowStart) {
+        return [];
+      }
+
+      const previousWorkout = findPreviousWorkoutForLog(workoutLogs, index);
+
+      return getExerciseSignals(workout, previousWorkout);
+    })
+    .flat();
+}
+
+function findPreviousWorkoutForLog(workoutLogs: LogEntry[], index: number) {
+  const workout = workoutLogs[index];
+
+  if (!workout) {
+    return undefined;
+  }
+
+  const names = workout.exercises.map(normalizeName);
+
+  return workoutLogs
+    .slice(0, index)
+    .reverse()
+    .find((previousWorkout) =>
+      previousWorkout.exercises.some((exercise) =>
+        names.includes(normalizeName(exercise))
+      )
+    );
 }
 
 function getExerciseSignal(
@@ -208,12 +281,16 @@ function getTrainingScore({
   declining,
   workoutFrequency,
   volumeChange,
+  weeklyDeclineRate,
+  weeklyComparisonCount,
 }: {
   improving: number;
   stalled: number;
   declining: number;
   workoutFrequency: number;
   volumeChange: number;
+  weeklyDeclineRate: number;
+  weeklyComparisonCount: number;
 }) {
   let score = 55;
   score += Math.min(25, improving * 10);
@@ -227,16 +304,41 @@ function getTrainingScore({
     score += 10;
   }
 
+  if (weeklyComparisonCount >= 3 && weeklyDeclineRate >= 0.5) {
+    score -= 15;
+  }
+
   return Math.max(0, Math.min(100, score));
 }
 
-function getTrainingStatus(
-  score: number,
-  decliningCount: number,
-  volumeChange: number
-): TrainingSignal["status"] {
-  if (decliningCount > 1 || volumeChange < -20) {
+function getTrainingStatus({
+  score,
+  latestDecliningCount,
+  latestComparisonCount,
+  volumeChange,
+  weeklyDeclineRate,
+  weeklyComparisonCount,
+}: {
+  score: number;
+  latestDecliningCount: number;
+  latestComparisonCount: number;
+  volumeChange: number;
+  weeklyDeclineRate: number;
+  weeklyComparisonCount: number;
+}): TrainingSignal["status"] {
+  const sustainedDecline =
+    weeklyComparisonCount >= 3 && weeklyDeclineRate >= 0.5;
+  const latestOnlyDrop =
+    latestComparisonCount > 0 &&
+    latestDecliningCount > 0 &&
+    !sustainedDecline;
+
+  if (sustainedDecline || (volumeChange < -25 && weeklyDeclineRate >= 0.4)) {
     return "Recovery risk";
+  }
+
+  if (latestOnlyDrop) {
+    return "Technique watch";
   }
 
   if (score >= 75) {
@@ -259,6 +361,10 @@ function getAgentAction(status: TrainingSignal["status"]) {
     return "Protect recovery";
   }
 
+  if (status === "Technique watch") {
+    return "Check intent before judging strength";
+  }
+
   if (status === "Stalled") {
     return "Adjust training stimulus";
   }
@@ -276,7 +382,11 @@ function getRecommendation(status: TrainingSignal["status"]) {
   }
 
   if (status === "Recovery risk") {
-    return "Hold calories steady and prioritize sleep, fatigue management, and repeatable workout performance.";
+    return "Performance has declined across recent repeat-exercise comparisons. Hold calories steady and prioritize sleep, fatigue management, and repeatable workout performance.";
+  }
+
+  if (status === "Technique watch") {
+    return "The latest workout dipped, but the 2-3 week trend does not confirm strength loss yet. Treat this as possible form or technique work unless the drop repeats.";
   }
 
   if (status === "Stalled") {
@@ -292,4 +402,8 @@ function getRecommendation(status: TrainingSignal["status"]) {
 
 function normalizeName(exercise: Exercise) {
   return exercise.name.toLowerCase().trim();
+}
+
+function parseLogDate(date: string) {
+  return new Date(`${date}T00:00:00`);
 }
