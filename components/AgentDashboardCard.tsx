@@ -1,11 +1,13 @@
-import type { AgentCheck, AgentDecision } from "@/types/fitness";
+import type { AgentCheck, AgentDecision, AgentMemory } from "@/types/fitness";
 
 export function AgentDashboardCard({
   agentDecision,
+  agentMemory,
   latestAgentCheck,
   previousAgentCheck,
 }: {
   agentDecision: AgentDecision;
+  agentMemory: AgentMemory;
   latestAgentCheck?: AgentCheck;
   previousAgentCheck?: AgentCheck;
 }) {
@@ -64,6 +66,36 @@ export function AgentDashboardCard({
               latestAgentCheck?.recommendation ??
               agentDecision.rationale}
           </p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-500">Agent Memory</p>
+        <p className="mt-2 font-semibold text-slate-900">
+          {agentMemory.noticedPattern}
+        </p>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <AgentDashboardStat
+            label="Recurring Risk"
+            value={
+              agentMemory.recurringRiskCount > 0
+                ? `${agentMemory.recurringRisk} (${agentMemory.recurringRiskCount}x)`
+                : agentMemory.recurringRisk
+            }
+          />
+          <AgentDashboardStat
+            label="Repeated Decision"
+            value={
+              agentMemory.repeatedDecisionCount > 0
+                ? `${agentMemory.repeatedDecision} (${agentMemory.repeatedDecisionCount}x)`
+                : agentMemory.repeatedDecision
+            }
+          />
+          <AgentDashboardStat
+            label="Follow-through"
+            value={`${agentMemory.followThroughStatus}: ${agentMemory.followThroughEvidence}`}
+          />
         </div>
       </div>
 

@@ -141,6 +141,21 @@ export type AgentDecision = {
   confidence: "Low" | "Medium" | "High";
 };
 
+export type AgentMemory = {
+  memoryDepth: number;
+  recurringRisk: string;
+  recurringRiskCount: number;
+  repeatedDecision: AgentDecisionAction | "Not enough memory";
+  repeatedDecisionCount: number;
+  followThroughStatus:
+    | "On track"
+    | "Needs follow-through"
+    | "Mixed"
+    | "Not enough data";
+  followThroughEvidence: string;
+  noticedPattern: string;
+};
+
 export type MaintenanceEstimate = {
   estimatedMaintenance: number;
   trendBasedMaintenance: number;
