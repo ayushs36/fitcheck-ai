@@ -1,4 +1,11 @@
-import type { Exercise, ExerciseSignal, LogEntry, TrainingSignal } from "@/types/fitness";
+import type {
+  Exercise,
+  ExerciseHistorySummary,
+  ExerciseSignal,
+  LogEntry,
+  TrainingSignal,
+  WorkoutTypeTrend,
+} from "@/types/fitness";
 import { calculateExerciseTrainingOutput } from "./calculations";
 
 const TRAINING_TREND_WINDOW_DAYS = 21;
@@ -9,6 +16,10 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
   const latestWorkout = workoutLogs[workoutLogs.length - 1];
   const previousWorkout = findPreviousMatchingWorkout(workoutLogs);
   const exerciseSignals = getExerciseSignals(latestWorkout, previousWorkout);
+  const exerciseHistory = getExerciseHistory(workoutLogs);
+  const recentPrs = getRecentPrs(exerciseHistory);
+  const regressions = getRegressionWatchList(exerciseHistory);
+  const workoutTypeTrends = getWorkoutTypeTrends(workoutLogs);
   const trendSignals = getRecentExerciseSignals(
     workoutLogs,
     TRAINING_TREND_WINDOW_DAYS
@@ -58,6 +69,16 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
       volumeChange,
       weeklyDeclineRate,
       weeklyComparisonCount,
+      recentPrs,
+      regressions,
+      exerciseHistory,
+      workoutTypeTrends,
+      agentTrainingInsight: getAgentTrainingInsight({
+        status: "Need more data",
+        recentPrs,
+        regressions,
+        workoutTypeTrends,
+      }),
       improvingLifts,
       stalledLifts,
       decliningLifts,
@@ -83,6 +104,12 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     weeklyDeclineRate,
     weeklyComparisonCount,
   });
+  const agentTrainingInsight = getAgentTrainingInsight({
+    status,
+    recentPrs,
+    regressions,
+    workoutTypeTrends,
+  });
 
   return {
     status,
@@ -94,6 +121,11 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     volumeChange,
     weeklyDeclineRate,
     weeklyComparisonCount,
+    recentPrs,
+    regressions,
+    exerciseHistory,
+    workoutTypeTrends,
+    agentTrainingInsight,
     improvingLifts,
     stalledLifts,
     decliningLifts,
@@ -273,6 +305,220 @@ function getWeightedExerciseStatus({
   }
 
   return "Stable";
+}
+
+function getExerciseHistory(workoutLogs: LogEntry[]): ExerciseHistorySummary[] {
+  const exerciseMap = new Map<
+    string,
+    Array<{
+      date: string;
+      name: string;
+      weight: number;
+      totalReps: number;
+      output: number;
+    }>
+  >();
+
+  workoutLogs.forEach((log) => {
+    log.exercises.forEach((exercise) => {
+      const name = exercise.name.trim();
+
+      if (!name) {
+        return;
+      }
+
+      const key = name.toLowerCase();
+      const current = exerciseMap.get(key) ?? [];
+      current.push({
+        date: log.date,
+        name,
+        weight: exercise.weight,
+        totalReps: exercise.sets * exercise.reps,
+        output: calculateExerciseTrainingOutput(exercise),
+      });
+      exerciseMap.set(key, current);
+    });
+  });
+
+  return Array.from(exerciseMap.values())
+    .map((sessions) => {
+      const sortedSessions = sessions.sort((a, b) => a.date.localeCompare(b.date));
+      const latest = sortedSessions[sortedSessions.length - 1];
+      const previous = sortedSessions[sortedSessions.length - 2];
+      const previousOutput = previous?.output ?? 0;
+      const outputChange = previous ? latest.output - previous.output : 0;
+
+      return {
+        name: latest.name,
+        sessions: sortedSessions.length,
+        lastLoggedDate: latest.date,
+        bestWeight: Math.max(...sortedSessions.map((session) => session.weight)),
+        bestTotalReps: Math.max(
+          ...sortedSessions.map((session) => session.totalReps)
+        ),
+        bestOutput: Math.max(...sortedSessions.map((session) => session.output)),
+        latestOutput: latest.output,
+        previousOutput,
+        outputChange,
+        trend: getExerciseHistoryTrend(latest.output, previousOutput, previous),
+      };
+    })
+    .sort((a, b) => b.lastLoggedDate.localeCompare(a.lastLoggedDate));
+}
+
+function getRecentPrs(exerciseHistory: ExerciseHistorySummary[]) {
+  return exerciseHistory
+    .filter(
+      (exercise) =>
+        exercise.sessions > 1 &&
+        exercise.latestOutput >= exercise.bestOutput &&
+        exercise.outputChange > 0
+    )
+    .slice(0, 4)
+    .map((exercise) =>
+      exercise.bestWeight > 0
+        ? `${exercise.name}: best output ${exercise.bestOutput.toFixed(0)}`
+        : `${exercise.name}: best bodyweight reps ${exercise.bestTotalReps}`
+    );
+}
+
+function getRegressionWatchList(exerciseHistory: ExerciseHistorySummary[]) {
+  return exerciseHistory
+    .filter(
+      (exercise) => exercise.sessions >= 2 && exercise.trend === "Regressing"
+    )
+    .slice(0, 4)
+    .map(
+      (exercise) =>
+        `${exercise.name}: output down ${Math.abs(exercise.outputChange).toFixed(
+          0
+        )} from last logged session`
+    );
+}
+
+function getWorkoutTypeTrends(workoutLogs: LogEntry[]): WorkoutTypeTrend[] {
+  const workoutMap = new Map<
+    string,
+    Array<{
+      workout: string;
+      date: string;
+      output: number;
+    }>
+  >();
+
+  workoutLogs.forEach((log) => {
+    const workout = log.workout.trim() || "Workout";
+    const key = workout.toLowerCase();
+    const current = workoutMap.get(key) ?? [];
+    current.push({
+      workout,
+      date: log.date,
+      output: log.exercises.reduce(
+        (total, exercise) => total + calculateExerciseTrainingOutput(exercise),
+        0
+      ),
+    });
+    workoutMap.set(key, current);
+  });
+
+  return Array.from(workoutMap.values())
+    .map((sessions) => {
+      const sortedSessions = sessions.sort((a, b) => a.date.localeCompare(b.date));
+      const latest = sortedSessions[sortedSessions.length - 1];
+      const previous = sortedSessions[sortedSessions.length - 2];
+      const previousOutput = previous?.output ?? 0;
+      const outputChange = previous ? latest.output - previous.output : 0;
+
+      return {
+        workout: latest.workout,
+        sessions: sortedSessions.length,
+        latestOutput: latest.output,
+        previousOutput,
+        outputChange,
+        trend: getWorkoutTypeTrend(latest.output, previousOutput, previous),
+      };
+    })
+    .sort((a, b) => b.sessions - a.sessions);
+}
+
+function getExerciseHistoryTrend(
+  latestOutput: number,
+  previousOutput: number,
+  previousSession:
+    | {
+        output: number;
+      }
+    | undefined
+): ExerciseHistorySummary["trend"] {
+  if (!previousSession) {
+    return "Need more data";
+  }
+
+  if (latestOutput > previousOutput) {
+    return "Improving";
+  }
+
+  if (latestOutput < previousOutput) {
+    return "Regressing";
+  }
+
+  return "Stable";
+}
+
+function getWorkoutTypeTrend(
+  latestOutput: number,
+  previousOutput: number,
+  previousSession:
+    | {
+        output: number;
+      }
+    | undefined
+): WorkoutTypeTrend["trend"] {
+  if (!previousSession) {
+    return "Need more data";
+  }
+
+  if (latestOutput > previousOutput) {
+    return "Up";
+  }
+
+  if (latestOutput < previousOutput) {
+    return "Down";
+  }
+
+  return "Flat";
+}
+
+function getAgentTrainingInsight({
+  status,
+  recentPrs,
+  regressions,
+  workoutTypeTrends,
+}: {
+  status: TrainingSignal["status"];
+  recentPrs: string[];
+  regressions: string[];
+  workoutTypeTrends: WorkoutTypeTrend[];
+}) {
+  if (recentPrs.length > 0 && status !== "Recovery risk") {
+    return `FitCheck noticed recent strength progress: ${recentPrs[0]}. Keep the plan steady unless recovery changes.`;
+  }
+
+  if (status === "Technique watch") {
+    return "FitCheck sees a short-term output drop without enough 2-3 week evidence to call it strength loss. Confirm whether this was intentional form work.";
+  }
+
+  if (regressions.length > 0) {
+    return `FitCheck is watching ${regressions[0]}. Do not overreact unless it repeats across the next matching workout.`;
+  }
+
+  const risingWorkout = workoutTypeTrends.find((trend) => trend.trend === "Up");
+
+  if (risingWorkout) {
+    return `${risingWorkout.workout} output is trending up compared with the last matching workout.`;
+  }
+
+  return "FitCheck is building training history. Repeat key exercises consistently so the agent can judge progression.";
 }
 
 function getTrainingScore({

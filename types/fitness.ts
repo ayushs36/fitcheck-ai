@@ -21,6 +21,28 @@ export type ExerciseSignal = {
   summary: string;
 };
 
+export type ExerciseHistorySummary = {
+  name: string;
+  sessions: number;
+  lastLoggedDate: string;
+  bestWeight: number;
+  bestTotalReps: number;
+  bestOutput: number;
+  latestOutput: number;
+  previousOutput: number;
+  outputChange: number;
+  trend: "Improving" | "Stable" | "Regressing" | "Need more data";
+};
+
+export type WorkoutTypeTrend = {
+  workout: string;
+  sessions: number;
+  latestOutput: number;
+  previousOutput: number;
+  outputChange: number;
+  trend: "Up" | "Flat" | "Down" | "Need more data";
+};
+
 export type LogEntry = {
   id: string;
   date: string;
@@ -93,6 +115,11 @@ export type TrainingSignal = {
   volumeChange: number;
   weeklyDeclineRate: number;
   weeklyComparisonCount: number;
+  recentPrs: string[];
+  regressions: string[];
+  exerciseHistory: ExerciseHistorySummary[];
+  workoutTypeTrends: WorkoutTypeTrend[];
+  agentTrainingInsight: string;
   improvingLifts: ExerciseSignal[];
   stalledLifts: ExerciseSignal[];
   decliningLifts: ExerciseSignal[];
