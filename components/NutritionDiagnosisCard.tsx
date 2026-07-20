@@ -23,12 +23,24 @@ export function NutritionDiagnosisCard({
 
       <div className="mt-5 grid gap-4 md:grid-cols-3">
         <DiagnosisStat
+          label="Calorie target"
+          value={
+            nutritionDiagnosis.calorieTarget > 0
+              ? `${nutritionDiagnosis.calorieTarget.toFixed(0)} cal`
+              : "Need data"
+          }
+        />
+        <DiagnosisStat
           label="Calorie avg"
           value={
             nutritionDiagnosis.calorieAverage > 0
               ? `${nutritionDiagnosis.calorieAverage.toFixed(0)} cal`
               : "Need data"
           }
+        />
+        <DiagnosisStat
+          label="Target hit rate"
+          value={`${Math.round(nutritionDiagnosis.calorieTargetHitRate * 100)}%`}
         />
         <DiagnosisStat
           label="Calorie consistency"
@@ -45,6 +57,14 @@ export function NutritionDiagnosisCard({
               ? `${nutritionDiagnosis.proteinAverage.toFixed(0)}g`
               : "Need data"
           }
+        />
+        <DiagnosisStat
+          label="Under-logging risk"
+          value={nutritionDiagnosis.underLoggingRisk}
+        />
+        <DiagnosisStat
+          label="Volatility risk"
+          value={nutritionDiagnosis.volatileIntakeRisk}
         />
       </div>
 
@@ -93,6 +113,12 @@ export function NutritionDiagnosisCard({
           <p className="font-semibold">Agent recommendation</p>
           <p className="mt-2 text-sm text-slate-700">
             {nutritionDiagnosis.recommendation}
+          </p>
+          <p className="mt-3 text-sm font-semibold text-slate-900">
+            {nutritionDiagnosis.nutritionNextAction}
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            {nutritionDiagnosis.agentNutritionInsight}
           </p>
         </div>
       </div>

@@ -245,8 +245,15 @@ export type NutritionDiagnosis = {
   status: "Dialed in" | "Mostly consistent" | "Needs attention" | "Insufficient data";
   biggestBlocker: string;
   agentAction: string;
+  nutritionNextAction: string;
+  agentNutritionInsight: string;
+  calorieTarget: number;
   calorieAverage: number;
+  calorieTargetDelta: number;
+  calorieTargetHitRate: number;
   calorieVariance: number;
+  underLoggingRisk: "Low" | "Moderate" | "High" | "Unknown";
+  volatileIntakeRisk: "Low" | "Moderate" | "High" | "Unknown";
   proteinAverage: number;
   proteinHitRate: number;
   loggingCompleteness: number;

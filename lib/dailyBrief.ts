@@ -45,7 +45,10 @@ export function getDailyBrief({
     status,
     todayFocus: getTodayFocus(status, agentDecision, goal),
     changedSinceLastLog: getChangeSummary(latestLog, previousLog),
-    nextAction: getNextAction(agentDecision),
+    nextAction:
+      status === "Nutrition focus"
+        ? nutritionDiagnosis.nutritionNextAction
+        : getNextAction(agentDecision),
     confidence: getBriefConfidence(agentDecision, dataFreshness, loggingQuality),
     evidence: [
       `Decision: ${agentDecision.action}`,
