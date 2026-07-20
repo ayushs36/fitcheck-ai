@@ -10,7 +10,12 @@ export type Exercise = {
 
 export type ExerciseSignal = {
   name: string;
-  status: "Improving" | "Stable" | "Stalled" | "Declining";
+  status:
+    | "Improving"
+    | "Stable"
+    | "Stalled"
+    | "Declining"
+    | "Form focus";
   progressionBasis: "Load/volume" | "Bodyweight reps";
   latestVolume: number;
   previousVolume: number;
@@ -31,7 +36,12 @@ export type ExerciseHistorySummary = {
   latestOutput: number;
   previousOutput: number;
   outputChange: number;
-  trend: "Improving" | "Stable" | "Regressing" | "Need more data";
+  trend:
+    | "Improving"
+    | "Stable"
+    | "Regressing"
+    | "Form focus"
+    | "Need more data";
 };
 
 export type WorkoutTypeTrend = {
@@ -117,6 +127,7 @@ export type TrainingSignal = {
   weeklyComparisonCount: number;
   recentPrs: string[];
   regressions: string[];
+  formFocusSignals: string[];
   exerciseHistory: ExerciseHistorySummary[];
   workoutTypeTrends: WorkoutTypeTrend[];
   agentTrainingInsight: string;

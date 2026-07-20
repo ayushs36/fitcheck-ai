@@ -19,6 +19,7 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
   const exerciseHistory = getExerciseHistory(workoutLogs);
   const recentPrs = getRecentPrs(exerciseHistory);
   const regressions = getRegressionWatchList(exerciseHistory);
+  const formFocusSignals = getFormFocusSignals(exerciseHistory);
   const workoutTypeTrends = getWorkoutTypeTrends(workoutLogs);
   const trendSignals = getRecentExerciseSignals(
     workoutLogs,
@@ -71,12 +72,14 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
       weeklyComparisonCount,
       recentPrs,
       regressions,
+      formFocusSignals,
       exerciseHistory,
       workoutTypeTrends,
       agentTrainingInsight: getAgentTrainingInsight({
         status: "Need more data",
         recentPrs,
         regressions,
+        formFocusSignals,
         workoutTypeTrends,
       }),
       improvingLifts,
@@ -108,6 +111,7 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     status,
     recentPrs,
     regressions,
+    formFocusSignals,
     workoutTypeTrends,
   });
 
@@ -123,6 +127,7 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     weeklyComparisonCount,
     recentPrs,
     regressions,
+    formFocusSignals,
     exerciseHistory,
     workoutTypeTrends,
     agentTrainingInsight,
@@ -292,11 +297,22 @@ function getWeightedExerciseStatus({
   latestReps: number;
   previousReps: number;
 }): ExerciseSignal["status"] {
+  if (
+    latestWeight < previousWeight &&
+    (latestReps >= previousReps || latestVolume >= previousVolume)
+  ) {
+    return "Form focus";
+  }
+
   if (latestVolume > previousVolume || latestWeight > previousWeight) {
     return "Improving";
   }
 
-  if (latestVolume < previousVolume && latestReps < previousReps) {
+  if (
+    latestVolume < previousVolume &&
+    latestReps < previousReps &&
+    latestWeight <= previousWeight
+  ) {
     return "Declining";
   }
 
@@ -360,7 +376,15 @@ function getExerciseHistory(workoutLogs: LogEntry[]): ExerciseHistorySummary[] {
         latestOutput: latest.output,
         previousOutput,
         outputChange,
-        trend: getExerciseHistoryTrend(latest.output, previousOutput, previous),
+        trend: getExerciseHistoryTrend({
+          latestOutput: latest.output,
+          previousOutput,
+          latestWeight: latest.weight,
+          previousWeight: previous?.weight ?? 0,
+          latestTotalReps: latest.totalReps,
+          previousTotalReps: previous?.totalReps ?? 0,
+          previousSession: previous,
+        }),
       };
     })
     .sort((a, b) => b.lastLoggedDate.localeCompare(a.lastLoggedDate));
@@ -393,6 +417,18 @@ function getRegressionWatchList(exerciseHistory: ExerciseHistorySummary[]) {
         `${exercise.name}: output down ${Math.abs(exercise.outputChange).toFixed(
           0
         )} from last logged session`
+    );
+}
+
+function getFormFocusSignals(exerciseHistory: ExerciseHistorySummary[]) {
+  return exerciseHistory
+    .filter(
+      (exercise) => exercise.sessions >= 2 && exercise.trend === "Form focus"
+    )
+    .slice(0, 4)
+    .map(
+      (exercise) =>
+        `${exercise.name}: lighter load with reps/output maintained or improved`
     );
 }
 
@@ -441,17 +477,36 @@ function getWorkoutTypeTrends(workoutLogs: LogEntry[]): WorkoutTypeTrend[] {
     .sort((a, b) => b.sessions - a.sessions);
 }
 
-function getExerciseHistoryTrend(
-  latestOutput: number,
-  previousOutput: number,
+function getExerciseHistoryTrend({
+  latestOutput,
+  previousOutput,
+  latestWeight,
+  previousWeight,
+  latestTotalReps,
+  previousTotalReps,
+  previousSession,
+}: {
+  latestOutput: number;
+  previousOutput: number;
+  latestWeight: number;
+  previousWeight: number;
+  latestTotalReps: number;
+  previousTotalReps: number;
   previousSession:
     | {
         output: number;
       }
-    | undefined
-): ExerciseHistorySummary["trend"] {
+    | undefined;
+}): ExerciseHistorySummary["trend"] {
   if (!previousSession) {
     return "Need more data";
+  }
+
+  if (
+    latestWeight < previousWeight &&
+    (latestTotalReps >= previousTotalReps || latestOutput >= previousOutput)
+  ) {
+    return "Form focus";
   }
 
   if (latestOutput > previousOutput) {
@@ -493,13 +548,19 @@ function getAgentTrainingInsight({
   status,
   recentPrs,
   regressions,
+  formFocusSignals,
   workoutTypeTrends,
 }: {
   status: TrainingSignal["status"];
   recentPrs: string[];
   regressions: string[];
+  formFocusSignals: string[];
   workoutTypeTrends: WorkoutTypeTrend[];
 }) {
+  if (formFocusSignals.length > 0 && status !== "Recovery risk") {
+    return `FitCheck noticed possible form-focused work: ${formFocusSignals[0]}. Do not treat this as strength loss unless reps and load fail to progress over the next 2-3 weeks.`;
+  }
+
   if (recentPrs.length > 0 && status !== "Recovery risk") {
     return `FitCheck noticed recent strength progress: ${recentPrs[0]}. Keep the plan steady unless recovery changes.`;
   }

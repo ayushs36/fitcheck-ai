@@ -67,10 +67,18 @@ export function TrainingSignalCard({
           items={trainingSignal.recentPrs}
         />
         <SignalList
+          title="Form Focus"
+          emptyText="No form-focused load drops detected."
+          items={trainingSignal.formFocusSignals}
+        />
+        <SignalList
           title="Watch List"
           emptyText="No repeated regressions to watch."
           items={trainingSignal.regressions}
         />
+      </div>
+
+      <div className="mt-5">
         <WorkoutTypeTrendList trends={trainingSignal.workoutTypeTrends} />
       </div>
 
