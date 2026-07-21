@@ -338,3 +338,20 @@ export type ReadinessScore = {
   drivers: string[];
   recommendation: string;
 };
+
+export type WeeklyCoachingReview = {
+  status:
+    | "On track"
+    | "Needs attention"
+    | "Recovery watch"
+    | "Logging needed"
+    | "Goal mismatch";
+  weekRange: string;
+  summary: string;
+  biggestChange: string;
+  biggestBlocker: string;
+  agentPriority: string;
+  nextActions: string[];
+  evidence: string[];
+  confidence: "Low" | "Medium" | "High";
+};

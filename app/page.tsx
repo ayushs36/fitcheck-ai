@@ -56,6 +56,7 @@ import { getGoalForecast } from "@/lib/forecasting";
 import { getLogCoverage, getLoggingQuality } from "@/lib/logQuality";
 import { getDailyBrief } from "@/lib/dailyBrief";
 import { getAgentMemory } from "@/lib/agentMemory";
+import { getWeeklyCoachingReview } from "@/lib/weeklyCoachingReview";
 
 import { Stat } from "@/components/Stat";
 
@@ -83,6 +84,7 @@ import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
 import { GoalForecastCard } from "@/components/GoalForecastCard";
 import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
 import { TrainingSignalCard } from "@/components/TrainingSignalCard";
+import { WeeklyCoachingReviewCard } from "@/components/WeeklyCoachingReviewCard";
 
 const STORAGE_KEY = "fitcheck-logs-v1";
 const SETTINGS_KEY = "fitcheck-settings-v1";
@@ -1170,6 +1172,20 @@ AI Confidence Score: ${confidenceScore}%
     trainingSignal,
     loggingQuality,
   });
+  const weeklyCoachingReview = getWeeklyCoachingReview({
+    goal,
+    logs: sortedLogs,
+    currentPace,
+    requiredWeeklyLoss,
+    agentDecision,
+    dataFreshness,
+    loggingQuality,
+    nutritionDiagnosis,
+    planAdherence,
+    readinessScore,
+    trainingSignal,
+    goalForecast,
+  });
 
   function getPlanChanges(previousPlan: CoachingPlanRecord | undefined) {
     if (!previousPlan) {
@@ -1852,6 +1868,7 @@ async function runFitCheckAgent() {
     loggingQuality,
     dailyBrief,
     agentMemory,
+    weeklyCoachingReview,
     goalForecast,
     logsCount: logs.length,
   };
@@ -1864,7 +1881,7 @@ async function runFitCheckAgent() {
       },
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, agentMemory, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output and dailyBrief as the current day control-center summary. Use agentMemory to call out repeated risks, repeated recommendations, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, and agentTrainingInsight to explain strength progress like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, weeklyCoachingReview, agentMemory, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output, dailyBrief as the current day control-center summary, and weeklyCoachingReview as the last-7-days coaching review. Use weeklyCoachingReview to identify the week's status, biggest change, biggest blocker, priority, evidence, and next actions. Use agentMemory to call out repeated risks, repeated recommendations, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, and agentTrainingInsight to explain strength progress like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Weekly Review, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -2083,6 +2100,8 @@ const pageStats = (() => {
 
 {showCoach && (
 <>
+<WeeklyCoachingReviewCard review={weeklyCoachingReview} />
+
 <FitCheckAgentCard
   agentReport={agentReport}
   isAgentLoading={isAgentLoading}
