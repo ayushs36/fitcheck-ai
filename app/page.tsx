@@ -1994,20 +1994,32 @@ const pageStats = (() => {
   return (
     <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-4 rounded-3xl bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Fitness Analytics Agent
-          </p>
+        <header className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Fitness Analytics Agent
+              </p>
 
-          <h1 className="mt-1 text-4xl font-bold">FitCheck AI</h1>
+              <h1 className="mt-1 text-3xl font-bold tracking-normal text-slate-950 md:text-4xl">
+                FitCheck AI
+              </h1>
 
-          <p className="mt-2 max-w-3xl text-slate-600">
-            A fitness coaching workspace for logging daily inputs, reading
-            trend quality, and turning AI agent decisions into practical next
-            actions.
-          </p>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
+                Log fitness data, read trend quality, and turn AI agent
+                decisions into practical next actions.
+              </p>
+            </div>
 
-          <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl bg-slate-100 p-2">
+            <div className="w-fit rounded-2xl bg-slate-950 px-4 py-3 text-white">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Active Decision
+              </p>
+              <p className="mt-1 text-sm font-semibold">{agentDecision.action}</p>
+            </div>
+          </div>
+
+          <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
             {APP_NAV_ITEMS.map((item) => {
               const isActive = item.view === activeView;
 
@@ -2034,7 +2046,7 @@ const pageStats = (() => {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 {activeNavItem.label}
               </p>
-              <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+              <h2 className="mt-1 max-w-3xl text-xl font-semibold leading-snug text-slate-950 md:text-2xl">
                 {activeNavItem.description}
               </h2>
             </div>

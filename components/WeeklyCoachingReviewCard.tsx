@@ -28,9 +28,11 @@ export function WeeklyCoachingReviewCard({
         </div>
       </div>
 
-      <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-medium leading-6 text-slate-700">
-        {review.summary}
-      </p>
+      <div className="mt-5 border-l-4 border-emerald-400 bg-emerald-50 px-4 py-3">
+        <p className="text-sm font-medium leading-6 text-emerald-950">
+          {review.summary}
+        </p>
+      </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <ReviewPanel label="Biggest Change" value={review.biggestChange} />
@@ -44,7 +46,7 @@ export function WeeklyCoachingReviewCard({
         <ol className="mt-3 space-y-2 text-sm leading-6">
           {review.nextActions.map((action, index) => (
             <li key={action} className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-slate-950">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-300 text-xs font-bold text-slate-950">
                 {index + 1}
               </span>
               <span>{action}</span>

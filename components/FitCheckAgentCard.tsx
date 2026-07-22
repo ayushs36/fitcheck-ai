@@ -12,21 +12,38 @@ export function FitCheckAgentCard({
   agentDecision: AgentDecision;
 }) {
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm">
-      <h2 className="text-2xl font-semibold">FitCheck Agent</h2>
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Primary Coach
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+            FitCheck Agent
+          </h2>
 
-      <p className="mt-2 text-sm text-slate-500">
-  Runs an autonomous coaching check using your logs, moving average trend,
-  nutrition, activity, strength data, and goal timeline.
-</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Runs an autonomous coaching check using your logs, moving average
+            trend, nutrition, activity, strength data, and goal timeline.
+          </p>
+        </div>
 
-      <div className="mt-5 rounded-2xl bg-slate-100 p-4">
+        <button
+          onClick={runFitCheckAgent}
+          disabled={isAgentLoading}
+          className="w-full rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50 lg:w-auto"
+        >
+          {isAgentLoading ? "Running Agent..." : "Run Agent Check"}
+        </button>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Decision Engine
             </p>
-            <p className="text-xl font-semibold text-slate-900">
+            <p className="mt-1 text-xl font-semibold text-slate-950">
               {agentDecision.action}
             </p>
           </div>
@@ -42,15 +59,7 @@ export function FitCheckAgentCard({
         </p>
       </div>
 
-      <button
-        onClick={runFitCheckAgent}
-        disabled={isAgentLoading}
-        className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
-      >
-        {isAgentLoading ? "Running Agent..." : "Run Agent Check"}
-      </button>
-
-      <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
+      <div className="mt-5 max-h-[520px] overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-950 p-4 text-sm leading-6 text-slate-100">
         {agentReport}
       </div>
     </section>
