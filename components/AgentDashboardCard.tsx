@@ -75,7 +75,7 @@ export function AgentDashboardCard({
           {agentMemory.noticedPattern}
         </p>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
           <AgentDashboardStat
             label="Recurring Risk"
             value={
@@ -92,10 +92,33 @@ export function AgentDashboardCard({
                 : agentMemory.repeatedDecision
             }
           />
-          <AgentDashboardStat
-            label="Follow-through"
-            value={`${agentMemory.followThroughStatus}: ${agentMemory.followThroughEvidence}`}
-          />
+        </div>
+
+        <div className="mt-4 rounded-2xl bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Action Tracker
+              </p>
+              <p className="mt-1 text-lg font-semibold text-slate-950">
+                {agentMemory.trackedAction}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {agentMemory.actionWindow}
+              </p>
+            </div>
+
+            <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+              {agentMemory.actionResult}
+            </span>
+          </div>
+
+          <p className="mt-3 text-sm font-medium text-slate-800">
+            {agentMemory.actionEvidence}
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            {agentMemory.actionNextStep}
+          </p>
         </div>
       </div>
 

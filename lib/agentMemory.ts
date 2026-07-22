@@ -16,6 +16,7 @@ type AgentMemoryInput = {
   avgProtein: number;
   avgSteps: number;
   avgCalories: number;
+  currentDecision: AgentDecisionAction;
   trainingSignal: TrainingSignal;
   loggingQuality: LoggingQuality;
 };
@@ -26,19 +27,28 @@ export function getAgentMemory({
   avgProtein,
   avgSteps,
   avgCalories,
+  currentDecision,
   trainingSignal,
   loggingQuality,
 }: AgentMemoryInput): AgentMemory {
   const recentChecks = agentHistory.slice(0, 6);
   const recurringRisk = getMostCommonRisk(recentChecks);
   const repeatedDecision = getMostCommonDecision(recentChecks);
-  const latestDecision = agentHistory[0]?.decision;
+  const latestCheck = agentHistory[0];
+  const latestDecision = latestCheck?.decision;
   const followThrough = getFollowThrough({
     decision: latestDecision,
     logs,
     avgProtein,
     avgSteps,
     avgCalories,
+    trainingSignal,
+    loggingQuality,
+  });
+  const actionReview = getActionReview({
+    latestCheck,
+    logs,
+    currentDecision,
     trainingSignal,
     loggingQuality,
   });
@@ -51,11 +61,17 @@ export function getAgentMemory({
     repeatedDecisionCount: repeatedDecision.count,
     followThroughStatus: followThrough.status,
     followThroughEvidence: followThrough.evidence,
+    trackedAction: actionReview.trackedAction,
+    actionWindow: actionReview.window,
+    actionResult: actionReview.result,
+    actionEvidence: actionReview.evidence,
+    actionNextStep: actionReview.nextStep,
     noticedPattern: getNoticedPattern({
       memoryDepth: agentHistory.length,
       recurringRisk,
       repeatedDecision,
       followThrough,
+      actionReview,
     }),
   };
 }
@@ -231,11 +247,213 @@ function getRecentCalorieTrend(logs: LogEntry[]) {
     average(previousLogs.map((log) => log.calories));
 }
 
+function getActionReview({
+  latestCheck,
+  logs,
+  currentDecision,
+  trainingSignal,
+  loggingQuality,
+}: {
+  latestCheck: AgentCheck | undefined;
+  logs: LogEntry[];
+  currentDecision: AgentDecisionAction;
+  trainingSignal: TrainingSignal;
+  loggingQuality: LoggingQuality;
+}): {
+  trackedAction: AgentMemory["trackedAction"];
+  window: string;
+  result: AgentMemory["actionResult"];
+  evidence: string;
+  nextStep: string;
+} {
+  if (!latestCheck?.decision) {
+    return {
+      trackedAction: "No saved action",
+      window: "No prior agent check",
+      result: "Not tracked",
+      evidence: "Run and save a FitCheck Agent check to start action tracking.",
+      nextStep: "Run FitCheck Agent after your next complete week of logs.",
+    };
+  }
+
+  const checkDate = parseAgentCheckDate(latestCheck.date);
+  const sortedLogs = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+  const logsAfterCheck = checkDate
+    ? sortedLogs.filter((log) => parseLogDate(log.date) > checkDate)
+    : sortedLogs.slice(-7);
+  const previousLogs = checkDate
+    ? sortedLogs.filter((log) => parseLogDate(log.date) <= checkDate).slice(-7)
+    : sortedLogs.slice(-14, -7);
+  const window =
+    logsAfterCheck.length > 0
+      ? `${logsAfterCheck[0].date} to ${logsAfterCheck[logsAfterCheck.length - 1].date}`
+      : "Waiting for logs after last agent check";
+
+  if (logsAfterCheck.length < 2) {
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result: "Too early",
+      evidence:
+        "FitCheck needs at least 2 logs after the last agent check before judging follow-through.",
+      nextStep: getActionNextStep(latestCheck.decision),
+    };
+  }
+
+  const stats = getActionStats(logsAfterCheck);
+  const previousStats = getActionStats(previousLogs);
+
+  if (latestCheck.decision === "Improve protein") {
+    const result = stats.averageProtein >= PROTEIN_TARGET ? "Working" : "Needs action";
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result,
+      evidence:
+        stats.averageProtein > 0
+          ? `Protein after the check is averaging ${stats.averageProtein.toFixed(0)}g/day.`
+          : "Protein has not been logged after the last agent check.",
+      nextStep:
+        result === "Working"
+          ? "Keep protein anchored while watching weight and training response."
+          : `Bring protein toward ${PROTEIN_TARGET}g/day before changing calories.`,
+    };
+  }
+
+  if (latestCheck.decision === "Increase steps") {
+    const result = stats.averageSteps >= STEP_TARGET ? "Working" : "Needs action";
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result,
+      evidence:
+        stats.averageSteps > 0
+          ? `Steps after the check are averaging ${stats.averageSteps.toFixed(0)}/day.`
+          : "Steps have not been logged after the last agent check.",
+      nextStep:
+        result === "Working"
+          ? "Hold the higher step baseline for the rest of the week."
+          : `Raise steps toward ${STEP_TARGET.toLocaleString()}/day before cutting calories harder.`,
+    };
+  }
+
+  if (latestCheck.decision === "Reduce calories") {
+    const calorieDelta = stats.averageCalories - previousStats.averageCalories;
+    const result =
+      stats.averageCalories > 0 && previousStats.averageCalories > 0 && calorieDelta <= -75
+        ? "Working"
+        : "Needs action";
+
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result,
+      evidence:
+        stats.averageCalories > 0 && previousStats.averageCalories > 0
+          ? `Calories changed ${calorieDelta > 0 ? "+" : ""}${calorieDelta.toFixed(0)} cal/day versus before the check.`
+          : "There are not enough calorie logs before and after the check to judge the reduction.",
+      nextStep:
+        result === "Working"
+          ? "Hold the new calorie level long enough for the weight trend to respond."
+          : "Make the calorie reduction measurable before asking the agent for a new adjustment.",
+    };
+  }
+
+  if (latestCheck.decision === "Focus recovery") {
+    const result = trainingSignal.status === "Recovery risk" ? "Needs action" : "Working";
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result,
+      evidence: `Training signal is currently ${trainingSignal.status.toLowerCase()}.`,
+      nextStep:
+        result === "Working"
+          ? "Keep recovery habits steady and return to normal progression gradually."
+          : "Reduce fatigue pressure before adding more calorie or step demands.",
+    };
+  }
+
+  if (latestCheck.decision === "Adjust goal timeline") {
+    const result = currentDecision === "Adjust goal timeline" ? "Needs action" : "Resolved";
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result,
+      evidence:
+        result === "Resolved"
+          ? "The current decision engine no longer flags goal timeline adjustment as the top action."
+          : "The decision engine still sees the goal timeline as the top issue.",
+      nextStep:
+        result === "Resolved"
+          ? "Keep executing the updated plan."
+          : "Update the goal date or pace so the agent stops compensating with aggressive targets.",
+    };
+  }
+
+  return {
+    trackedAction: latestCheck.decision,
+    window,
+    result: loggingQuality.averageCoverageScore >= 70 ? "Working" : "Too early",
+    evidence: `Logging coverage is ${loggingQuality.averageCoverageScore}% after the latest check.`,
+    nextStep:
+      loggingQuality.averageCoverageScore >= 70
+        ? "Keep holding the plan while the weekly trend updates."
+        : "Improve logging coverage before judging whether holding calories worked.",
+  };
+}
+
+function getActionStats(logs: LogEntry[]) {
+  return {
+    averageCalories: average(logs.map((log) => log.calories)),
+    averageProtein: average(logs.map((log) => log.protein)),
+    averageSteps: average(logs.map((log) => log.steps)),
+  };
+}
+
+function getActionNextStep(decision: AgentDecisionAction) {
+  if (decision === "Improve protein") {
+    return `Log protein and aim toward ${PROTEIN_TARGET}g/day.`;
+  }
+
+  if (decision === "Increase steps") {
+    return `Log steps and build toward ${STEP_TARGET.toLocaleString()}/day.`;
+  }
+
+  if (decision === "Reduce calories") {
+    return "Log calories consistently so FitCheck can verify the reduction.";
+  }
+
+  if (decision === "Focus recovery") {
+    return "Log workouts and watch whether training performance stabilizes.";
+  }
+
+  if (decision === "Adjust goal timeline") {
+    return "Update the goal date or target pace, then rerun the agent.";
+  }
+
+  return "Keep logging the plan for the next 2-3 days.";
+}
+
+function parseAgentCheckDate(date: string) {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return new Date(parsed.toDateString());
+}
+
+function parseLogDate(date: string) {
+  return new Date(`${date}T00:00:00`);
+}
+
 function getNoticedPattern({
   memoryDepth,
   recurringRisk,
   repeatedDecision,
   followThrough,
+  actionReview,
 }: {
   memoryDepth: number;
   recurringRisk: { value: string; count: number };
@@ -247,9 +465,21 @@ function getNoticedPattern({
     status: AgentMemory["followThroughStatus"];
     evidence: string;
   };
+  actionReview: {
+    result: AgentMemory["actionResult"];
+    evidence: string;
+  };
 }) {
   if (memoryDepth === 0) {
     return "FitCheck has no saved agent checks yet. Run the agent to start building memory.";
+  }
+
+  if (actionReview.result === "Working" || actionReview.result === "Resolved") {
+    return `FitCheck noticed the last recommendation is being followed: ${actionReview.evidence}`;
+  }
+
+  if (actionReview.result === "Needs action") {
+    return `FitCheck noticed the last recommendation still needs follow-through: ${actionReview.evidence}`;
   }
 
   if (recurringRisk.count >= 2) {

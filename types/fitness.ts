@@ -191,6 +191,16 @@ export type AgentMemory = {
     | "Mixed"
     | "Not enough data";
   followThroughEvidence: string;
+  trackedAction: AgentDecisionAction | "No saved action";
+  actionWindow: string;
+  actionResult:
+    | "Working"
+    | "Needs action"
+    | "Too early"
+    | "Resolved"
+    | "Not tracked";
+  actionEvidence: string;
+  actionNextStep: string;
   noticedPattern: string;
 };
 
