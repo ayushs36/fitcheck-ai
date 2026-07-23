@@ -53,6 +53,17 @@ export type WorkoutTypeTrend = {
   trend: "Up" | "Flat" | "Down" | "Need more data";
 };
 
+export type MuscleGroupTrend = {
+  muscleGroup: string;
+  sessions: number;
+  exercises: string[];
+  latestOutput: number;
+  previousOutput: number;
+  outputChange: number;
+  trend: "Up" | "Flat" | "Down" | "Need more data";
+  lastTrainedDate: string;
+};
+
 export type LogEntry = {
   id: string;
   date: string;
@@ -130,6 +141,8 @@ export type TrainingSignal = {
   formFocusSignals: string[];
   exerciseHistory: ExerciseHistorySummary[];
   workoutTypeTrends: WorkoutTypeTrend[];
+  muscleGroupTrends: MuscleGroupTrend[];
+  trainingBalanceInsight: string;
   agentTrainingInsight: string;
   improvingLifts: ExerciseSignal[];
   stalledLifts: ExerciseSignal[];

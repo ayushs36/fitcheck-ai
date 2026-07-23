@@ -1,6 +1,7 @@
 import type {
   ExerciseHistorySummary,
   ExerciseSignal,
+  MuscleGroupTrend,
   TrainingSignal,
   WorkoutTypeTrend,
 } from "@/types/fitness";
@@ -45,6 +46,10 @@ export function TrainingSignalCard({
           value={`${trainingSignal.weeklyComparisonCount}`}
         />
         <TrainingStat
+          label="Muscle groups"
+          value={`${trainingSignal.muscleGroupTrends.length}`}
+        />
+        <TrainingStat
           label="Decline rate"
           value={`${Math.round(trainingSignal.weeklyDeclineRate * 100)}%`}
         />
@@ -57,6 +62,9 @@ export function TrainingSignalCard({
         </p>
         <p className="mt-3 text-sm font-semibold text-slate-900">
           {trainingSignal.agentTrainingInsight}
+        </p>
+        <p className="mt-2 text-sm text-slate-600">
+          {trainingSignal.trainingBalanceInsight}
         </p>
       </div>
 
@@ -78,8 +86,9 @@ export function TrainingSignalCard({
         />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
         <WorkoutTypeTrendList trends={trainingSignal.workoutTypeTrends} />
+        <MuscleGroupTrendList trends={trainingSignal.muscleGroupTrends} />
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
@@ -156,6 +165,41 @@ function WorkoutTypeTrendList({ trends }: { trends: WorkoutTypeTrend[] }) {
               <p className="mt-1 text-xs text-slate-500">
                 {trend.sessions} sessions · {trend.previousOutput.toFixed(0)} to{" "}
                 {trend.latestOutput.toFixed(0)} output
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MuscleGroupTrendList({ trends }: { trends: MuscleGroupTrend[] }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="font-semibold text-slate-950">Muscle Group Balance</p>
+
+      {trends.length === 0 ? (
+        <p className="mt-2 text-sm text-slate-500">
+          Log exercises to identify muscle-group coverage.
+        </p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {trends.slice(0, 6).map((trend) => (
+            <div key={trend.muscleGroup} className="rounded-xl bg-white p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-950">
+                  {trend.muscleGroup}
+                </p>
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                  {trend.trend}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {trend.sessions} logged entries · last {trend.lastTrainedDate}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {trend.exercises.join(", ")}
               </p>
             </div>
           ))}

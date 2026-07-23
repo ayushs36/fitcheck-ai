@@ -3,6 +3,7 @@ import type {
   ExerciseHistorySummary,
   ExerciseSignal,
   LogEntry,
+  MuscleGroupTrend,
   TrainingSignal,
   WorkoutTypeTrend,
 } from "@/types/fitness";
@@ -21,6 +22,8 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
   const regressions = getRegressionWatchList(exerciseHistory);
   const formFocusSignals = getFormFocusSignals(exerciseHistory);
   const workoutTypeTrends = getWorkoutTypeTrends(workoutLogs);
+  const muscleGroupTrends = getMuscleGroupTrends(workoutLogs);
+  const trainingBalanceInsight = getTrainingBalanceInsight(muscleGroupTrends);
   const trendSignals = getRecentExerciseSignals(
     workoutLogs,
     TRAINING_TREND_WINDOW_DAYS
@@ -75,12 +78,16 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
       formFocusSignals,
       exerciseHistory,
       workoutTypeTrends,
+      muscleGroupTrends,
+      trainingBalanceInsight,
       agentTrainingInsight: getAgentTrainingInsight({
         status: "Need more data",
         recentPrs,
         regressions,
         formFocusSignals,
         workoutTypeTrends,
+        muscleGroupTrends,
+        trainingBalanceInsight,
       }),
       improvingLifts,
       stalledLifts,
@@ -113,6 +120,8 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     regressions,
     formFocusSignals,
     workoutTypeTrends,
+    muscleGroupTrends,
+    trainingBalanceInsight,
   });
 
   return {
@@ -130,6 +139,8 @@ export function getTrainingSignal(logs: LogEntry[]): TrainingSignal {
     formFocusSignals,
     exerciseHistory,
     workoutTypeTrends,
+    muscleGroupTrends,
+    trainingBalanceInsight,
     agentTrainingInsight,
     improvingLifts,
     stalledLifts,
@@ -544,18 +555,181 @@ function getWorkoutTypeTrend(
   return "Flat";
 }
 
+function getMuscleGroupTrends(workoutLogs: LogEntry[]): MuscleGroupTrend[] {
+  const muscleMap = new Map<
+    string,
+    Array<{
+      date: string;
+      exercise: string;
+      output: number;
+    }>
+  >();
+
+  workoutLogs.forEach((log) => {
+    log.exercises.forEach((exercise) => {
+      const name = exercise.name.trim();
+
+      if (!name) {
+        return;
+      }
+
+      const muscleGroup = getMuscleGroup(name);
+      const current = muscleMap.get(muscleGroup) ?? [];
+      current.push({
+        date: log.date,
+        exercise: name,
+        output: calculateExerciseTrainingOutput(exercise),
+      });
+      muscleMap.set(muscleGroup, current);
+    });
+  });
+
+  return Array.from(muscleMap.entries())
+    .map(([muscleGroup, entries]) => {
+      const sortedEntries = entries.sort((a, b) => a.date.localeCompare(b.date));
+      const latestEntries = sortedEntries.slice(-4);
+      const previousEntries = sortedEntries.slice(-8, -4);
+      const latestOutput = sumOutput(latestEntries);
+      const previousOutput = sumOutput(previousEntries);
+      const outputChange = previousEntries.length > 0 ? latestOutput - previousOutput : 0;
+      const exercises = Array.from(
+        new Set(sortedEntries.map((entry) => entry.exercise))
+      ).slice(0, 4);
+
+      return {
+        muscleGroup,
+        sessions: sortedEntries.length,
+        exercises,
+        latestOutput,
+        previousOutput,
+        outputChange,
+        trend: getMuscleGroupTrend(latestOutput, previousOutput, previousEntries),
+        lastTrainedDate: sortedEntries[sortedEntries.length - 1].date,
+      };
+    })
+    .sort((a, b) => b.lastTrainedDate.localeCompare(a.lastTrainedDate));
+}
+
+function getMuscleGroupTrend(
+  latestOutput: number,
+  previousOutput: number,
+  previousEntries: Array<{ output: number }>
+): MuscleGroupTrend["trend"] {
+  if (previousEntries.length === 0) {
+    return "Need more data";
+  }
+
+  const percentChange =
+    previousOutput > 0 ? (latestOutput - previousOutput) / previousOutput : 0;
+
+  if (percentChange >= 0.08) {
+    return "Up";
+  }
+
+  if (percentChange <= -0.08) {
+    return "Down";
+  }
+
+  return "Flat";
+}
+
+function getTrainingBalanceInsight(muscleGroupTrends: MuscleGroupTrend[]) {
+  if (muscleGroupTrends.length === 0) {
+    return "Log exercises so FitCheck can identify muscle-group coverage.";
+  }
+
+  const trainedGroups = muscleGroupTrends.filter(
+    (group) => group.muscleGroup !== "Other"
+  );
+  const decliningGroup = trainedGroups.find((group) => group.trend === "Down");
+  const staleGroup = trainedGroups.find((group) => group.sessions < 2);
+  const improvingGroup = trainedGroups.find((group) => group.trend === "Up");
+
+  if (decliningGroup) {
+    return `${decliningGroup.muscleGroup} output is down versus the previous training window. Check whether this was intentional technique work before treating it as regression.`;
+  }
+
+  if (trainedGroups.length < 3) {
+    return "FitCheck sees limited muscle-group coverage. Log a few more workout types before judging balance.";
+  }
+
+  if (staleGroup) {
+    return `${staleGroup.muscleGroup} has only ${staleGroup.sessions} logged session. Repeat it before judging progression.`;
+  }
+
+  if (improvingGroup) {
+    return `${improvingGroup.muscleGroup} is trending up while overall coverage looks usable.`;
+  }
+
+  return "Muscle-group output is stable enough to keep the current training structure.";
+}
+
+function getMuscleGroup(exerciseName: string) {
+  const name = exerciseName.toLowerCase();
+
+  if (matchesAny(name, ["bench", "chest", "pec", "fly", "push up", "push-up", "dip"])) {
+    return "Chest";
+  }
+
+  if (matchesAny(name, ["row", "pulldown", "pull down", "pullup", "pull up", "chin", "lat"])) {
+    return "Back";
+  }
+
+  if (matchesAny(name, ["shoulder", "overhead press", "lateral raise", "rear delt", "face pull", "arnold"])) {
+    return "Shoulders";
+  }
+
+  if (matchesAny(name, ["bicep", "curl", "hammer"])) {
+    return "Biceps";
+  }
+
+  if (matchesAny(name, ["tricep", "pushdown", "skull", "extension"])) {
+    return "Triceps";
+  }
+
+  if (matchesAny(name, ["squat", "leg press", "lunge", "leg extension", "quad"])) {
+    return "Quads";
+  }
+
+  if (matchesAny(name, ["rdl", "deadlift", "hamstring", "leg curl", "hip thrust", "glute"])) {
+    return "Hamstrings/Glutes";
+  }
+
+  if (matchesAny(name, ["calf"])) {
+    return "Calves";
+  }
+
+  if (matchesAny(name, ["abs", "ab ", "crunch", "plank", "leg raise", "core"])) {
+    return "Core";
+  }
+
+  return "Other";
+}
+
+function matchesAny(value: string, keywords: string[]) {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function sumOutput(entries: Array<{ output: number }>) {
+  return entries.reduce((total, entry) => total + entry.output, 0);
+}
+
 function getAgentTrainingInsight({
   status,
   recentPrs,
   regressions,
   formFocusSignals,
   workoutTypeTrends,
+  muscleGroupTrends,
+  trainingBalanceInsight,
 }: {
   status: TrainingSignal["status"];
   recentPrs: string[];
   regressions: string[];
   formFocusSignals: string[];
   workoutTypeTrends: WorkoutTypeTrend[];
+  muscleGroupTrends: MuscleGroupTrend[];
+  trainingBalanceInsight: string;
 }) {
   if (formFocusSignals.length > 0 && status !== "Recovery risk") {
     return `FitCheck noticed possible form-focused work: ${formFocusSignals[0]}. Do not treat this as strength loss unless reps and load fail to progress over the next 2-3 weeks.`;
@@ -571,6 +745,14 @@ function getAgentTrainingInsight({
 
   if (regressions.length > 0) {
     return `FitCheck is watching ${regressions[0]}. Do not overreact unless it repeats across the next matching workout.`;
+  }
+
+  const risingMuscleGroup = muscleGroupTrends.find(
+    (trend) => trend.trend === "Up" && trend.muscleGroup !== "Other"
+  );
+
+  if (risingMuscleGroup) {
+    return `${risingMuscleGroup.muscleGroup} output is trending up. ${trainingBalanceInsight}`;
   }
 
   const risingWorkout = workoutTypeTrends.find((trend) => trend.trend === "Up");
