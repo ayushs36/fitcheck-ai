@@ -6,6 +6,7 @@ import type {
   LogEntry,
   MaintenanceEstimate,
   NutritionTargets,
+  PlanAdjustment,
   RecoveryRisk,
   WeeklyPlan,
 } from "@/types/fitness";
@@ -148,8 +149,98 @@ export function getWeeklyPlan(input: AdvancedInsightInput): WeeklyPlan {
       input.strengthStatus === "Strength/performance dropping"
         ? "Add recovery emphasis before increasing deficit."
         : "Keep sleep and fatigue steady while trend data updates.",
+    adjustment: getPlanAdjustment(input, nutritionTargets),
     adherenceScore,
     adherenceSummary: `${adherenceScore}/100 based on calorie logging, protein, steps, and lifting frequency over the last 7 logs.`,
+  };
+}
+
+function getPlanAdjustment(
+  input: AdvancedInsightInput,
+  nutritionTargets: NutritionTargets
+): PlanAdjustment {
+  const calorieTargetText =
+    nutritionTargets.calorieTarget > 0
+      ? `${nutritionTargets.calorieTarget} cal/day`
+      : "a measured calorie target";
+
+  if (input.agentDecision.action === "Adjust goal timeline") {
+    return {
+      status: "Change goal pace",
+      recommendation:
+        "Adjust the goal date or weekly pace before making nutrition more aggressive.",
+      trigger: `Required pace is ${input.requiredWeeklyLoss.toFixed(1)} lb/week.`,
+      guardrail:
+        "Do not use an extreme deficit to force a timeline that the trend does not support.",
+      reviewWindow: "Review after accepting or rejecting the goal adaptation.",
+      confidence: input.goalFeasibility.score < 50 ? "High" : "Medium",
+    };
+  }
+
+  if (input.agentDecision.action === "Improve protein") {
+    return {
+      status: "Improve protein first",
+      recommendation:
+        "Hold calories steady and make protein the adjustment before cutting food lower.",
+      trigger: `Average protein is ${input.avgProtein.toFixed(0)}g/day versus ${nutritionTargets.proteinTarget}g+ target.`,
+      guardrail:
+        "Do not lower calories until protein execution is strong enough to protect training and lean mass.",
+      reviewWindow: "Review after 7 more protein logs.",
+      confidence: input.agentDecision.confidence,
+    };
+  }
+
+  if (input.agentDecision.action === "Increase steps") {
+    return {
+      status: "Increase activity",
+      recommendation:
+        "Raise the step baseline before reducing calories again.",
+      trigger: `Average steps are ${input.avgSteps.toFixed(0)}/day while progress is slow or flat.`,
+      guardrail:
+        "Increase steps gradually so fatigue does not interfere with lifting performance.",
+      reviewWindow: "Review after 7 days near the higher step baseline.",
+      confidence: input.agentDecision.confidence,
+    };
+  }
+
+  if (input.agentDecision.action === "Focus recovery") {
+    return {
+      status: "Protect recovery",
+      recommendation:
+        "Hold calories and reduce fatigue pressure until training performance stabilizes.",
+      trigger: input.strengthStatus,
+      guardrail:
+        "Do not add more deficit, cardio pressure, or volume while recovery is the limiting signal.",
+      reviewWindow: "Review after the next 2 matching workouts.",
+      confidence: input.agentDecision.confidence,
+    };
+  }
+
+  if (input.agentDecision.action === "Reduce calories") {
+    return {
+      status: "Adjust calories",
+      recommendation: `Move toward ${calorieTargetText} with a small adjustment, not a crash cut.`,
+      trigger:
+        input.plateauStatus === "Potential plateau detected"
+          ? "Plateau risk is active while protein and steps are usable."
+          : `Current pace is ${input.currentPace.toFixed(1)} lb/week versus ${input.requiredWeeklyLoss.toFixed(1)} required.`,
+      guardrail:
+        "Only keep the reduction if logging quality is solid and training performance does not slide.",
+      reviewWindow: "Review after 7-14 days at the new calorie average.",
+      confidence: input.agentDecision.confidence,
+    };
+  }
+
+  return {
+    status: "Hold plan",
+    recommendation:
+      "Keep the current plan and let the next trend window confirm whether a change is needed.",
+    trigger:
+      "No calorie, step, protein, recovery, or timeline change is strongly justified right now.",
+    guardrail:
+      "Do not adjust multiple levers at once when the current trend is interpretable.",
+    reviewWindow: "Review after 7 more logged days.",
+    confidence: input.agentDecision.confidence,
   };
 }
 

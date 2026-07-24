@@ -302,8 +302,24 @@ export type WeeklyPlan = {
   steps: string;
   training: string;
   recovery: string;
+  adjustment: PlanAdjustment;
   adherenceScore: number;
   adherenceSummary: string;
+};
+
+export type PlanAdjustment = {
+  status:
+    | "Hold plan"
+    | "Adjust calories"
+    | "Increase activity"
+    | "Improve protein first"
+    | "Protect recovery"
+    | "Change goal pace";
+  recommendation: string;
+  trigger: string;
+  guardrail: string;
+  reviewWindow: string;
+  confidence: "Low" | "Medium" | "High";
 };
 
 export type CoachingPlanRecord = {

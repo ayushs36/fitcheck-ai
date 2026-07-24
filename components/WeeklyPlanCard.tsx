@@ -25,6 +25,36 @@ export function WeeklyPlanCard({ weeklyPlan }: { weeklyPlan: WeeklyPlan }) {
         <PlanStat label="Recovery" value={weeklyPlan.recovery} />
       </div>
 
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Agent Adjustment Logic
+            </p>
+            <p className="mt-1 text-lg font-semibold text-slate-950">
+              {weeklyPlan.adjustment.status}
+            </p>
+          </div>
+
+          <span className="w-fit rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+            {weeklyPlan.adjustment.confidence} confidence
+          </span>
+        </div>
+
+        <p className="mt-3 text-sm font-semibold leading-6 text-slate-800">
+          {weeklyPlan.adjustment.recommendation}
+        </p>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <PlanStat label="Trigger" value={weeklyPlan.adjustment.trigger} />
+          <PlanStat label="Guardrail" value={weeklyPlan.adjustment.guardrail} />
+          <PlanStat
+            label="Review Window"
+            value={weeklyPlan.adjustment.reviewWindow}
+          />
+        </div>
+      </div>
+
       <p className="mt-4 rounded-2xl bg-slate-100 p-4 text-sm text-slate-700">
         {weeklyPlan.adherenceSummary}
       </p>
