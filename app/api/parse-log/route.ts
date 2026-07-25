@@ -1,9 +1,6 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { checkAIRateLimit, getLiveAIStatus } from "@/lib/aiProtection";
 
 export async function POST(request: Request) {
   try {
@@ -17,12 +14,36 @@ export async function POST(request: Request) {
       );
     }
 
+    const liveAIStatus = getLiveAIStatus(request);
+
+    if (!liveAIStatus.allowed) {
+      return NextResponse.json({
+        ...parseLogTextFallback(text),
+        protectedMode: true,
+      });
+    }
+
+    const rateLimit = checkAIRateLimit(request);
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json({
+        ...parseLogTextFallback(text),
+        protectedMode: true,
+        rateLimited: true,
+        resetAt: rateLimit.resetAt,
+      });
+    }
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: "Missing OPENAI_API_KEY environment variable." },
         { status: 500 }
       );
     }
+
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const response = await client.responses.create({
       model: "gpt-4o-mini",
@@ -80,4 +101,40 @@ ${text}
 
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+function parseLogTextFallback(text: string) {
+  const lowerText = text.toLowerCase();
+  const weightMatch = lowerText.match(
+    /(?:weight|weighed|bw|bodyweight)?\s*(\d{2,3}(?:\.\d+)?)\s*(?:lb|lbs|pounds)\b/
+  );
+  const caloriesMatch = lowerText.match(
+    /(\d{3,5})\s*(?:cal|cals|calories|kcal)\b/
+  );
+  const proteinMatch = lowerText.match(
+    /(\d{2,3})\s*(?:g|grams)?\s*(?:protein|prot)\b/
+  );
+  const stepsMatch = lowerText.match(
+    /(\d+(?:\.\d+)?)\s*(k)?\s*(?:steps|step)\b/
+  );
+  const workoutMatch = lowerText.match(
+    /\b(push|pull|legs|leg|upper|lower|full body|chest|back|shoulders|arms|rest)\b/
+  );
+
+  return {
+    weight: weightMatch ? Number(weightMatch[1]) : null,
+    calories: caloriesMatch ? Number(caloriesMatch[1]) : null,
+    protein: proteinMatch ? Number(proteinMatch[1]) : null,
+    steps: stepsMatch
+      ? Math.round(Number(stepsMatch[1]) * (stepsMatch[2] ? 1000 : 1))
+      : null,
+    workout: workoutMatch ? formatWorkoutLabel(workoutMatch[1]) : null,
+  };
+}
+
+function formatWorkoutLabel(workout: string) {
+  if (workout === "leg") return "Legs";
+  if (workout === "full body") return "Full Body";
+
+  return workout.charAt(0).toUpperCase() + workout.slice(1);
 }

@@ -255,7 +255,21 @@ useEffect(() => {
   }, []);
   useEffect(() => {
     const savedLogs = localStorage.getItem(STORAGE_KEY);
-    if (savedLogs) setLogs(JSON.parse(savedLogs));
+
+    if (savedLogs) {
+      try {
+        const parsedLogs = JSON.parse(savedLogs) as LogEntry[];
+
+        if (Array.isArray(parsedLogs) && parsedLogs.length > 0) {
+          setLogs(parsedLogs);
+          return;
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    loadDemoData();
   }, []);
 useEffect(() => {
   const savedHistory = localStorage.getItem(AI_HISTORY_KEY);

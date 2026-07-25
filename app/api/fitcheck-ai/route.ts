@@ -1,16 +1,18 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import {
+  checkAIRateLimit,
+  createProtectedFitnessAnswer,
+  FitCheckAIContext,
+  getLiveAIStatus,
+} from "@/lib/aiProtection";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
     const question = String(body.question ?? "");
-    const context = body.context ?? {};
+    const context = (body.context ?? {}) as FitCheckAIContext;
 
     if (!question.trim()) {
       return NextResponse.json(
@@ -19,12 +21,44 @@ export async function POST(request: Request) {
       );
     }
 
+    const liveAIStatus = getLiveAIStatus(request);
+
+    if (!liveAIStatus.allowed) {
+      return NextResponse.json({
+        answer: createProtectedFitnessAnswer(
+          question,
+          context,
+          liveAIStatus.reason
+        ),
+        protectedMode: true,
+      });
+    }
+
+    const rateLimit = checkAIRateLimit(request);
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json({
+        answer: createProtectedFitnessAnswer(
+          question,
+          context,
+          "The live AI limit was reached, so FitCheck returned a protected coaching response instead."
+        ),
+        protectedMode: true,
+        rateLimited: true,
+        resetAt: rateLimit.resetAt,
+      });
+    }
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { error: "Missing OPENAI_API_KEY environment variable." },
         { status: 500 }
       );
     }
+
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const response = await client.responses.create({
       model: "gpt-4o-mini",
