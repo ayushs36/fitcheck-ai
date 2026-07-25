@@ -1,5 +1,18 @@
 import type { AgentCheck, LogEntry } from "@/types/fitness";
 
+export const demoScenario = {
+  title: "Recruiter Demo: 35-Day Cutting Phase",
+  profile: "Fictional user, no personal data",
+  summary:
+    "Shows how FitCheck AI turns weight, calories, protein, steps, and workouts into agent decisions.",
+  highlights: [
+    "Moving-average weight trend",
+    "Nutrition and step adherence",
+    "Muscle-group training analysis",
+    "Agent history and action tracking",
+  ],
+};
+
 const demoWorkouts = [
   {
     workout: "Push Day",
@@ -60,7 +73,7 @@ export function createDemoAgentHistory(): AgentCheck[] {
   return [
     {
       id: "demo-agent-check-2",
-      date: new Date().toLocaleString(),
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleString(),
       status: "On track with manageable risk",
       decision: "Hold calories",
       biggestRisk: "Letting step consistency drift on rest days.",
@@ -74,11 +87,11 @@ export function createDemoAgentHistory(): AgentCheck[] {
       changeSummary:
         "Previous: Increase steps. Current: Hold calories. Change reason: Progress returned to target pace.",
       fullResponse:
-        "Overall Status: On track with manageable risk\nBiggest Risk: Letting step consistency drift on rest days.\nEvidence: Weight trend is moving toward the target, protein is consistently above target, and strength is stable.\nDecision Engine Action: Hold calories\nNext 7-Day Action Plan: Hold calories this week and keep steps above 10,000 on at least 5 days.\nConfidence Level: High",
+        "Overall Status: On track with manageable risk\nWeekly Review: Weight trend moved back toward target pace after steps improved.\nAgent Memory: Previous recommendation was followed; step average rose and the action tracker moved to working.\nBiggest Risk: Letting step consistency drift on rest days.\nEvidence: Weight trend is moving toward the target, protein is consistently above target, and strength is stable.\nDecision Engine Action: Hold calories\nTraining Signal: Push, pull, and leg sessions are logged with stable progression and no sustained decline.\nNext 7-Day Action Plan: Hold calories this week and keep steps above 10,000 on at least 5 days.\nConfidence Level: High",
     },
     {
       id: "demo-agent-check-1",
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleString(),
+      date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toLocaleString(),
       status: "Progress slow but fixable",
       decision: "Increase steps",
       biggestRisk: "Activity was too inconsistent to judge calories fairly.",
@@ -90,7 +103,7 @@ export function createDemoAgentHistory(): AgentCheck[] {
       confidence: "Medium",
       changeSummary: "First saved agent recommendation.",
       fullResponse:
-        "Overall Status: Progress slow but fixable\nBiggest Risk: Activity was too inconsistent to judge calories fairly.\nEvidence: Scale trend was flat while average steps were below the target baseline.\nDecision Engine Action: Increase steps\nNext 7-Day Action Plan: Increase steps before cutting calories and reassess after 7 days.\nConfidence Level: Medium",
+        "Overall Status: Progress slow but fixable\nWeekly Review: Calories were usable, but steps were inconsistent and the trend was too flat.\nAgent Memory: First saved agent check.\nBiggest Risk: Activity was too inconsistent to judge calories fairly.\nEvidence: Scale trend was flat while average steps were below the target baseline.\nDecision Engine Action: Increase steps\nTraining Signal: Strength was stable, so activity was the safer adjustment than a calorie cut.\nNext 7-Day Action Plan: Increase steps before cutting calories and reassess after 7 days.\nConfidence Level: Medium",
     },
   ];
 }

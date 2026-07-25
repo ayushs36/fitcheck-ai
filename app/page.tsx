@@ -1340,7 +1340,10 @@ AI Confidence Score: ${confidenceScore}%
     setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
     setLogs(demoLogs);
     setAgentHistory(createDemoAgentHistory());
+    setAiHistory([]);
     setGoalAdaptationHistory([]);
+    setCoachingPlanHistory([]);
+    setExpandedAgentCheckId(null);
     setExpandedLogMonths([]);
     setEntry({
       id: crypto.randomUUID(),
@@ -1354,6 +1357,12 @@ AI Confidence Score: ${confidenceScore}%
     });
     setAgentReport(
       "Demo data loaded. Run FitCheck Agent to generate a fresh coaching check from the sample logs."
+    );
+    setAiWeeklyReport(
+      "Demo data loaded. Generate a weekly report to see the fictional cutting-phase summary."
+    );
+    setGoalStrategy(
+      "Demo data loaded. Generate a goal strategy to inspect the fictional user's plan."
     );
   }
 
