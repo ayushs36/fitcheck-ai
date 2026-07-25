@@ -249,10 +249,10 @@ useEffect(() => {
     JSON.stringify({ entry, exercise, editingId })
   );
 }, [dailyLogDraftReady, editingId, entry, exercise]);
-  useEffect(() => {
-    const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
-    if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
-  }, []);
+useEffect(() => {
+  const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
+  if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
+}, []);
   useEffect(() => {
     const savedLogs = localStorage.getItem(STORAGE_KEY);
 
@@ -271,13 +271,6 @@ useEffect(() => {
 
     loadDemoData();
   }, []);
-useEffect(() => {
-  const savedHistory = localStorage.getItem(AI_HISTORY_KEY);
-
-  if (savedHistory) {
-    setAiHistory(JSON.parse(savedHistory));
-  }
-}, []);
   useEffect(() => {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
 
@@ -1348,12 +1341,13 @@ AI Confidence Score: ${confidenceScore}%
 
   function loadDemoData() {
     const demoLogs = createDemoLogs();
+    const demoAgentHistory = createDemoAgentHistory();
 
     setGoal("Cutting");
     setGoalWeight(134);
     setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
     setLogs(demoLogs);
-    setAgentHistory(createDemoAgentHistory());
+    setAgentHistory(demoAgentHistory);
     setAiHistory([]);
     setGoalAdaptationHistory([]);
     setCoachingPlanHistory([]);
@@ -1378,6 +1372,12 @@ AI Confidence Score: ${confidenceScore}%
     setGoalStrategy(
       "Demo data loaded. Generate a goal strategy to inspect the fictional user's plan."
     );
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(demoLogs));
+    localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(demoAgentHistory));
+    localStorage.setItem(AI_HISTORY_KEY, JSON.stringify([]));
+    localStorage.setItem(GOAL_ADAPTATION_HISTORY_KEY, JSON.stringify([]));
+    localStorage.setItem(COACHING_PLAN_HISTORY_KEY, JSON.stringify([]));
   }
 
   function applyGoalDateSuggestion() {
@@ -2021,9 +2021,14 @@ const pageStats = (() => {
         <header className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Fitness Analytics Agent
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Fitness Analytics Agent
+                </p>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Protected portfolio demo
+                </span>
+              </div>
 
               <h1 className="mt-1 text-3xl font-bold tracking-normal text-slate-950 md:text-4xl">
                 FitCheck AI
@@ -2035,7 +2040,7 @@ const pageStats = (() => {
               </p>
             </div>
 
-            <div className="w-fit rounded-2xl bg-slate-950 px-4 py-3 text-white">
+            <div className="w-fit rounded-2xl bg-slate-950 px-4 py-3 text-white shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Active Decision
               </p>
@@ -2053,7 +2058,7 @@ const pageStats = (() => {
                   href={item.href}
                   className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     isActive
-                      ? "bg-white text-slate-950 shadow-sm"
+                      ? "bg-slate-950 text-white shadow-sm"
                       : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
                   }`}
                 >
@@ -2079,7 +2084,7 @@ const pageStats = (() => {
               {pageStats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
                 >
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     {stat.label}
