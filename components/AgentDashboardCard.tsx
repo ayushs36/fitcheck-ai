@@ -1,12 +1,15 @@
 import type { AgentCheck, AgentDecision, AgentMemory } from "@/types/fitness";
+import type { AgentDecisionTrace } from "@/lib/agentDecisionTrace";
 
 export function AgentDashboardCard({
   agentDecision,
+  agentDecisionTrace,
   agentMemory,
   latestAgentCheck,
   previousAgentCheck,
 }: {
   agentDecision: AgentDecision;
+  agentDecisionTrace: AgentDecisionTrace;
   agentMemory: AgentMemory;
   latestAgentCheck?: AgentCheck;
   previousAgentCheck?: AgentCheck;
@@ -70,6 +73,73 @@ export function AgentDashboardCard({
           </p>
         </div>
       </div>
+
+      <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50">
+        <summary className="cursor-pointer list-none px-4 py-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Decision Audit
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
+                Why the agent chose this action
+              </p>
+            </div>
+            <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+              Explainability
+            </span>
+          </div>
+        </summary>
+
+        <div className="space-y-5 border-t border-slate-200 px-4 py-4">
+          <p className="text-sm leading-6 text-slate-700">
+            {agentDecisionTrace.summary}
+          </p>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Signals Used
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {agentDecisionTrace.topSignals.map((signal) => (
+                <div
+                  key={`${signal.label}-${signal.value}`}
+                  className="border-l-2 border-slate-300 pl-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-slate-950">
+                      {signal.label}: {signal.value}
+                    </p>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                      {signal.weight}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm leading-5 text-slate-600">
+                    {signal.interpretation}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <AgentTraceList
+            title="Decision Path"
+            items={agentDecisionTrace.decisionPath}
+          />
+          <AgentTraceList
+            title="Guardrails"
+            items={agentDecisionTrace.guardrails}
+          />
+          <AgentTraceList
+            title="What The Agent Did Not Do"
+            items={agentDecisionTrace.suppressedActions}
+          />
+          <AgentTraceList
+            title="Data That Would Improve Confidence"
+            items={agentDecisionTrace.nextDataNeeded}
+          />
+        </div>
+      </details>
 
       <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <p className="text-sm font-semibold text-slate-500">Agent Memory</p>
@@ -153,6 +223,24 @@ export function AgentDashboardCard({
         )}
       </div>
     </section>
+  );
+}
+
+function AgentTraceList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {title}
+      </p>
+      <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-700">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

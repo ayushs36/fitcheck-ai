@@ -62,6 +62,17 @@ export type FitCheckAIContext = {
     recoveryGuidance?: string;
     timelineGuidance?: string;
   };
+  agentDecisionTrace?: {
+    summary?: string;
+    topSignals?: Array<{
+      label?: string;
+      value?: string;
+      interpretation?: string;
+      weight?: string;
+    }>;
+    guardrails?: string[];
+    nextDataNeeded?: string[];
+  };
   dataFreshness?: {
     status?: string;
     recommendation?: string;
@@ -331,6 +342,11 @@ function formatEvidence(context: FitCheckAIContext) {
   const evidence = [
     context.dailyBrief?.evidence?.join("; "),
     context.weeklyCoachingReview?.evidence?.join("; "),
+    context.agentDecisionTrace?.summary,
+    context.agentDecisionTrace?.topSignals
+      ?.slice(0, 3)
+      .map((signal) => `${signal.label}: ${signal.value}`)
+      .join("; "),
     context.trendPaceLabel ? `Trend pace: ${context.trendPaceLabel}` : undefined,
     context.avgCalories ? `Average calories: ${Math.round(context.avgCalories)}` : undefined,
     context.avgProtein ? `Average protein: ${Math.round(context.avgProtein)}g` : undefined,
