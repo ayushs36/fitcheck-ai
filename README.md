@@ -6,36 +6,6 @@ FitCheck AI is an AI-powered fitness analytics platform built with Next.js, Reac
 
 The application tracks weight, calories, protein, steps, workouts, and exercise performance while providing personalized coaching and analytics through AI-powered features.
 
-## Screenshots
-
-### Dashboard
-
-![Dashboard](public/screenshots/dashboard.png)
-
-### Ask FitCheck AI
-
-![Ask FitCheck AI](public/screenshots/ask-ai.png)
-
-### AI Weekly Report
-
-![AI Weekly Report](public/screenshots/weekly-report.png)
-
-### AI Goal Strategy Agent
-
-![Goal Strategy](public/screenshots/goal-strategy.png)
-
-### AI Natural Language Logging
-
-![Natural Logging](public/screenshots/natural-log.png)
-
-### Maintenance Calorie Estimator
-
-![Maintenance](public/screenshots/maintenance-estimator.png)
-
-### AI Coaching History
-
-![AI History](public/screenshots/ai-history.png)
-
 ## Features
 
 - Daily fitness logging
