@@ -14,6 +14,18 @@ export function DemoModeCard({ loadDemoData }: { loadDemoData: () => void }) {
         {demoScenario.summary}
       </p>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+          Fictional data
+        </span>
+        <span className="rounded-full bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-200">
+          Local browser storage
+        </span>
+        <span className="rounded-full bg-violet-400/10 px-3 py-1 text-xs font-semibold text-violet-200">
+          Protected AI calls
+        </span>
+      </div>
+
       <div className="mt-5 grid gap-2">
         {demoScenario.highlights.map((highlight) => (
           <div
