@@ -88,14 +88,14 @@ import { TrainingSignalCard } from "@/components/TrainingSignalCard";
 import { WeeklyCoachingReviewCard } from "@/components/WeeklyCoachingReviewCard";
 
 const PERSONAL_STORAGE_KEYS = {
-  logs: "fitcheck-logs-v1",
-  settings: "fitcheck-settings-v1",
-  aiHistory: "fitcheck-ai-history-v1",
-  agentHistory: "fitcheck-agent-history-v1",
-  goalAdaptationHistory: "fitcheck-goal-adaptation-history-v1",
-  coachingPlanHistory: "fitcheck-coaching-plan-history-v1",
-  editLogId: "fitcheck-edit-log-id-v1",
-  dailyLogDraft: "fitcheck-daily-log-draft-v1",
+  logs: "fitcheck-personal-logs-v1",
+  settings: "fitcheck-personal-settings-v1",
+  aiHistory: "fitcheck-personal-ai-history-v1",
+  agentHistory: "fitcheck-personal-agent-history-v1",
+  goalAdaptationHistory: "fitcheck-personal-goal-adaptation-history-v1",
+  coachingPlanHistory: "fitcheck-personal-coaching-plan-history-v1",
+  editLogId: "fitcheck-personal-edit-log-id-v1",
+  dailyLogDraft: "fitcheck-personal-daily-log-draft-v1",
 };
 
 const DEMO_STORAGE_KEYS = {
@@ -177,6 +177,10 @@ export function FitCheckApp({ mode = "personal" }: { mode?: AppMode }) {
       ? `${routePrefix}${item.href === "/" ? "" : item.href}`
       : item.href,
   }));
+  const aiRequestHeaders = {
+    "Content-Type": "application/json",
+    ...(isPersonalRoute ? { "x-fitcheck-app-mode": "personal" } : {}),
+  };
   const activeNavItem =
     APP_NAV_ITEMS.find((item) => item.view === activeView) ?? APP_NAV_ITEMS[0];
   const showToday = activeView === "today";
@@ -1771,9 +1775,7 @@ async function askFitCheckAILLM() {
   try {
     const response = await fetch("/api/fitcheck-ai", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: aiRequestHeaders,
       body: JSON.stringify({
         question: coachQuestion,
         context,
@@ -1846,9 +1848,7 @@ async function generateAIWeeklyReport() {
   try {
     const response = await fetch("/api/fitcheck-ai", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: aiRequestHeaders,
       body: JSON.stringify({
         question:
           "Generate a complete weekly fitness coaching report including wins, problems, biggest risk, next week's priority, and goal outlook.",
@@ -1933,9 +1933,7 @@ async function generateGoalStrategy() {
   try {
     const response = await fetch("/api/fitcheck-ai", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: aiRequestHeaders,
       body: JSON.stringify({
         question:
           "Create a personalized goal strategy. Include target calories, protein target, step target, training focus, recovery focus, realistic weekly loss, and whether the goal timeline should stay the same or be adjusted.",
@@ -2016,9 +2014,7 @@ async function runFitCheckAgent() {
   try {
     const response = await fetch("/api/fitcheck-ai", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: aiRequestHeaders,
       body: JSON.stringify({
         question:
   "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, weeklyPlan, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, weeklyCoachingReview, agentMemory, agentDecisionTrace, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output, agentDecisionTrace as the audit trail explaining why the current rule-based action was chosen, dailyBrief as the current day control-center summary, weeklyPlan.adjustment as the next plan-adjustment rule, and weeklyCoachingReview as the last-7-days coaching review. Use agentDecisionTrace.topSignals, decisionPath, guardrails, suppressedActions, and nextDataNeeded to explain what mattered, what was blocked, and what data would raise confidence. Use weeklyPlan.adjustment to explain what change is allowed, what trigger would justify it, what guardrail prevents overreacting, and when to review again. Use weeklyCoachingReview to identify the week's status, biggest change, biggest blocker, priority, evidence, and next actions. Use agentMemory to call out repeated risks, repeated recommendations, the action tracker result, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, muscleGroupTrends, trainingBalanceInsight, and agentTrainingInsight to explain strength progress, muscle-group balance, and workout coverage like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Weekly Review, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",

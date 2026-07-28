@@ -1,4 +1,6 @@
 const LIVE_AI_HEADER = "x-fitcheck-agent-secret";
+const PERSONAL_APP_HEADER = "x-fitcheck-app-mode";
+const PERSONAL_USERNAME = "ayushs36";
 const DEFAULT_RATE_LIMIT_MAX = 12;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
@@ -162,6 +164,13 @@ export function getLiveAIStatus(request: Request): LiveAIStatus {
     };
   }
 
+  if (isAuthenticatedPersonalRequest(request)) {
+    return {
+      allowed: true,
+      reason: "Password-protected personal app access accepted.",
+    };
+  }
+
   if (process.env.FITCHECK_ALLOW_PUBLIC_AI === "true") {
     return {
       allowed: true,
@@ -174,6 +183,35 @@ export function getLiveAIStatus(request: Request): LiveAIStatus {
     reason:
       "Public demo protection is active, so this response did not use a live OpenAI call.",
   };
+}
+
+function isAuthenticatedPersonalRequest(request: Request) {
+  if (request.headers.get(PERSONAL_APP_HEADER) !== "personal") {
+    return false;
+  }
+
+  const personalPassword = process.env.FITCHECK_PERSONAL_PASSWORD;
+
+  if (!personalPassword) {
+    return false;
+  }
+
+  const authHeader = request.headers.get("authorization");
+
+  if (!authHeader?.startsWith("Basic ")) {
+    return false;
+  }
+
+  try {
+    const decoded = atob(authHeader.slice("Basic ".length));
+    const separatorIndex = decoded.indexOf(":");
+    const username = decoded.slice(0, separatorIndex);
+    const password = decoded.slice(separatorIndex + 1);
+
+    return username === PERSONAL_USERNAME && password === personalPassword;
+  } catch {
+    return false;
+  }
 }
 
 export function checkAIRateLimit(request: Request): RateLimitResult {

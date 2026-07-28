@@ -15,7 +15,7 @@ The public recruiter experience uses fictional data and isolated demo storage.
 
 - Recruiters should use `https://fitcheck-ai-psi.vercel.app/`.
 - Demo data is stored under separate `fitcheck-demo-*` localStorage keys.
-- Personal data uses separate `fitcheck-*` localStorage keys.
+- Personal data uses separate `fitcheck-personal-*` localStorage keys.
 - Other visitors cannot see the owner's local browser data.
 - Public AI actions return protected demo responses by default.
 - Live OpenAI calls are blocked unless explicitly enabled on the server.
@@ -28,6 +28,12 @@ The owner-only personal workspace is available at `/personal` when
 `FITCHECK_PERSONAL_PASSWORD` is configured on Vercel. It is password-protected
 and still stores personal logs only in the owner's browser localStorage. If the
 password is not configured, `/personal` returns 404.
+
+Both the recruiter demo and personal workspace use the same shared app
+components, so feature updates apply to both. The difference is access and data:
+the recruiter app is public/demo-only, while `/personal` is password-protected,
+uses fresh personal storage, and can make live AI calls only after owner
+authentication.
 
 ## What Makes It An Agent
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const REALM = "FitCheck Personal";
+const PERSONAL_USERNAME = "ayushs36";
 
 function unauthorized() {
   return new NextResponse("Authentication required.", {
@@ -37,9 +38,10 @@ export function proxy(request: NextRequest) {
   try {
     const decoded = atob(authHeader.slice("Basic ".length));
     const separatorIndex = decoded.indexOf(":");
+    const username = decoded.slice(0, separatorIndex);
     const password = decoded.slice(separatorIndex + 1);
 
-    if (password === personalPassword) {
+    if (username === PERSONAL_USERNAME && password === personalPassword) {
       return NextResponse.next();
     }
   } catch {
