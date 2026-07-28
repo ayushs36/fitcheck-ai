@@ -7,13 +7,13 @@ coaching experience: users log weight, calories, protein, steps, workouts, and
 exercise performance, then the agent turns those inputs into practical next
 actions.
 
-Recruiter demo: https://fitcheck-ai-psi.vercel.app/demo
+Recruiter demo: https://fitcheck-ai-psi.vercel.app/
 
 ## Portfolio Demo Safety
 
-The public recruiter experience is isolated at `/demo` and uses fictional data.
+The public recruiter experience uses fictional data and isolated demo storage.
 
-- Recruiters should use `https://fitcheck-ai-psi.vercel.app/demo`.
+- Recruiters should use `https://fitcheck-ai-psi.vercel.app/`.
 - Demo data is stored under separate `fitcheck-demo-*` localStorage keys.
 - Personal data uses separate `fitcheck-*` localStorage keys.
 - Other visitors cannot see the owner's local browser data.
@@ -21,8 +21,12 @@ The public recruiter experience is isolated at `/demo` and uses fictional data.
 - Live OpenAI calls are blocked unless explicitly enabled on the server.
 - The OpenAI API key is never exposed to the browser or committed to GitHub.
 
-The root app can still be used as a personal workspace in the owner's browser,
-but the GitHub/portfolio link points recruiters to the isolated demo route.
+The public GitHub/portfolio link opens the recruiter demo. Personal recovery
+data is not committed, pushed, or bundled into the public app.
+
+The owner-only personal workspace is intended for local development at
+`/personal`. On Vercel, that route returns 404 so the public deployment stays
+recruiter-demo only.
 
 ## What Makes It An Agent
 

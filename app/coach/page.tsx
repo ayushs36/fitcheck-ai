@@ -1,5 +1,5 @@
 import { FitCheckApp } from "../page";
 
 export default function CoachPage() {
-  return <FitCheckApp />;
+  return <FitCheckApp mode="demo" />;
 }

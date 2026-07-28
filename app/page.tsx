@@ -2722,7 +2722,7 @@ const pageStats = (() => {
 }
 
 export default function Home() {
-  return <FitCheckApp />;
+  return <FitCheckApp mode="demo" />;
 }
 
 function LogCoverageBadge({
