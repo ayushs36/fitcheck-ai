@@ -255,6 +255,13 @@ useEffect(() => {
   if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
 }, []);
   useEffect(() => {
+    const demoParam = new URLSearchParams(window.location.search).get("demo");
+
+    if (demoParam === "1" || demoParam === "true") {
+      loadDemoData();
+      return;
+    }
+
     const savedLogs = localStorage.getItem(STORAGE_KEY);
 
     if (savedLogs) {
@@ -1365,10 +1372,16 @@ AI Confidence Score: ${confidenceScore}%
   function loadDemoData() {
     const demoLogs = createDemoLogs();
     const demoAgentHistory = createDemoAgentHistory();
+    const demoGoalDate = addDays(new Date(), 28).toISOString().slice(0, 10);
+    const demoSettings = {
+      goal: "Cutting",
+      goalWeight: 134,
+      goalDate: demoGoalDate,
+    };
 
     setGoal("Cutting");
     setGoalWeight(134);
-    setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
+    setGoalDate(demoGoalDate);
     setLogs(demoLogs);
     setAgentHistory(demoAgentHistory);
     setAiHistory([]);
@@ -1401,6 +1414,9 @@ AI Confidence Score: ${confidenceScore}%
     localStorage.setItem(AI_HISTORY_KEY, JSON.stringify([]));
     localStorage.setItem(GOAL_ADAPTATION_HISTORY_KEY, JSON.stringify([]));
     localStorage.setItem(COACHING_PLAN_HISTORY_KEY, JSON.stringify([]));
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(demoSettings));
+    localStorage.removeItem(EDIT_LOG_ID_KEY);
+    localStorage.removeItem(DAILY_LOG_DRAFT_KEY);
   }
 
   function applyGoalDateSuggestion() {

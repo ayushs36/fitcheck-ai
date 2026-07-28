@@ -41,14 +41,14 @@ export function DemoModeCard({ loadDemoData }: { loadDemoData: () => void }) {
         onClick={loadDemoData}
         className="mt-5 w-full rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-100"
       >
-        Load / Reset Demo
+        Reset to Fictional Demo
       </button>
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
-        First-time public visitors see fictional demo data automatically. This
-        button resets the local browser to the same demo dataset. Public AI
-        actions use protected demo responses unless live AI is explicitly
-        enabled on the server.
+        First-time visitors see fictional demo data automatically. The public
+        demo link can force this clean state even if a browser has old local
+        data. Public AI actions use protected demo responses unless live AI is
+        explicitly enabled on the server.
       </p>
     </section>
   );

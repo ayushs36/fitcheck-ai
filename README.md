@@ -7,13 +7,15 @@ coaching experience: users log weight, calories, protein, steps, workouts, and
 exercise performance, then the agent turns those inputs into practical next
 actions.
 
-Live demo: https://fitcheck-ai-psi.vercel.app/
+Live demo: https://fitcheck-ai-psi.vercel.app/?demo=1
 
 ## Portfolio Demo Safety
 
 The public deployment is configured as a protected portfolio demo.
 
 - First-time visitors see fictional demo data.
+- The `?demo=1` link forces a clean fictional demo state even if the browser has
+  older local data.
 - Personal data is stored only in each visitor's browser through localStorage.
 - Other visitors cannot see the owner's local browser data.
 - Public AI actions return protected demo responses by default.
