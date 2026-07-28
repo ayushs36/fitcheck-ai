@@ -24,9 +24,10 @@ The public recruiter experience uses fictional data and isolated demo storage.
 The public GitHub/portfolio link opens the recruiter demo. Personal recovery
 data is not committed, pushed, or bundled into the public app.
 
-The owner-only personal workspace is intended for local development at
-`/personal`. On Vercel, that route returns 404 so the public deployment stays
-recruiter-demo only.
+The owner-only personal workspace is available at `/personal` when
+`FITCHECK_PERSONAL_PASSWORD` is configured on Vercel. It is password-protected
+and still stores personal logs only in the owner's browser localStorage. If the
+password is not configured, `/personal` returns 404.
 
 ## What Makes It An Agent
 
@@ -144,6 +145,7 @@ set:
 ```bash
 OPENAI_API_KEY=your_key_here
 FITCHECK_ALLOW_PUBLIC_AI=true
+FITCHECK_PERSONAL_PASSWORD=choose-a-private-password
 ```
 
 Do not commit `.env.local`.

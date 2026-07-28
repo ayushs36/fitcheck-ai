@@ -161,15 +161,21 @@ export function FitCheckApp({ mode = "personal" }: { mode?: AppMode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isDemoMode = mode === "demo";
+  const isPersonalRoute = pathname.startsWith("/personal");
+  const routePrefix = isDemoMode ? "/demo" : isPersonalRoute ? "/personal" : "";
   const storageKeys = isDemoMode ? DEMO_STORAGE_KEYS : PERSONAL_STORAGE_KEYS;
   const routedPathname = isDemoMode
     ? pathname.replace(/^\/demo/, "") || "/"
+    : isPersonalRoute
+      ? pathname.replace(/^\/personal/, "") || "/"
     : pathname;
-  const rootPath = isDemoMode ? "/demo" : "/";
+  const rootPath = routePrefix || "/";
   const activeView = getViewFromPath(routedPathname);
   const navItems = APP_NAV_ITEMS.map((item) => ({
     ...item,
-    href: isDemoMode ? `/demo${item.href === "/" ? "" : item.href}` : item.href,
+    href: routePrefix
+      ? `${routePrefix}${item.href === "/" ? "" : item.href}`
+      : item.href,
   }));
   const activeNavItem =
     APP_NAV_ITEMS.find((item) => item.view === activeView) ?? APP_NAV_ITEMS[0];
