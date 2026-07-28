@@ -1,12 +1,6 @@
 import { demoScenario } from "@/lib/demoData";
 
-export function DemoModeCard({
-  isDemoPreview,
-  loadDemoData,
-}: {
-  isDemoPreview: boolean;
-  loadDemoData: () => void;
-}) {
+export function DemoModeCard({ loadDemoData }: { loadDemoData: () => void }) {
   return (
     <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -30,11 +24,6 @@ export function DemoModeCard({
         <span className="rounded-full bg-violet-400/10 px-3 py-1 text-xs font-semibold text-violet-200">
           Protected AI calls
         </span>
-        {isDemoPreview && (
-          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">
-            Preview mode
-          </span>
-        )}
       </div>
 
       <div className="mt-5 grid gap-2">
@@ -52,13 +41,14 @@ export function DemoModeCard({
         onClick={loadDemoData}
         className="mt-5 w-full rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-100"
       >
-        Preview Fictional Demo
+        Reset to Fictional Demo
       </button>
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
         First-time visitors see fictional demo data automatically. The public
         demo link can force this clean state even if a browser has old local
-        data. Preview mode does not overwrite saved personal logs.
+        data. Public AI actions use protected demo responses unless live AI is
+        explicitly enabled on the server.
       </p>
     </section>
   );

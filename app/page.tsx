@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -142,16 +142,6 @@ function getViewFromPath(pathname: string): AppView {
   return match?.view ?? "today";
 }
 
-function hasDemoSearchParam() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const demoParam = new URLSearchParams(window.location.search).get("demo");
-
-  return demoParam === "1" || demoParam === "true";
-}
-
 export function FitCheckApp() {
   const pathname = usePathname();
   const router = useRouter();
@@ -191,9 +181,6 @@ export function FitCheckApp() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dailyLogDraftReady, setDailyLogDraftReady] = useState(false);
-  const [storageReady, setStorageReady] = useState(false);
-  const [isDemoPreview, setIsDemoPreview] = useState(false);
-  const demoPreviewRef = useRef(false);
   const [expandedLogMonths, setExpandedLogMonths] = useState<string[]>([]);
   const [coachQuestion, setCoachQuestion] = useState("");
 const [coachAnswer, setCoachAnswer] = useState(
@@ -227,11 +214,6 @@ const [coachingPlanHistory, setCoachingPlanHistory] = useState<
   CoachingPlanRecord[]
 >([]);
 useEffect(() => {
-  if (hasDemoSearchParam()) {
-    setDailyLogDraftReady(true);
-    return;
-  }
-
   const savedDraft = localStorage.getItem(DAILY_LOG_DRAFT_KEY);
 
   if (savedDraft) {
@@ -259,7 +241,7 @@ useEffect(() => {
   setDailyLogDraftReady(true);
 }, []);
 useEffect(() => {
-  if (!dailyLogDraftReady || demoPreviewRef.current) {
+  if (!dailyLogDraftReady) {
     return;
   }
 
@@ -269,17 +251,14 @@ useEffect(() => {
   );
 }, [dailyLogDraftReady, editingId, entry, exercise]);
 useEffect(() => {
-  if (hasDemoSearchParam()) {
-    return;
-  }
-
   const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
   if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
 }, []);
   useEffect(() => {
-    if (hasDemoSearchParam()) {
-      loadDemoData({ persist: false });
-      setStorageReady(true);
+    const demoParam = new URLSearchParams(window.location.search).get("demo");
+
+    if (demoParam === "1" || demoParam === "true") {
+      loadDemoData();
       return;
     }
 
@@ -291,7 +270,6 @@ useEffect(() => {
 
         if (Array.isArray(parsedLogs) && parsedLogs.length > 0) {
           setLogs(parsedLogs);
-          setStorageReady(true);
           return;
         }
       } catch {
@@ -299,14 +277,9 @@ useEffect(() => {
       }
     }
 
-    loadDemoData({ persist: true });
-    setStorageReady(true);
+    loadDemoData();
   }, []);
   useEffect(() => {
-    if (demoPreviewRef.current) {
-      return;
-    }
-
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
 
     if (savedSettings) {
@@ -319,24 +292,12 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-    if (!storageReady || demoPreviewRef.current) {
-      return;
-    }
-
     localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-  }, [logs, storageReady]);
+  }, [logs]);
 useEffect(() => {
-  if (!storageReady || demoPreviewRef.current) {
-    return;
-  }
-
   localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory));
-}, [aiHistory, storageReady]);
+}, [aiHistory]);
 useEffect(() => {
-  if (demoPreviewRef.current) {
-    return;
-  }
-
   const savedAgentHistory = localStorage.getItem(AGENT_HISTORY_KEY);
 
   if (savedAgentHistory) {
@@ -344,17 +305,9 @@ useEffect(() => {
   }
 }, []);
 useEffect(() => {
-  if (!storageReady || demoPreviewRef.current) {
-    return;
-  }
-
   localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(agentHistory));
-}, [agentHistory, storageReady]);
+}, [agentHistory]);
 useEffect(() => {
-  if (demoPreviewRef.current) {
-    return;
-  }
-
   const savedGoalAdaptationHistory = localStorage.getItem(
     GOAL_ADAPTATION_HISTORY_KEY
   );
@@ -364,20 +317,12 @@ useEffect(() => {
   }
 }, []);
 useEffect(() => {
-  if (!storageReady || demoPreviewRef.current) {
-    return;
-  }
-
   localStorage.setItem(
     GOAL_ADAPTATION_HISTORY_KEY,
     JSON.stringify(goalAdaptationHistory)
   );
-}, [goalAdaptationHistory, storageReady]);
+}, [goalAdaptationHistory]);
 useEffect(() => {
-  if (demoPreviewRef.current) {
-    return;
-  }
-
   const savedCoachingPlanHistory = localStorage.getItem(
     COACHING_PLAN_HISTORY_KEY
   );
@@ -387,20 +332,12 @@ useEffect(() => {
   }
 }, []);
 useEffect(() => {
-  if (!storageReady || demoPreviewRef.current) {
-    return;
-  }
-
   localStorage.setItem(
     COACHING_PLAN_HISTORY_KEY,
     JSON.stringify(coachingPlanHistory)
   );
-}, [coachingPlanHistory, storageReady]);
+}, [coachingPlanHistory]);
 useEffect(() => {
-  if (demoPreviewRef.current) {
-    return;
-  }
-
   if (pathname !== "/" || logs.length === 0) {
     return;
   }
@@ -423,10 +360,6 @@ useEffect(() => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }, [logs, pathname]);
   useEffect(() => {
-    if (!storageReady || demoPreviewRef.current) {
-      return;
-    }
-
     localStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({
@@ -435,7 +368,7 @@ useEffect(() => {
         goalDate,
       })
     );
-  }, [goal, goalWeight, goalDate, storageReady]);
+  }, [goal, goalWeight, goalDate]);
 
   const sortedLogs = useMemo(
     () => [...logs].sort((a, b) => a.date.localeCompare(b.date)),
@@ -1436,7 +1369,7 @@ AI Confidence Score: ${confidenceScore}%
     }
   }
 
-  function loadDemoData({ persist = false }: { persist?: boolean } = {}) {
+  function loadDemoData() {
     const demoLogs = createDemoLogs();
     const demoAgentHistory = createDemoAgentHistory();
     const demoGoalDate = addDays(new Date(), 28).toISOString().slice(0, 10);
@@ -1446,8 +1379,6 @@ AI Confidence Score: ${confidenceScore}%
       goalDate: demoGoalDate,
     };
 
-    demoPreviewRef.current = !persist;
-    setIsDemoPreview(!persist);
     setGoal("Cutting");
     setGoalWeight(134);
     setGoalDate(demoGoalDate);
@@ -1477,10 +1408,6 @@ AI Confidence Score: ${confidenceScore}%
     setGoalStrategy(
       "Demo data loaded. Generate a goal strategy to inspect the fictional user's plan."
     );
-
-    if (!persist) {
-      return;
-    }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(demoLogs));
     localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(demoAgentHistory));
@@ -2236,10 +2163,7 @@ const pageStats = (() => {
   clearAllLogs={clearAllLogs}
 />
 
-<DemoModeCard
-  isDemoPreview={isDemoPreview}
-  loadDemoData={() => loadDemoData({ persist: false })}
-/>
+<DemoModeCard loadDemoData={loadDemoData} />
 </section>
 )}
 
