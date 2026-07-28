@@ -45,10 +45,10 @@ export function DemoModeCard({ loadDemoData }: { loadDemoData: () => void }) {
       </button>
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
-        First-time public visitors see fictional demo data automatically. This
-        button resets the local browser to the same demo dataset. Public AI
-        actions use protected demo responses unless live AI is explicitly
-        enabled on the server.
+        Recruiter demo data is stored under separate demo-only browser keys.
+        This reset cannot write to the personal FitCheck storage used by the
+        root app. Public AI actions use protected demo responses unless live AI
+        is explicitly enabled on the server.
       </p>
     </section>
   );

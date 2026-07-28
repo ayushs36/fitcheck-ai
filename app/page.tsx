@@ -87,14 +87,29 @@ import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
 import { TrainingSignalCard } from "@/components/TrainingSignalCard";
 import { WeeklyCoachingReviewCard } from "@/components/WeeklyCoachingReviewCard";
 
-const STORAGE_KEY = "fitcheck-logs-v1";
-const SETTINGS_KEY = "fitcheck-settings-v1";
-const AI_HISTORY_KEY = "fitcheck-ai-history-v1";
-const AGENT_HISTORY_KEY = "fitcheck-agent-history-v1";
-const GOAL_ADAPTATION_HISTORY_KEY = "fitcheck-goal-adaptation-history-v1";
-const COACHING_PLAN_HISTORY_KEY = "fitcheck-coaching-plan-history-v1";
-const EDIT_LOG_ID_KEY = "fitcheck-edit-log-id-v1";
-const DAILY_LOG_DRAFT_KEY = "fitcheck-daily-log-draft-v1";
+const PERSONAL_STORAGE_KEYS = {
+  logs: "fitcheck-logs-v1",
+  settings: "fitcheck-settings-v1",
+  aiHistory: "fitcheck-ai-history-v1",
+  agentHistory: "fitcheck-agent-history-v1",
+  goalAdaptationHistory: "fitcheck-goal-adaptation-history-v1",
+  coachingPlanHistory: "fitcheck-coaching-plan-history-v1",
+  editLogId: "fitcheck-edit-log-id-v1",
+  dailyLogDraft: "fitcheck-daily-log-draft-v1",
+};
+
+const DEMO_STORAGE_KEYS = {
+  logs: "fitcheck-demo-logs-v1",
+  settings: "fitcheck-demo-settings-v1",
+  aiHistory: "fitcheck-demo-ai-history-v1",
+  agentHistory: "fitcheck-demo-agent-history-v1",
+  goalAdaptationHistory: "fitcheck-demo-goal-adaptation-history-v1",
+  coachingPlanHistory: "fitcheck-demo-coaching-plan-history-v1",
+  editLogId: "fitcheck-demo-edit-log-id-v1",
+  dailyLogDraft: "fitcheck-demo-daily-log-draft-v1",
+};
+
+type AppMode = "personal" | "demo";
 
 const APP_NAV_ITEMS = [
   {
@@ -142,10 +157,20 @@ function getViewFromPath(pathname: string): AppView {
   return match?.view ?? "today";
 }
 
-export function FitCheckApp() {
+export function FitCheckApp({ mode = "personal" }: { mode?: AppMode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const activeView = getViewFromPath(pathname);
+  const isDemoMode = mode === "demo";
+  const storageKeys = isDemoMode ? DEMO_STORAGE_KEYS : PERSONAL_STORAGE_KEYS;
+  const routedPathname = isDemoMode
+    ? pathname.replace(/^\/demo/, "") || "/"
+    : pathname;
+  const rootPath = isDemoMode ? "/demo" : "/";
+  const activeView = getViewFromPath(routedPathname);
+  const navItems = APP_NAV_ITEMS.map((item) => ({
+    ...item,
+    href: isDemoMode ? `/demo${item.href === "/" ? "" : item.href}` : item.href,
+  }));
   const activeNavItem =
     APP_NAV_ITEMS.find((item) => item.view === activeView) ?? APP_NAV_ITEMS[0];
   const showToday = activeView === "today";
@@ -179,6 +204,19 @@ export function FitCheckApp() {
   });
 
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logsStorageReady, setLogsStorageReady] = useState(false);
+  const [settingsStorageReady, setSettingsStorageReady] = useState(false);
+  const [aiHistoryStorageReady, setAiHistoryStorageReady] = useState(false);
+  const [agentHistoryStorageReady, setAgentHistoryStorageReady] =
+    useState(false);
+  const [
+    goalAdaptationHistoryStorageReady,
+    setGoalAdaptationHistoryStorageReady,
+  ] = useState(false);
+  const [
+    coachingPlanHistoryStorageReady,
+    setCoachingPlanHistoryStorageReady,
+  ] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dailyLogDraftReady, setDailyLogDraftReady] = useState(false);
   const [expandedLogMonths, setExpandedLogMonths] = useState<string[]>([]);
@@ -214,7 +252,7 @@ const [coachingPlanHistory, setCoachingPlanHistory] = useState<
   CoachingPlanRecord[]
 >([]);
 useEffect(() => {
-  const savedDraft = localStorage.getItem(DAILY_LOG_DRAFT_KEY);
+  const savedDraft = localStorage.getItem(storageKeys.dailyLogDraft);
 
   if (savedDraft) {
     try {
@@ -234,28 +272,29 @@ useEffect(() => {
 
       setEditingId(draft.editingId ?? null);
     } catch {
-      localStorage.removeItem(DAILY_LOG_DRAFT_KEY);
+      localStorage.removeItem(storageKeys.dailyLogDraft);
     }
   }
 
   setDailyLogDraftReady(true);
-}, []);
+}, [storageKeys.dailyLogDraft]);
 useEffect(() => {
   if (!dailyLogDraftReady) {
     return;
   }
 
   localStorage.setItem(
-    DAILY_LOG_DRAFT_KEY,
+    storageKeys.dailyLogDraft,
     JSON.stringify({ entry, exercise, editingId })
   );
-}, [dailyLogDraftReady, editingId, entry, exercise]);
+}, [dailyLogDraftReady, editingId, entry, exercise, storageKeys.dailyLogDraft]);
 useEffect(() => {
-  const savedAiHistory = localStorage.getItem(AI_HISTORY_KEY);
+  const savedAiHistory = localStorage.getItem(storageKeys.aiHistory);
   if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
-}, []);
+  setAiHistoryStorageReady(true);
+}, [storageKeys.aiHistory]);
   useEffect(() => {
-    const savedLogs = localStorage.getItem(STORAGE_KEY);
+    const savedLogs = localStorage.getItem(storageKeys.logs);
 
     if (savedLogs) {
       try {
@@ -263,17 +302,21 @@ useEffect(() => {
 
         if (Array.isArray(parsedLogs) && parsedLogs.length > 0) {
           setLogs(parsedLogs);
+          setLogsStorageReady(true);
           return;
         }
       } catch {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(storageKeys.logs);
       }
     }
 
-    loadDemoData();
-  }, []);
+    if (isDemoMode) {
+      loadDemoData();
+    }
+    setLogsStorageReady(true);
+  }, [isDemoMode, storageKeys.logs]);
   useEffect(() => {
-    const savedSettings = localStorage.getItem(SETTINGS_KEY);
+    const savedSettings = localStorage.getItem(storageKeys.settings);
 
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
@@ -282,67 +325,99 @@ useEffect(() => {
       if (settings.goalWeight) setGoalWeight(settings.goalWeight);
       if (settings.goalDate) setGoalDate(settings.goalDate);
     }
-  }, []);
+    setSettingsStorageReady(true);
+  }, [storageKeys.settings]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-  }, [logs]);
+    if (!logsStorageReady) {
+      return;
+    }
+
+    localStorage.setItem(storageKeys.logs, JSON.stringify(logs));
+  }, [logs, logsStorageReady, storageKeys.logs]);
 useEffect(() => {
-  localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory));
-}, [aiHistory]);
+  if (!aiHistoryStorageReady) {
+    return;
+  }
+
+  localStorage.setItem(storageKeys.aiHistory, JSON.stringify(aiHistory));
+}, [aiHistory, aiHistoryStorageReady, storageKeys.aiHistory]);
 useEffect(() => {
-  const savedAgentHistory = localStorage.getItem(AGENT_HISTORY_KEY);
+  const savedAgentHistory = localStorage.getItem(storageKeys.agentHistory);
 
   if (savedAgentHistory) {
     setAgentHistory(JSON.parse(savedAgentHistory));
   }
-}, []);
+  setAgentHistoryStorageReady(true);
+}, [storageKeys.agentHistory]);
 useEffect(() => {
-  localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(agentHistory));
-}, [agentHistory]);
+  if (!agentHistoryStorageReady) {
+    return;
+  }
+
+  localStorage.setItem(storageKeys.agentHistory, JSON.stringify(agentHistory));
+}, [agentHistory, agentHistoryStorageReady, storageKeys.agentHistory]);
 useEffect(() => {
   const savedGoalAdaptationHistory = localStorage.getItem(
-    GOAL_ADAPTATION_HISTORY_KEY
+    storageKeys.goalAdaptationHistory
   );
 
   if (savedGoalAdaptationHistory) {
     setGoalAdaptationHistory(JSON.parse(savedGoalAdaptationHistory));
   }
-}, []);
+  setGoalAdaptationHistoryStorageReady(true);
+}, [storageKeys.goalAdaptationHistory]);
 useEffect(() => {
+  if (!goalAdaptationHistoryStorageReady) {
+    return;
+  }
+
   localStorage.setItem(
-    GOAL_ADAPTATION_HISTORY_KEY,
+    storageKeys.goalAdaptationHistory,
     JSON.stringify(goalAdaptationHistory)
   );
-}, [goalAdaptationHistory]);
+}, [
+  goalAdaptationHistory,
+  goalAdaptationHistoryStorageReady,
+  storageKeys.goalAdaptationHistory,
+]);
 useEffect(() => {
   const savedCoachingPlanHistory = localStorage.getItem(
-    COACHING_PLAN_HISTORY_KEY
+    storageKeys.coachingPlanHistory
   );
 
   if (savedCoachingPlanHistory) {
     setCoachingPlanHistory(JSON.parse(savedCoachingPlanHistory));
   }
-}, []);
+  setCoachingPlanHistoryStorageReady(true);
+}, [storageKeys.coachingPlanHistory]);
 useEffect(() => {
-  localStorage.setItem(
-    COACHING_PLAN_HISTORY_KEY,
-    JSON.stringify(coachingPlanHistory)
-  );
-}, [coachingPlanHistory]);
-useEffect(() => {
-  if (pathname !== "/" || logs.length === 0) {
+  if (!coachingPlanHistoryStorageReady) {
     return;
   }
 
-  const pendingEditLogId = localStorage.getItem(EDIT_LOG_ID_KEY);
+  localStorage.setItem(
+    storageKeys.coachingPlanHistory,
+    JSON.stringify(coachingPlanHistory)
+  );
+}, [
+  coachingPlanHistory,
+  coachingPlanHistoryStorageReady,
+  storageKeys.coachingPlanHistory,
+]);
+useEffect(() => {
+  if (routedPathname !== "/" || logs.length === 0) {
+    return;
+  }
+
+  const pendingEditLogId = localStorage.getItem(storageKeys.editLogId);
 
   if (!pendingEditLogId) {
     return;
   }
 
   const logToEdit = logs.find((log) => log.id === pendingEditLogId);
-  localStorage.removeItem(EDIT_LOG_ID_KEY);
+  localStorage.removeItem(storageKeys.editLogId);
 
   if (!logToEdit) {
     return;
@@ -351,17 +426,21 @@ useEffect(() => {
   setEntry({ ...logToEdit, exercises: [...logToEdit.exercises] });
   setEditingId(logToEdit.id);
   window.scrollTo({ top: 0, behavior: "smooth" });
-}, [logs, pathname]);
+}, [logs, routedPathname, storageKeys.editLogId]);
   useEffect(() => {
+    if (!settingsStorageReady) {
+      return;
+    }
+
     localStorage.setItem(
-      SETTINGS_KEY,
+      storageKeys.settings,
       JSON.stringify({
         goal,
         goalWeight,
         goalDate,
       })
     );
-  }, [goal, goalWeight, goalDate]);
+  }, [goal, goalWeight, goalDate, settingsStorageReady, storageKeys.settings]);
 
   const sortedLogs = useMemo(
     () => [...logs].sort((a, b) => a.date.localeCompare(b.date)),
@@ -1344,10 +1423,10 @@ AI Confidence Score: ${confidenceScore}%
   }
 
   function editLog(log: LogEntry) {
-    localStorage.setItem(EDIT_LOG_ID_KEY, log.id);
+    localStorage.setItem(storageKeys.editLogId, log.id);
     setEntry({ ...log, exercises: [...log.exercises] });
     setEditingId(log.id);
-    router.push("/");
+    router.push(rootPath);
   }
 
   function deleteLog(id: string) {
@@ -1357,7 +1436,7 @@ AI Confidence Score: ${confidenceScore}%
   function clearAllLogs() {
     if (confirm("Delete all logs?")) {
       setLogs([]);
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKeys.logs);
       resetEntry();
     }
   }
@@ -1396,11 +1475,17 @@ AI Confidence Score: ${confidenceScore}%
       "Demo data loaded. Generate a goal strategy to inspect the fictional user's plan."
     );
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(demoLogs));
-    localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(demoAgentHistory));
-    localStorage.setItem(AI_HISTORY_KEY, JSON.stringify([]));
-    localStorage.setItem(GOAL_ADAPTATION_HISTORY_KEY, JSON.stringify([]));
-    localStorage.setItem(COACHING_PLAN_HISTORY_KEY, JSON.stringify([]));
+    localStorage.setItem(storageKeys.logs, JSON.stringify(demoLogs));
+    localStorage.setItem(
+      storageKeys.agentHistory,
+      JSON.stringify(demoAgentHistory)
+    );
+    localStorage.setItem(storageKeys.aiHistory, JSON.stringify([]));
+    localStorage.setItem(
+      storageKeys.goalAdaptationHistory,
+      JSON.stringify([])
+    );
+    localStorage.setItem(storageKeys.coachingPlanHistory, JSON.stringify([]));
   }
 
   function applyGoalDateSuggestion() {
@@ -2049,8 +2134,14 @@ const pageStats = (() => {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Fitness Analytics Agent
                 </p>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  Protected portfolio demo
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    isDemoMode
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {isDemoMode ? "Recruiter demo" : "Personal workspace"}
                 </span>
               </div>
 
@@ -2073,7 +2164,7 @@ const pageStats = (() => {
           </div>
 
           <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
-            {APP_NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const isActive = item.view === activeView;
 
               return (
@@ -2147,7 +2238,7 @@ const pageStats = (() => {
   clearAllLogs={clearAllLogs}
 />
 
-<DemoModeCard loadDemoData={loadDemoData} />
+{isDemoMode && <DemoModeCard loadDemoData={loadDemoData} />}
 </section>
 )}
 
