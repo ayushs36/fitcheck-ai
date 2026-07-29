@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -58,6 +59,11 @@ import { getDailyBrief } from "@/lib/dailyBrief";
 import { getAgentMemory } from "@/lib/agentMemory";
 import { getWeeklyCoachingReview } from "@/lib/weeklyCoachingReview";
 import { getAgentDecisionTrace } from "@/lib/agentDecisionTrace";
+import {
+  assertStorageKeysAreSeparated,
+  DEMO_STORAGE_KEYS,
+  PERSONAL_STORAGE_KEYS,
+} from "@/lib/storageKeys";
 
 import { Stat } from "@/components/Stat";
 
@@ -86,30 +92,11 @@ import { GoalForecastCard } from "@/components/GoalForecastCard";
 import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
 import { TrainingSignalCard } from "@/components/TrainingSignalCard";
 import { WeeklyCoachingReviewCard } from "@/components/WeeklyCoachingReviewCard";
-
-const PERSONAL_STORAGE_KEYS = {
-  logs: "fitcheck-personal-logs-v1",
-  settings: "fitcheck-personal-settings-v1",
-  aiHistory: "fitcheck-personal-ai-history-v1",
-  agentHistory: "fitcheck-personal-agent-history-v1",
-  goalAdaptationHistory: "fitcheck-personal-goal-adaptation-history-v1",
-  coachingPlanHistory: "fitcheck-personal-coaching-plan-history-v1",
-  editLogId: "fitcheck-personal-edit-log-id-v1",
-  dailyLogDraft: "fitcheck-personal-daily-log-draft-v1",
-};
-
-const DEMO_STORAGE_KEYS = {
-  logs: "fitcheck-demo-logs-v1",
-  settings: "fitcheck-demo-settings-v1",
-  aiHistory: "fitcheck-demo-ai-history-v1",
-  agentHistory: "fitcheck-demo-agent-history-v1",
-  goalAdaptationHistory: "fitcheck-demo-goal-adaptation-history-v1",
-  coachingPlanHistory: "fitcheck-demo-coaching-plan-history-v1",
-  editLogId: "fitcheck-demo-edit-log-id-v1",
-  dailyLogDraft: "fitcheck-demo-daily-log-draft-v1",
-};
+import { PersonalFreshStartCard } from "@/components/PersonalFreshStartCard";
 
 type AppMode = "personal" | "demo";
+
+assertStorageKeysAreSeparated();
 
 const APP_NAV_ITEMS = [
   {
@@ -961,6 +948,9 @@ const goalTrendStatus = getGoalTrendStatus({
     steps: log.steps > 0 ? log.steps : null,
   };
 });
+const hasWeightChartData = chartData.some((item) => item.weight !== null);
+const hasCalorieChartData = chartData.some((item) => item.calories !== null);
+const hasStepChartData = chartData.some((item) => item.steps !== null);
 
   const totalExercises = sortedLogs.reduce(
     (total, log) => total + log.exercises.length,
@@ -2248,6 +2238,10 @@ const pageStats = (() => {
           <section className={showToday ? "space-y-6 lg:col-span-2" : "space-y-6"}>
 {showToday && <DailyBriefCard brief={dailyBrief} />}
 
+{showToday && isPersonalRoute && logs.length === 0 && (
+  <PersonalFreshStartCard />
+)}
+
 {(showToday || showCoach) && (
 <AgentDashboardCard
   agentDecision={agentDecision}
@@ -2302,7 +2296,7 @@ const pageStats = (() => {
               <div className="mt-5 grid gap-4 md:grid-cols-3">
                 <Stat
                   label="Latest Weight"
-                  value={`${latestWeight.toFixed(1)} lbs`}
+                  value={latestWeight > 0 ? `${latestWeight.toFixed(1)} lbs` : "No data"}
                 />
                 <Stat
                   label="Goal Weight"
@@ -2342,8 +2336,11 @@ const pageStats = (() => {
       Daily scale weight with a smoothed 7-day moving average.
     </p>
 
-    {chartData.length === 0 ? (
-      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    {!hasWeightChartData ? (
+      <EmptyMetricState
+        title="No weight data yet"
+        description="Log a scale weight to start the trend line and 7-day moving average."
+      />
     ) : (
       <div className="mt-5 h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -2383,8 +2380,11 @@ const pageStats = (() => {
       Daily calories from your saved logs.
     </p>
 
-    {chartData.length === 0 ? (
-      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    {!hasCalorieChartData ? (
+      <EmptyMetricState
+        title="No calorie data yet"
+        description="Calories are optional, but logging them unlocks better maintenance and plan guidance."
+      />
     ) : (
       <div className="mt-5 h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -2419,8 +2419,11 @@ const pageStats = (() => {
       Daily steps from your saved logs.
     </p>
 
-    {chartData.length === 0 ? (
-      <p className="mt-4 text-slate-500">No logs yet. Add your first log.</p>
+    {!hasStepChartData ? (
+      <EmptyMetricState
+        title="No step data yet"
+        description="Steps are optional, but they help the agent separate activity changes from calorie changes."
+      />
     ) : (
       <div className="mt-5 h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -2747,6 +2750,21 @@ function LogCoverageBadge({
       {coverage.status === "Partial" && (
         <p className="mt-1 text-xs text-slate-400">{coverage.summary}</p>
       )}
+    </div>
+  );
+}
+
+function EmptyMetricState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
+      <p className="font-semibold text-slate-950">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
     </div>
   );
 }

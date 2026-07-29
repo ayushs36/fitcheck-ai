@@ -171,17 +171,10 @@ export function getLiveAIStatus(request: Request): LiveAIStatus {
     };
   }
 
-  if (process.env.FITCHECK_ALLOW_PUBLIC_AI === "true") {
-    return {
-      allowed: true,
-      reason: "Public AI calls are enabled for this deployment.",
-    };
-  }
-
   return {
     allowed: false,
     reason:
-      "Public demo protection is active, so this response did not use a live OpenAI call.",
+      "Recruiter demo protection is active, so this response did not use a live OpenAI call.",
   };
 }
 

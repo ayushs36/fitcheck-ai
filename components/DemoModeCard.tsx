@@ -46,9 +46,8 @@ export function DemoModeCard({ loadDemoData }: { loadDemoData: () => void }) {
 
       <p className="mt-3 text-xs leading-5 text-slate-400">
         Recruiter demo data is stored under separate demo-only browser keys.
-        This reset cannot write to the personal FitCheck storage used by the
-        root app. Public AI actions use protected demo responses unless live AI
-        is explicitly enabled on the server.
+        This reset cannot write to your personal workspace. Public demo AI
+        actions use protected responses and cannot spend owner API credits.
       </p>
     </section>
   );

@@ -16,9 +16,11 @@ The public recruiter experience uses fictional data and isolated demo storage.
 - Recruiters should use `https://fitcheck-ai-psi.vercel.app/`.
 - Demo data is stored under separate `fitcheck-demo-*` localStorage keys.
 - Personal data uses separate `fitcheck-personal-*` localStorage keys.
+- The app includes a storage separation check so demo keys and personal keys
+  cannot overlap silently.
 - Other visitors cannot see the owner's local browser data.
 - Public AI actions return protected demo responses by default.
-- Live OpenAI calls are blocked unless explicitly enabled on the server.
+- Recruiter demo AI actions never use live OpenAI calls or spend owner credits.
 - The OpenAI API key is never exposed to the browser or committed to GitHub.
 
 The public GitHub/portfolio link opens the recruiter demo. Personal recovery
@@ -133,8 +135,9 @@ Important safeguards:
 
 - `OPENAI_API_KEY` is server-only.
 - Public visitors receive protected demo AI responses.
-- `FITCHECK_ALLOW_PUBLIC_AI` must be explicitly set to `true` before public live
-  AI calls can run.
+- Recruiter demo users cannot spend the owner's API credits.
+- Password-protected `/personal` requests can use live AI after owner
+  authentication.
 - A private `FITCHECK_AGENT_SECRET` path exists for future owner-only live AI
   access.
 
@@ -150,7 +153,6 @@ set:
 
 ```bash
 OPENAI_API_KEY=your_key_here
-FITCHECK_ALLOW_PUBLIC_AI=true
 FITCHECK_PERSONAL_PASSWORD=choose-a-private-password
 ```
 
