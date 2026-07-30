@@ -37,10 +37,15 @@ export function AgentHistoryCard({
 
       <div className="mt-5 space-y-3">
         {agentHistory.length === 0 ? (
-          <p className="rounded-2xl bg-slate-100 p-4 text-slate-600">
-            No agent checks saved yet. Run FitCheck Agent to create the first
-            memory.
-          </p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="font-semibold text-slate-950">
+              No agent decisions saved yet
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Save daily logs first, then run FitCheck Agent from the Coach tab.
+              Each check becomes memory the agent can compare against later.
+            </p>
+          </div>
         ) : (
           agentHistory.map((check) => {
             const isExpanded = expandedAgentCheckId === check.id;

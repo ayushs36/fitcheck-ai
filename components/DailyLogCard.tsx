@@ -17,6 +17,7 @@ export function DailyLogCard({
   suggestedExercises,
   currentLogCoverage,
   editingId,
+  logSaveStatus,
   addExercise,
   deleteExercise,
   saveLog,
@@ -37,6 +38,7 @@ export function DailyLogCard({
   suggestedExercises: string[];
   currentLogCoverage: LogCoverage;
   editingId: string | null;
+  logSaveStatus: string;
   addExercise: () => void;
   deleteExercise: (id: string) => void;
   saveLog: () => void;
@@ -50,6 +52,17 @@ export function DailyLogCard({
         Log whatever you have for the day. Missing weight, calories, protein,
         steps, or workouts are treated as unknown, not as zero.
       </p>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-950">
+          Today&apos;s useful minimum
+        </p>
+        <p className="mt-1 text-sm leading-5 text-slate-600">
+          Save any reliable data you have. A weight-only, nutrition-only,
+          steps-only, or workout-only log still improves the agent because
+          missing fields stay unknown.
+        </p>
+      </div>
 
       <div className="mt-5 space-y-4">
         <Select
@@ -130,6 +143,12 @@ export function DailyLogCard({
           </label>
         )}
 
+        {workoutTypes.length === 0 && (
+          <p className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            Workout type suggestions will appear here after you save workouts.
+          </p>
+        )}
+
         <Input
           label={workoutTypes.length > 0 ? "Custom Workout Type" : "Workout Type"}
           type="text"
@@ -184,6 +203,14 @@ export function DailyLogCard({
                 </select>
               </label>
             )}
+
+            {entry.workout.trim().length > 0 &&
+              suggestedExercises.length === 0 && (
+                <p className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+                  Exercise suggestions for {entry.workout} will appear after
+                  you save this workout type a few times.
+                </p>
+              )}
 
             <Input
               label={
@@ -262,6 +289,12 @@ export function DailyLogCard({
         >
           {editingId ? "Update Log" : "Add Daily Log"}
         </button>
+
+        {logSaveStatus && (
+          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+            {logSaveStatus}
+          </p>
+        )}
 
         {editingId && (
           <button

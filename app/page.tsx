@@ -241,6 +241,7 @@ const [isGoalStrategyLoading, setIsGoalStrategyLoading] = useState(false);
 const [agentReport, setAgentReport] = useState(
   "Run FitCheck Agent to analyze your latest trends and generate your next action plan."
 );
+const [logSaveStatus, setLogSaveStatus] = useState("");
 
 const [isAgentLoading, setIsAgentLoading] = useState(false);
 const [agentHistory, setAgentHistory] = useState<AgentCheck[]>([]);
@@ -290,6 +291,15 @@ useEffect(() => {
     JSON.stringify({ entry, exercise, editingId })
   );
 }, [dailyLogDraftReady, editingId, entry, exercise, storageKeys.dailyLogDraft]);
+useEffect(() => {
+  if (!logSaveStatus) {
+    return;
+  }
+
+  const timeout = window.setTimeout(() => setLogSaveStatus(""), 3500);
+
+  return () => window.clearTimeout(timeout);
+}, [logSaveStatus]);
 useEffect(() => {
   const savedAiHistory = localStorage.getItem(storageKeys.aiHistory);
   if (savedAiHistory) setAiHistory(JSON.parse(savedAiHistory));
@@ -1703,11 +1713,13 @@ AI Confidence Score: ${confidenceScore}%
           log.id === editingId ? { ...entry, id: editingId } : log
         )
       );
+      setLogSaveStatus(`Updated log for ${entry.date}.`);
       resetEntry();
       return;
     }
 
     setLogs([...logs, { ...entry, id: crypto.randomUUID() }]);
+    setLogSaveStatus(`Saved log for ${entry.date}.`);
     resetEntry();
   }
 
@@ -1720,12 +1732,14 @@ AI Confidence Score: ${confidenceScore}%
 
   function deleteLog(id: string) {
     setLogs(logs.filter((log) => log.id !== id));
+    setLogSaveStatus("Deleted log.");
   }
 
   function clearAllLogs() {
     if (confirm("Delete all logs?")) {
       setLogs([]);
       localStorage.removeItem(storageKeys.logs);
+      setLogSaveStatus("Cleared saved logs.");
       resetEntry();
     }
   }
@@ -2372,7 +2386,7 @@ const pageStats = (() => {
   if (showToday) {
     return [
       { label: "Saved logs", value: `${logs.length}` },
-      { label: "Latest weight", value: latestWeight > 0 ? `${latestWeight.toFixed(1)} lbs` : "No data" },
+      { label: "Goal phase", value: goalMemory.phaseLabel },
       { label: "Next action", value: agentDecision.action },
     ];
   }
@@ -2388,7 +2402,7 @@ const pageStats = (() => {
   if (showCoach) {
     return [
       { label: "Current decision", value: agentDecision.action },
-      { label: "Confidence", value: agentDecision.confidence },
+      { label: "Goal phase", value: goalMemory.phaseLabel },
       {
         label: "Last check",
         value: latestAgentCheck
@@ -2528,6 +2542,7 @@ const pageStats = (() => {
   suggestedExercises={suggestedExercises}
   currentLogCoverage={currentLogCoverage}
   editingId={editingId}
+  logSaveStatus={logSaveStatus}
   addExercise={addExercise}
   deleteExercise={deleteExercise}
   saveLog={saveLog}
