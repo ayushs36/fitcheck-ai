@@ -103,9 +103,13 @@ function getTopSignals(input: AgentDecisionTraceInput) {
       label: "Trend pace",
       value: formatPace(currentPace, goal),
       interpretation:
-        requiredWeeklyLoss > 0
+        goal === "Maintaining"
+          ? `Maintenance target is to stay within about ${requiredWeeklyLoss.toFixed(
+              1
+            )} lb/week of stable.`
+          : requiredWeeklyLoss > 0
           ? `Needs about ${requiredWeeklyLoss.toFixed(1)} lb/week for the current goal.`
-          : "No loss pace required for the current goal.",
+          : "No required pace for the current goal.",
       weight: "High",
     },
     {
@@ -199,6 +203,12 @@ function getDecisionPath(input: AgentDecisionTraceInput) {
     );
   }
 
+  if (input.agentDecision.action === "Increase calories") {
+    path.push(
+      "Protein, steps, and logging were usable enough for the agent to allow a small surplus increase."
+    );
+  }
+
   if (input.agentDecision.action === "Adjust goal timeline") {
     path.push(
       `Goal pace needed ${input.requiredWeeklyLoss.toFixed(
@@ -209,7 +219,9 @@ function getDecisionPath(input: AgentDecisionTraceInput) {
 
   if (input.agentDecision.action === "Focus recovery") {
     path.push(
-      "Training performance/recovery risk was prioritized before making the deficit harder."
+      input.goal === "Cutting"
+        ? "Training performance/recovery risk was prioritized before making the deficit harder."
+        : "Training performance/recovery risk was prioritized before changing calories."
     );
   }
 
@@ -230,7 +242,7 @@ function getGuardrails(input: AgentDecisionTraceInput) {
     input.maintenanceEstimate.trendWarning
   ) {
     guardrails.push(
-      "Low-confidence maintenance estimates cannot trigger aggressive calorie cuts."
+      "Low-confidence maintenance estimates cannot trigger aggressive calorie changes."
     );
   }
 
@@ -239,7 +251,7 @@ function getGuardrails(input: AgentDecisionTraceInput) {
   }
 
   if (input.readinessScore.status === "Recovery priority") {
-    guardrails.push("Recovery risk blocks extra deficit pressure.");
+    guardrails.push("Recovery risk blocks extra calorie pressure.");
   }
 
   return guardrails;
@@ -248,11 +260,19 @@ function getGuardrails(input: AgentDecisionTraceInput) {
 function getSuppressedActions(input: AgentDecisionTraceInput) {
   const suppressed: string[] = [];
 
-  if (input.agentDecision.action !== "Reduce calories") {
+  if (input.goal === "Cutting" && input.agentDecision.action !== "Reduce calories") {
     suppressed.push(
       input.maintenanceEstimate.confidence === "Low"
         ? "Did not reduce calories because maintenance confidence is low."
         : "Did not reduce calories because another blocker had higher priority."
+    );
+  }
+
+  if (input.goal === "Bulking" && input.agentDecision.action !== "Increase calories") {
+    suppressed.push(
+      input.maintenanceEstimate.confidence === "Low"
+        ? "Did not increase calories because maintenance confidence is low."
+        : "Did not increase calories because the current bulking signal did not justify it yet."
     );
   }
 
@@ -315,6 +335,10 @@ function getNextDataNeeded(input: AgentDecisionTraceInput) {
 function formatPace(pace: number, goal: Goal) {
   if (!Number.isFinite(pace) || pace === 0) {
     return goal === "Maintaining" ? "Weight stable" : "No clear trend";
+  }
+
+  if (goal === "Maintaining") {
+    return `${Math.abs(pace).toFixed(1)} lb/week drift from maintenance`;
   }
 
   const direction =

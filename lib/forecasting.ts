@@ -38,7 +38,7 @@ export function getGoalForecast(input: ForecastInput): GoalForecast {
       ? Math.max(0, -signedPoundsRemaining)
       : Math.abs(signedPoundsRemaining);
 
-  if (logs.length < 14 || currentWeight <= 0 || poundsRemaining <= 0) {
+  if (logs.length < 14 || currentWeight <= 0 || (goal !== "Maintaining" && poundsRemaining <= 0)) {
     return {
       status: "Need more data",
       confidence: "Low",
@@ -61,6 +61,30 @@ export function getGoalForecast(input: ForecastInput): GoalForecast {
   }
 
   const confidence = getForecastConfidence(logs.length, dataFreshness);
+
+  if (goal === "Maintaining") {
+    const status =
+      currentPace <= 0.3
+        ? "On track"
+        : currentPace <= 0.7
+        ? "At risk"
+        : "Unrealistic";
+
+    return {
+      status,
+      confidence,
+      confidenceReason: getConfidenceReason(logs.length, dataFreshness, currentPace),
+      targetDate: goalDate,
+      targetWeight: goalWeight,
+      currentWeight,
+      poundsRemaining,
+      requiredWeeklyPace: 0.3,
+      expectedWeeklyPace: currentPace,
+      scenarios: [],
+      recommendation: getMaintenanceRecommendation(status, confidence),
+    };
+  }
+
   const effectivePace = getEffectivePace(goal, currentPace, requiredWeeklyPace);
   const scenarios = [
     buildScenario("1 lb/week", 1, input, daysUntilTarget),
@@ -88,7 +112,7 @@ export function getGoalForecast(input: ForecastInput): GoalForecast {
     requiredWeeklyPace,
     expectedWeeklyPace: effectivePace,
     scenarios,
-    recommendation: getForecastRecommendation(status, confidence),
+    recommendation: getForecastRecommendation(goal, status, confidence),
   };
 }
 
@@ -194,6 +218,7 @@ function getConfidenceReason(
 }
 
 function getForecastRecommendation(
+  goal: Goal,
   status: GoalForecast["status"],
   confidence: GoalForecast["confidence"]
 ) {
@@ -210,8 +235,29 @@ function getForecastRecommendation(
   }
 
   if (status === "Unrealistic") {
-    return "Adjust the goal date or target pace before making the deficit more aggressive.";
+    return goal === "Bulking"
+      ? "Adjust the goal date or target pace before forcing a faster surplus."
+      : "Adjust the goal date or target pace before making the deficit more aggressive.";
   }
 
   return "Keep logging until the forecast has enough signal.";
+}
+
+function getMaintenanceRecommendation(
+  status: GoalForecast["status"],
+  confidence: GoalForecast["confidence"]
+) {
+  if (confidence === "Low") {
+    return "Treat maintenance as directional until another trend window confirms weight stability.";
+  }
+
+  if (status === "On track") {
+    return "Maintenance is stable. Keep calories, steps, protein, and training consistent.";
+  }
+
+  if (status === "At risk") {
+    return "Maintenance is drifting slightly. Confirm logging and activity consistency before changing calories.";
+  }
+
+  return "Weight is drifting outside maintenance. Make only a small calorie adjustment after checking logs, steps, and weigh-in consistency.";
 }

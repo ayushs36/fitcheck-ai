@@ -151,13 +151,15 @@ export function adjustDecisionForNutrition(
   decision: AgentDecision,
   nutritionDiagnosis: NutritionDiagnosis
 ): AgentDecision {
-  const shouldPauseCalorieCut =
-    decision.action === "Reduce calories" &&
+  const isCalorieChange =
+    decision.action === "Reduce calories" || decision.action === "Increase calories";
+  const shouldPauseCalorieChange =
+    isCalorieChange &&
     (nutritionDiagnosis.underLoggingRisk === "High" ||
       nutritionDiagnosis.volatileIntakeRisk === "High" ||
       nutritionDiagnosis.calorieTargetHitRate < 0.5);
 
-  if (!shouldPauseCalorieCut) {
+  if (!shouldPauseCalorieChange) {
     return decision;
   }
 
@@ -166,7 +168,7 @@ export function adjustDecisionForNutrition(
     action: "Hold calories",
     priority: "Nutrition execution",
     rationale:
-      "Nutrition adherence is not clean enough to justify lowering calories yet.",
+      "Nutrition adherence is not clean enough to justify changing calories yet.",
     calorieGuidance:
       nutritionDiagnosis.nutritionNextAction,
     proteinGuidance:
@@ -321,7 +323,7 @@ function getAgentAction(blocker: string) {
     return "Improve logging accuracy before changing targets.";
   }
 
-  return "Stabilize calorie consistency before adjusting the deficit.";
+  return "Stabilize calorie consistency before adjusting calories.";
 }
 
 function getRecommendation(blocker: string) {
@@ -334,7 +336,7 @@ function getRecommendation(blocker: string) {
   }
 
   if (blocker === "Nutrition logging") {
-    return "Log every calorie day for the next week, including weekends and restaurant meals, before trusting maintenance or deficit changes.";
+    return "Log every calorie day for the next week, including weekends and restaurant meals, before trusting maintenance or calorie changes.";
   }
 
   return "Keep calories inside a tighter daily band for 7 days, then reassess the weight trend before changing calories.";
@@ -358,7 +360,7 @@ function getNutritionNextAction({
   }
 
   if (weakestMetric === "Protein execution") {
-    return "Hit the protein minimum before making the deficit harder.";
+    return "Hit the protein minimum before making calorie changes.";
   }
 
   if (weakestMetric === "Nutrition logging") {

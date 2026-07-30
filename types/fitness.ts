@@ -175,6 +175,7 @@ export type AgentCheck = {
 export type AgentDecisionAction =
   | "Hold calories"
   | "Reduce calories"
+  | "Increase calories"
   | "Increase steps"
   | "Improve protein"
   | "Focus recovery"
@@ -224,6 +225,9 @@ export type MaintenanceEstimate = {
   maintenanceRangeLow: number;
   maintenanceRangeHigh: number;
   calorieTargetsReliable: boolean;
+  maintenanceCalories: number;
+  leanBulkCalories: number;
+  fasterBulkCalories: number;
   fatLossCaloriesOnePound: number;
   fatLossCaloriesOnePointFivePounds: number;
   fatLossCaloriesTwoPounds: number;

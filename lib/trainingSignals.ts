@@ -867,7 +867,7 @@ function getAgentAction(status: TrainingSignal["status"]) {
 
 function getRecommendation(status: TrainingSignal["status"]) {
   if (status === "Progressing") {
-    return "Keep the current training approach and avoid unnecessary calorie cuts that could disrupt performance.";
+    return "Keep the current training approach and avoid unnecessary calorie changes that could disrupt performance.";
   }
 
   if (status === "Recovery risk") {

@@ -566,21 +566,37 @@ const fourteenDayAverage =
   const effectiveWeight =
     movingAverage > 0 ? movingAverage : latestWeight;
 
-  const poundsToGoal = effectiveWeight - goalWeight;
+  const signedPoundsToGoal = goalWeight - effectiveWeight;
+  const poundsToGoal =
+    goal === "Bulking"
+      ? signedPoundsToGoal
+      : goal === "Cutting"
+      ? effectiveWeight - goalWeight
+      : Math.abs(signedPoundsToGoal);
 
   const poundsRemaining = Math.max(0, poundsToGoal);
 
   const startWeight = sortedLogs[0]?.weight ?? effectiveWeight;
 
-  const totalGoalDistance = Math.max(0, startWeight - goalWeight);
+  const totalGoalDistance =
+    goal === "Bulking"
+      ? Math.max(0, goalWeight - startWeight)
+      : goal === "Cutting"
+      ? Math.max(0, startWeight - goalWeight)
+      : Math.abs(startWeight - goalWeight);
 
-  const weightLostTowardGoal = Math.max(0, startWeight - effectiveWeight);
+  const weightMovedTowardGoal =
+    goal === "Bulking"
+      ? Math.max(0, effectiveWeight - startWeight)
+      : goal === "Cutting"
+      ? Math.max(0, startWeight - effectiveWeight)
+      : Math.max(0, Math.abs(startWeight - goalWeight) - poundsRemaining);
 
   const goalProgressPercent =
     totalGoalDistance > 0
       ? Math.min(
           100,
-          Math.round((weightLostTowardGoal / totalGoalDistance) * 100)
+          Math.round((weightMovedTowardGoal / totalGoalDistance) * 100)
         )
       : 0;
 
@@ -595,7 +611,11 @@ const fourteenDayAverage =
   const weeksUntilGoal = daysUntilGoal / 7;
 
   const requiredWeeklyLoss =
-    weeksUntilGoal > 0 ? poundsRemaining / weeksUntilGoal : 0;
+    goal === "Maintaining"
+      ? 0.3
+      : weeksUntilGoal > 0
+      ? poundsRemaining / weeksUntilGoal
+      : 0;
 
   const weeklyAverageChange = useMemo(() => {
   const validWeightLogs = sortedLogs.filter((log) => log.weight > 0);
@@ -627,7 +647,9 @@ const trendPaceLabel =
     ? `${trendArrow} ${trendPace.toFixed(1)} lbs/week`
     : "Need 14 logs";
 const currentPace =
-  (goal === "Cutting" && weeklyAverageChange < 0) ||
+  goal === "Maintaining"
+    ? trendPace
+    : (goal === "Cutting" && weeklyAverageChange < 0) ||
   (goal === "Bulking" && weeklyAverageChange > 0)
     ? trendPace
     : 0;
@@ -649,6 +671,9 @@ const goalTrendStatus = getGoalTrendStatus({
 	      maintenanceRangeLow: 0,
 	      maintenanceRangeHigh: 0,
 	      calorieTargetsReliable: false,
+	      maintenanceCalories: 0,
+	      leanBulkCalories: 0,
+	      fasterBulkCalories: 0,
 	      fatLossCaloriesOnePound: 0,
 	      fatLossCaloriesOnePointFivePounds: 0,
 	      fatLossCaloriesTwoPounds: 0,
@@ -762,7 +787,11 @@ const goalTrendStatus = getGoalTrendStatus({
   const calorieTargetsReliable = confidence !== "Low";
   const adjustmentGuidance =
     confidence === "Low"
-      ? "Do not use this estimate to set aggressive fat-loss calories yet. Hold the plan for 7 more days if adherence is solid, or audit calorie tracking if the trend keeps moving against the goal."
+      ? goal === "Cutting"
+        ? "Do not use this estimate to set aggressive fat-loss calories yet. Hold the plan for 7 more days if adherence is solid, or audit calorie tracking if the trend keeps moving against the goal."
+        : goal === "Bulking"
+        ? "Do not use this estimate to set an aggressive surplus yet. Hold the plan for 7 more days if adherence is solid, or audit tracking if weight and training do not respond."
+        : "Do not use this estimate for a tight maintenance target yet. Hold the plan for 7 more days, then adjust only if weight keeps drifting."
       : "Use this as a planning range, then reassess after another week of consistent logs.";
 
   const trendWarning = trendMovingAgainstGoal
@@ -778,6 +807,9 @@ const goalTrendStatus = getGoalTrendStatus({
 	    maintenanceRangeLow,
 	    maintenanceRangeHigh,
 	    calorieTargetsReliable,
+	    maintenanceCalories: estimatedMaintenance,
+	    leanBulkCalories: estimatedMaintenance + 200,
+	    fasterBulkCalories: estimatedMaintenance + 350,
 	    fatLossCaloriesOnePound: estimatedMaintenance - 500,
 	    fatLossCaloriesOnePointFivePounds: estimatedMaintenance - 750,
 	    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
@@ -830,19 +862,157 @@ const goalTrendStatus = getGoalTrendStatus({
   const maintenanceAction = maintenanceIsUncertain
     ? "Hold or audit first"
     : "Use range for planning";
+  const goalCalorieTargets =
+    goal === "Cutting"
+      ? [
+          {
+            label: "~1 lb/week loss",
+            value:
+              maintenanceEstimate.fatLossCaloriesOnePound > 0
+                ? `${maintenanceEstimate.fatLossCaloriesOnePound.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+          {
+            label: "~1.5 lb/week loss",
+            value:
+              maintenanceEstimate.fatLossCaloriesOnePointFivePounds > 0
+                ? `${maintenanceEstimate.fatLossCaloriesOnePointFivePounds.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+          {
+            label: "~2 lb/week loss",
+            value:
+              maintenanceEstimate.fatLossCaloriesTwoPounds > 0
+                ? `${maintenanceEstimate.fatLossCaloriesTwoPounds.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+        ]
+      : goal === "Bulking"
+      ? [
+          {
+            label: "Lean bulk",
+            value:
+              maintenanceEstimate.leanBulkCalories > 0
+                ? `${maintenanceEstimate.leanBulkCalories.toFixed(0)} cal/day`
+                : "Need more data",
+          },
+          {
+            label: "Faster bulk",
+            value:
+              maintenanceEstimate.fasterBulkCalories > 0
+                ? `${maintenanceEstimate.fasterBulkCalories.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+          {
+            label: "Maintenance floor",
+            value:
+              maintenanceEstimate.maintenanceCalories > 0
+                ? `${maintenanceEstimate.maintenanceCalories.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+        ]
+      : [
+          {
+            label: "Stability target",
+            value:
+              maintenanceEstimate.maintenanceCalories > 0
+                ? `${maintenanceEstimate.maintenanceCalories.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+          {
+            label: "Lower bound",
+            value:
+              maintenanceEstimate.maintenanceRangeLow > 0
+                ? `${maintenanceEstimate.maintenanceRangeLow.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+          {
+            label: "Upper bound",
+            value:
+              maintenanceEstimate.maintenanceRangeHigh > 0
+                ? `${maintenanceEstimate.maintenanceRangeHigh.toFixed(
+                    0
+                  )} cal/day`
+                : "Need more data",
+          },
+        ];
+  const pausedTargetMessage =
+    goal === "Bulking"
+      ? "Bulk calorie targets are paused."
+      : goal === "Maintaining"
+      ? "Maintenance targets are paused."
+      : "Fat-loss calorie targets are paused.";
+  const pausedTargetDetail =
+    goal === "Bulking"
+      ? "FitCheck will not suggest a surplus while the maintenance estimate is low-confidence. Keep logging intake, bodyweight, steps, and workouts until the trend is clearer."
+      : goal === "Maintaining"
+      ? "FitCheck will not suggest a tight maintenance range while the estimate is low-confidence. Keep logging until weight stability and intake are easier to compare."
+      : "FitCheck will not show 1, 1.5, or 2 lb/week targets while the estimate is low-confidence. Keep the cut consistent, audit tracking, and reassess after the next trend window.";
+  const requiredPaceLabel =
+    goal === "Maintaining" ? "Allowed weekly drift" : "Required weekly pace";
+  const progressAmountLabel =
+    goal === "Maintaining" ? "Distance from target" : "Pounds to goal";
+  const goalStrategyPaceLabel =
+    goal === "Cutting"
+      ? "realistic weekly loss"
+      : goal === "Bulking"
+      ? "realistic weekly gain"
+      : "realistic maintenance drift range";
+  const calorieQuestionGuidance =
+    goal === "Cutting"
+      ? "If progress is too slow, improve calorie consistency first before making an aggressive cut."
+      : goal === "Bulking"
+      ? "If weight and training are not progressing after a consistent trend window, increase calories slightly instead of jumping to a large surplus."
+      : "If weight is drifting, confirm calorie logging, steps, and weigh-in consistency before making a small adjustment.";
+  const proteinQuestionGuidance =
+    avgProtein >= 130
+      ? goal === "Cutting"
+        ? "This is strong for preserving muscle during a cut."
+        : goal === "Bulking"
+        ? "This is strong for supporting muscle gain while bulking."
+        : "This is strong for maintaining muscle and training performance."
+      : "This may be low for your goal. Try to get closer to 130-150g per day.";
+  const stepQuestionGuidance =
+    avgSteps >= 10000
+      ? "Your activity level is solid. Keep steps consistent rather than forcing extreme days."
+      : goal === "Cutting"
+      ? "Your steps could be higher. Increasing steps is often better than cutting calories harder."
+      : goal === "Bulking"
+      ? "Your steps are below target, so keep activity consistent before deciding whether your surplus is too small."
+      : "Your steps are below target, which makes maintenance harder to interpret. Build a repeatable baseline first.";
 
   const projectedGoalDate =
-    currentPace > 0 && poundsRemaining > 0
+    goal !== "Maintaining" && currentPace > 0 && poundsRemaining > 0
       ? addDays(today, (poundsRemaining / currentPace) * 7)
       : null;
 
   const projectedGoalDateText = projectedGoalDate
     ? formatDate(projectedGoalDate)
+    : goal === "Maintaining"
+    ? "Maintenance goal"
     : "Need more data";
 
   let goalStatus = "Need more data";
 
-  if (projectedGoalDate && goalDate) {
+  if (goal === "Maintaining" && logs.length >= 14) {
+    if (trendPace <= 0.3) goalStatus = "On track";
+    else if (trendPace <= 0.7) goalStatus = "Watch drift";
+    else goalStatus = "Needs adjustment";
+  } else if (projectedGoalDate && goalDate) {
     const differenceInDays =
       (projectedGoalDate.getTime() - targetDate.getTime()) /
       (1000 * 60 * 60 * 24);
@@ -873,7 +1043,14 @@ const goalTrendStatus = getGoalTrendStatus({
 
     let score = 100;
 
-    if (requiredWeeklyLoss <= 0) {
+    if (goal === "Maintaining") {
+      score =
+        currentPace <= 0.3
+          ? 100
+          : currentPace <= 0.7
+          ? 70
+          : Math.max(25, Math.round(70 - currentPace * 20));
+    } else if (requiredWeeklyLoss <= 0) {
       score = 100;
     } else if (currentPace <= 0) {
       score = 25;
@@ -885,9 +1062,25 @@ const goalTrendStatus = getGoalTrendStatus({
 
     let verdict = "Realistic";
     let recommendation =
-      "Your goal is realistic if you maintain your average-based trend.";
+      goal === "Maintaining"
+        ? "Your maintenance goal is realistic if the trend stays close to stable."
+        : "Your goal is realistic if you maintain your average-based trend.";
 
-    if (score >= 90) {
+    if (goal === "Maintaining") {
+      if (score >= 90) {
+        verdict = "Very realistic";
+        recommendation =
+          "Your trend is stable enough for maintenance. Keep calories, steps, and training consistent.";
+      } else if (score >= 70) {
+        verdict = "Realistic";
+        recommendation =
+          "Maintenance is close, but watch the next 7-day trend before changing calories.";
+      } else {
+        verdict = "Needs adjustment";
+        recommendation =
+          "Weight is drifting outside a maintenance range. Use a small calorie adjustment only after confirming logging and activity are consistent.";
+      }
+    } else if (score >= 90) {
       verdict = "Very realistic";
       recommendation =
         "Your average-based pace is strong enough to reach your goal. Stay consistent.";
@@ -918,6 +1111,7 @@ const goalTrendStatus = getGoalTrendStatus({
       recommendation,
     };
   }, [
+    goal,
     logs.length,
     effectiveWeight,
     goalWeight,
@@ -1085,12 +1279,18 @@ const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
 
     if (goalFeasibility.verdict === "Unlikely") {
       mainAction =
-        "Your deadline may be too aggressive. Either improve consistency or extend the goal timeline.";
+        goal === "Bulking"
+          ? "Your bulk timeline may be too aggressive. Improve consistency or extend the goal date instead of forcing fast scale gain."
+          : "Your deadline may be too aggressive. Either improve consistency or extend the goal timeline.";
     }
 
     if (plateauStatus === "Potential plateau detected") {
       mainAction =
-        "Watch the next 7 days closely. If the plateau continues, slightly reduce calories or increase steps.";
+        goal === "Cutting"
+          ? "Watch the next 7 days closely. If the plateau continues, slightly reduce calories or increase steps."
+          : goal === "Bulking"
+          ? "Watch the next 7 days closely. If weight and strength stay flat, consider a small calorie increase."
+          : "Watch the next 7 days closely. If weight keeps drifting, use a small calorie adjustment after checking logging consistency.";
     }
 
     return {
@@ -1125,14 +1325,14 @@ Goal: ${goal}
 7-Day Average Weight: ${movingAverage.toFixed(1)} lbs
 14-Day Average Weight: ${fourteenDayAverage.toFixed(1)} lbs
 Goal Weight: ${goalWeight.toFixed(1)} lbs
-Pounds to Goal: ${poundsToGoal.toFixed(1)} lbs
+${progressAmountLabel}: ${poundsToGoal.toFixed(1)} lbs
 Average Calories: ${avgCalories.toFixed(0)}
 Average Protein: ${avgProtein.toFixed(0)}g
 Average Steps: ${avgSteps.toFixed(0)}
 Weekly Weight Change: ${weeklyWeightChange.toFixed(1)} lbs
 Trend Pace: ${trendPaceLabel}
 Goal Trend Status: ${goalTrendStatus}
-Required Weekly Loss: ${requiredWeeklyLoss.toFixed(1)} lbs/week
+${requiredPaceLabel}: ${requiredWeeklyLoss.toFixed(1)} lbs/week
 Projected Goal Date: ${projectedGoalDateText}
 Goal Status: ${goalStatus}
 Plateau Status: ${plateauStatus}
@@ -1226,6 +1426,7 @@ AI Confidence Score: ${confidenceScore}%
     nutritionTargets,
   });
   const readinessScore = getReadinessScore({
+    goal,
     recoveryRisk,
     planAdherence,
     dataFreshness,
@@ -1645,9 +1846,9 @@ function clearAgentHistory() {
           1
         )} lbs as your forecast weight. Your goal is ${goalWeight.toFixed(
           1
-        )} lbs by ${goalDate}. You have ${poundsRemaining.toFixed(
+        )} lbs by ${goalDate}. ${progressAmountLabel}: ${poundsRemaining.toFixed(
           1
-        )} lbs remaining. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. Your required pace is ${requiredWeeklyLoss.toFixed(
+        )} lbs. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. ${requiredPaceLabel}: ${requiredWeeklyLoss.toFixed(
           1
         )} lbs/week. Verdict: ${goalFeasibility.verdict}. ${goalFeasibility.recommendation}`
       );
@@ -1662,7 +1863,7 @@ function clearAgentHistory() {
       setCoachAnswer(
         `Your 7-day average calorie intake is ${avgCalories.toFixed(
           0
-        )} calories. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. If progress is too slow, improve calorie consistency first before making an aggressive cut.`
+        )} calories. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. ${calorieQuestionGuidance}`
       );
       return;
     }
@@ -1670,9 +1871,7 @@ function clearAgentHistory() {
     if (question.includes("protein")) {
       setCoachAnswer(
         `Your 7-day average protein intake is ${avgProtein.toFixed(0)}g. ${
-          avgProtein >= 130
-            ? "This is strong for preserving muscle during a cut."
-            : "This may be low for preserving muscle. Try to get closer to 130-150g per day."
+          proteinQuestionGuidance
         }`
       );
       return;
@@ -1685,9 +1884,7 @@ function clearAgentHistory() {
     ) {
       setCoachAnswer(
         `Your 7-day average steps are ${avgSteps.toFixed(0)}. ${
-          avgSteps >= 10000
-            ? "Your activity level is solid. Keep steps consistent rather than forcing extreme days."
-            : "Your steps could be higher. Increasing steps is often better than cutting calories harder."
+          stepQuestionGuidance
         }`
       );
       return;
@@ -1926,7 +2123,7 @@ async function generateGoalStrategy() {
       headers: aiRequestHeaders,
       body: JSON.stringify({
         question:
-          "Create a personalized goal strategy. Include target calories, protein target, step target, training focus, recovery focus, realistic weekly loss, and whether the goal timeline should stay the same or be adjusted.",
+          `Create a personalized ${goal.toLowerCase()} goal strategy. Include target calories, protein target, step target, training focus, recovery focus, ${goalStrategyPaceLabel}, and whether the goal timeline should stay the same or be adjusted.`,
         context: strategyContext,
       }),
     });
@@ -2303,7 +2500,7 @@ const pageStats = (() => {
                   value={`${goalWeight.toFixed(1)} lbs`}
                 />
                 <Stat
-                  label="Pounds to Goal"
+                  label={progressAmountLabel}
                   value={`${poundsRemaining.toFixed(1)} lbs`}
                 />
                 <Stat
@@ -2326,7 +2523,7 @@ const pageStats = (() => {
 
               </section>
 
-<GoalForecastCard goalForecast={goalForecast} />
+<GoalForecastCard goal={goal} goalForecast={goalForecast} />
 
 <div className="grid gap-6 xl:grid-cols-3">
   <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -2512,48 +2709,17 @@ const pageStats = (() => {
 
   {maintenanceEstimate.calorieTargetsReliable ? (
     <div className="mt-4 grid gap-4 md:grid-cols-3">
-      <Stat
-        label="~1 lb/week loss"
-        value={
-          maintenanceEstimate.fatLossCaloriesOnePound > 0
-            ? `${maintenanceEstimate.fatLossCaloriesOnePound.toFixed(
-                0
-              )} cal/day`
-            : "Need more data"
-        }
-      />
-
-      <Stat
-        label="~1.5 lb/week loss"
-        value={
-          maintenanceEstimate.fatLossCaloriesOnePointFivePounds > 0
-            ? `${maintenanceEstimate.fatLossCaloriesOnePointFivePounds.toFixed(
-                0
-              )} cal/day`
-            : "Need more data"
-        }
-      />
-
-      <Stat
-        label="~2 lb/week loss"
-        value={
-          maintenanceEstimate.fatLossCaloriesTwoPounds > 0
-            ? `${maintenanceEstimate.fatLossCaloriesTwoPounds.toFixed(
-                0
-              )} cal/day`
-            : "Need more data"
-        }
-      />
+      {goalCalorieTargets.map((target) => (
+        <Stat key={target.label} label={target.label} value={target.value} />
+      ))}
     </div>
   ) : (
     <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <p className="font-semibold text-amber-950">
-        Fat-loss calorie targets are paused.
+        {pausedTargetMessage}
       </p>
       <p className="mt-1 text-sm text-amber-900">
-        FitCheck will not show 1, 1.5, or 2 lb/week targets while the estimate
-        is low-confidence. Keep the cut consistent, audit tracking, and reassess
-        after the next trend window.
+        {pausedTargetDetail}
       </p>
     </div>
   )}

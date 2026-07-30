@@ -150,7 +150,7 @@ function getBlockerRecommendation(metric?: PlanAdherenceMetric) {
   }
 
   if (metric.label === "Steps") {
-    return "Raise the step baseline before cutting calories further.";
+    return "Raise the step baseline before changing calories further.";
   }
 
   return "Hit at least three logged lifting sessions before judging training progress.";

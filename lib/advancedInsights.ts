@@ -37,7 +37,6 @@ export function getGoalAdaptation(input: AdvancedInsightInput): GoalAdaptation {
     goal,
     effectiveWeight,
     goalWeight,
-    goalDate,
     avgCalories,
     currentPace,
     requiredWeeklyLoss,
@@ -45,9 +44,14 @@ export function getGoalAdaptation(input: AdvancedInsightInput): GoalAdaptation {
     goalFeasibility,
     maintenanceEstimate,
   } = input;
-  const poundsRemaining = Math.max(0, effectiveWeight - goalWeight);
+  const poundsRemaining =
+    goal === "Bulking"
+      ? Math.max(0, goalWeight - effectiveWeight)
+      : goal === "Cutting"
+      ? Math.max(0, effectiveWeight - goalWeight)
+      : Math.abs(goalWeight - effectiveWeight);
   const needsTimelineChange =
-    goal === "Cutting" &&
+    goal !== "Maintaining" &&
     poundsRemaining > 0 &&
     (goalFeasibility.verdict === "Unlikely" ||
       goalStatus === "Behind schedule" ||
@@ -60,10 +64,20 @@ export function getGoalAdaptation(input: AdvancedInsightInput): GoalAdaptation {
           .slice(0, 10)
       : null;
   const suggestedCalories =
-    maintenanceEstimate.fatLossCaloriesOnePound > 0
+    goal === "Bulking" && maintenanceEstimate.leanBulkCalories > 0
+      ? Math.round(maintenanceEstimate.leanBulkCalories)
+      : goal === "Maintaining" && maintenanceEstimate.maintenanceCalories > 0
+      ? Math.round(maintenanceEstimate.maintenanceCalories)
+      : maintenanceEstimate.fatLossCaloriesOnePound > 0
       ? Math.round(maintenanceEstimate.fatLossCaloriesOnePound)
       : avgCalories > 0
-      ? Math.round(avgCalories - 150)
+      ? Math.round(
+          goal === "Bulking"
+            ? avgCalories + 150
+            : goal === "Maintaining"
+            ? avgCalories
+            : avgCalories - 150
+        )
       : null;
 
   if (needsTimelineChange) {
@@ -72,7 +86,9 @@ export function getGoalAdaptation(input: AdvancedInsightInput): GoalAdaptation {
       suggestedGoalDate,
       suggestedCalories,
       recommendation:
-        "Extend the target date and keep the deficit sustainable instead of forcing aggressive cuts.",
+        goal === "Bulking"
+          ? "Extend the target date and keep the surplus controlled instead of forcing fast scale gain."
+          : "Extend the target date and keep the deficit sustainable instead of forcing aggressive cuts.",
       reason: `The required pace is ${requiredWeeklyLoss.toFixed(
         1
       )} lbs/week, which is above the current trend.`,
@@ -101,27 +117,37 @@ export function getNutritionTargets(
     goal === "Cutting"
       ? maintenanceEstimate.fatLossCaloriesOnePound || avgCalories - 150
       : goal === "Bulking"
-      ? maintenanceEstimate.estimatedMaintenance + 250 || avgCalories + 200
-      : maintenanceEstimate.estimatedMaintenance || avgCalories;
+      ? maintenanceEstimate.leanBulkCalories || avgCalories + 200
+      : maintenanceEstimate.maintenanceCalories || avgCalories;
   const roundedCalories = Math.max(1200, Math.round(calorieTarget || 0));
   const calorieRange =
     roundedCalories > 0
       ? `${roundedCalories - 100}-${roundedCalories + 100} cal/day`
       : "Need more calorie data";
+  const priority =
+    avgProtein < proteinTarget
+      ? "Raise protein first"
+      : goal === "Bulking"
+      ? "Fuel training progression"
+      : goal === "Maintaining"
+      ? "Keep intake stable"
+      : "Keep calories consistent";
+  const guidance =
+    avgProtein < proteinTarget
+      ? "Protein is the highest-leverage nutrition target before changing calories again."
+      : goal === "Bulking"
+      ? "Use the surplus to support progressive training, not just faster scale gain."
+      : goal === "Maintaining"
+      ? "Stay close to this range and judge success by weight stability, performance, and adherence."
+      : "Nutrition is close enough that consistency matters more than another aggressive adjustment.";
 
   return {
     calorieTarget: roundedCalories,
     calorieRange,
     proteinTarget,
     proteinRange: `${proteinTarget}-${proteinTarget + 20}g/day`,
-    priority:
-      avgProtein < proteinTarget
-        ? "Raise protein first"
-        : "Keep calories consistent",
-    guidance:
-      avgProtein < proteinTarget
-        ? "Protein is the highest-leverage nutrition target before changing calories again."
-        : "Nutrition is close enough that consistency matters more than another aggressive adjustment.",
+    priority,
+    guidance,
     confidence: maintenanceEstimate.confidence,
   };
 }
@@ -147,7 +173,11 @@ export function getWeeklyPlan(input: AdvancedInsightInput): WeeklyPlan {
         : "Log at least 3 lifting sessions this week.",
     recovery:
       input.strengthStatus === "Strength/performance dropping"
-        ? "Add recovery emphasis before increasing deficit."
+        ? input.goal === "Bulking"
+          ? "Add recovery emphasis before increasing the surplus."
+          : input.goal === "Maintaining"
+          ? "Add recovery emphasis before changing calories."
+          : "Add recovery emphasis before increasing deficit."
         : "Keep sleep and fatigue steady while trend data updates.",
     adjustment: getPlanAdjustment(input, nutritionTargets),
     adherenceScore,
@@ -171,7 +201,9 @@ function getPlanAdjustment(
         "Adjust the goal date or weekly pace before making nutrition more aggressive.",
       trigger: `Required pace is ${input.requiredWeeklyLoss.toFixed(1)} lb/week.`,
       guardrail:
-        "Do not use an extreme deficit to force a timeline that the trend does not support.",
+        input.goal === "Bulking"
+          ? "Do not use an excessive surplus to force a timeline that the trend does not support."
+          : "Do not use an extreme deficit to force a timeline that the trend does not support.",
       reviewWindow: "Review after accepting or rejecting the goal adaptation.",
       confidence: input.goalFeasibility.score < 50 ? "High" : "Medium",
     };
@@ -181,10 +213,14 @@ function getPlanAdjustment(
     return {
       status: "Improve protein first",
       recommendation:
-        "Hold calories steady and make protein the adjustment before cutting food lower.",
+        input.goal === "Cutting"
+          ? "Hold calories steady and make protein the adjustment before cutting food lower."
+          : "Hold calories steady and make protein the adjustment before changing calories.",
       trigger: `Average protein is ${input.avgProtein.toFixed(0)}g/day versus ${nutritionTargets.proteinTarget}g+ target.`,
       guardrail:
-        "Do not lower calories until protein execution is strong enough to protect training and lean mass.",
+        input.goal === "Cutting"
+          ? "Do not lower calories until protein execution is strong enough to protect training and lean mass."
+          : "Do not change calories until protein execution is strong enough to support training and lean mass.",
       reviewWindow: "Review after 7 more protein logs.",
       confidence: input.agentDecision.confidence,
     };
@@ -194,7 +230,7 @@ function getPlanAdjustment(
     return {
       status: "Increase activity",
       recommendation:
-        "Raise the step baseline before reducing calories again.",
+        "Raise the step baseline before changing calories again.",
       trigger: `Average steps are ${input.avgSteps.toFixed(0)}/day while progress is slow or flat.`,
       guardrail:
         "Increase steps gradually so fatigue does not interfere with lifting performance.",
@@ -210,8 +246,23 @@ function getPlanAdjustment(
         "Hold calories and reduce fatigue pressure until training performance stabilizes.",
       trigger: input.strengthStatus,
       guardrail:
-        "Do not add more deficit, cardio pressure, or volume while recovery is the limiting signal.",
+        "Do not add calorie pressure, cardio pressure, or volume while recovery is the limiting signal.",
       reviewWindow: "Review after the next 2 matching workouts.",
+      confidence: input.agentDecision.confidence,
+    };
+  }
+
+  if (input.agentDecision.action === "Increase calories") {
+    return {
+      status: "Adjust calories",
+      recommendation: `Move toward ${calorieTargetText} with a small surplus increase, not a large jump.`,
+      trigger:
+        input.plateauStatus === "Potential plateau detected"
+          ? "Bulk progress is flat while protein and steps are usable."
+          : `Current gain pace is ${input.currentPace.toFixed(1)} lb/week versus ${input.requiredWeeklyLoss.toFixed(1)} required.`,
+      guardrail:
+        "Only keep the increase if training output improves and weight gain stays controlled.",
+      reviewWindow: "Review after 7-14 days at the new calorie average.",
       confidence: input.agentDecision.confidence,
     };
   }
@@ -255,7 +306,13 @@ export function getRecoveryRisk(input: AdvancedInsightInput): RecoveryRisk {
 
   if (input.currentPace >= 1.5) {
     score += 20;
-    drivers.push("Weight loss pace is aggressive.");
+    drivers.push(
+      input.goal === "Bulking"
+        ? "Weight-gain pace is aggressive."
+        : input.goal === "Maintaining"
+        ? "Weight drift is high for maintenance."
+        : "Weight-loss pace is aggressive."
+    );
   }
 
   if (input.avgProtein < 130) {
@@ -284,7 +341,9 @@ export function getRecoveryRisk(input: AdvancedInsightInput): RecoveryRisk {
       level === "High"
         ? "Hold calories, protect sleep, and reduce training stress for 3-5 days."
         : level === "Medium"
-        ? "Keep the plan steady, but watch strength and fatigue before adding more deficit."
+        ? input.goal === "Cutting"
+          ? "Keep the plan steady, but watch strength and fatigue before adding more deficit."
+          : "Keep the plan steady, but watch strength and fatigue before changing calories."
         : "Recovery risk is low. Continue the current plan and monitor performance.",
   };
 }

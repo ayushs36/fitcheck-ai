@@ -1,18 +1,23 @@
-import type { GoalForecast } from "@/types/fitness";
+import type { Goal, GoalForecast } from "@/types/fitness";
 
 export function GoalForecastCard({
+  goal,
   goalForecast,
 }: {
+  goal: Goal;
   goalForecast: GoalForecast;
 }) {
+  const isMaintaining = goal === "Maintaining";
+
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h2 className="text-2xl font-semibold">Goal Forecast</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Compares projected goal dates at 1, 1.5, and 2 lb/week so you can
-            see what each pace would require.
+            {isMaintaining
+              ? "Checks whether your weight trend is staying close enough to your maintenance target."
+              : "Compares projected goal dates at 1, 1.5, and 2 lb/week so you can see what each pace would require."}
           </p>
         </div>
 
@@ -31,16 +36,22 @@ export function GoalForecastCard({
           value={`${goalForecast.targetWeight.toFixed(1)} lbs`}
         />
         <ForecastStat
-          label="Remaining"
+          label={isMaintaining ? "Distance from target" : "Remaining"}
           value={`${goalForecast.poundsRemaining.toFixed(1)} lbs`}
         />
         <ForecastStat
-          label="Required pace"
+          label={isMaintaining ? "Stability pace" : "Required pace"}
           value={`${goalForecast.requiredWeeklyPace.toFixed(1)} lb/week`}
         />
       </div>
 
-      {goalForecast.scenarios.length > 0 ? (
+      {isMaintaining ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <ForecastStat label="Good range" value="Within ~0.3 lb/week" />
+          <ForecastStat label="Watch range" value="0.3-0.7 lb/week drift" />
+          <ForecastStat label="Adjust range" value="Above ~0.7 lb/week" />
+        </div>
+      ) : goalForecast.scenarios.length > 0 ? (
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           {goalForecast.scenarios.map((scenario) => (
             <div

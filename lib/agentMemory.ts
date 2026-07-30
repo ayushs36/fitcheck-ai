@@ -213,6 +213,29 @@ function getFollowThrough({
         };
   }
 
+  if (decision === "Increase calories") {
+    const calorieTrend = getRecentCalorieTrend(logs);
+
+    if (calorieTrend === null || avgCalories <= 0) {
+      return {
+        status: "Not enough data",
+        evidence: "There are not enough recent calorie logs to judge the calorie increase.",
+      };
+    }
+
+    return calorieTrend > 0
+      ? {
+          status: "On track",
+          evidence: `Recent calories are up about ${calorieTrend.toFixed(0)} cal/day compared with the previous week.`,
+        }
+      : {
+          status: "Needs follow-through",
+          evidence: `Recent calories are not higher yet; the weekly average is down about ${Math.abs(
+            calorieTrend
+          ).toFixed(0)} cal/day.`,
+        };
+  }
+
   if (decision === "Hold calories") {
     return loggingQuality.averageCoverageScore >= 70
       ? {
@@ -333,7 +356,7 @@ function getActionReview({
       nextStep:
         result === "Working"
           ? "Hold the higher step baseline for the rest of the week."
-          : `Raise steps toward ${STEP_TARGET.toLocaleString()}/day before cutting calories harder.`,
+          : `Raise steps toward ${STEP_TARGET.toLocaleString()}/day before changing calories again.`,
     };
   }
 
@@ -356,6 +379,28 @@ function getActionReview({
         result === "Working"
           ? "Hold the new calorie level long enough for the weight trend to respond."
           : "Make the calorie reduction measurable before asking the agent for a new adjustment.",
+    };
+  }
+
+  if (latestCheck.decision === "Increase calories") {
+    const calorieDelta = stats.averageCalories - previousStats.averageCalories;
+    const result =
+      stats.averageCalories > 0 && previousStats.averageCalories > 0 && calorieDelta >= 75
+        ? "Working"
+        : "Needs action";
+
+    return {
+      trackedAction: latestCheck.decision,
+      window,
+      result,
+      evidence:
+        stats.averageCalories > 0 && previousStats.averageCalories > 0
+          ? `Calories changed ${calorieDelta > 0 ? "+" : ""}${calorieDelta.toFixed(0)} cal/day versus before the check.`
+          : "There are not enough calorie logs before and after the check to judge the increase.",
+      nextStep:
+        result === "Working"
+          ? "Hold the new calorie level long enough for weight and training to respond."
+          : "Make the calorie increase measurable before asking the agent for a new adjustment.",
     };
   }
 
@@ -421,6 +466,10 @@ function getActionNextStep(decision: AgentDecisionAction) {
 
   if (decision === "Reduce calories") {
     return "Log calories consistently so FitCheck can verify the reduction.";
+  }
+
+  if (decision === "Increase calories") {
+    return "Log calories consistently so FitCheck can verify the surplus increase.";
   }
 
   if (decision === "Focus recovery") {

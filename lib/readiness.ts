@@ -1,18 +1,21 @@
 import type {
   AgentDecision,
   DataFreshness,
+  Goal,
   PlanAdherence,
   ReadinessScore,
   RecoveryRisk,
 } from "@/types/fitness";
 
 export function getReadinessScore({
+  goal,
   recoveryRisk,
   planAdherence,
   dataFreshness,
   strengthStatus,
   currentPace,
 }: {
+  goal: Goal;
   recoveryRisk: RecoveryRisk;
   planAdherence: PlanAdherence;
   dataFreshness: DataFreshness;
@@ -33,7 +36,13 @@ export function getReadinessScore({
 
   if (currentPace >= 1.5) {
     score -= 10;
-    drivers.push("Weight-loss pace is aggressive.");
+    drivers.push(
+      goal === "Bulking"
+        ? "Weight-gain pace is aggressive."
+        : goal === "Maintaining"
+        ? "Weight drift is high for maintenance."
+        : "Weight-loss pace is aggressive."
+    );
   }
 
   if (recoveryRisk.level !== "Low") {
@@ -71,7 +80,7 @@ export function adjustDecisionForReadiness(
     action: "Focus recovery",
     priority: "Readiness",
     rationale:
-      "Automatic readiness score is low, so recovery should come before harder dieting or training changes.",
+      "Automatic readiness score is low, so recovery should come before calorie or training changes.",
     calorieGuidance:
       "Hold calories steady while recovery risk is elevated.",
     stepGuidance:
