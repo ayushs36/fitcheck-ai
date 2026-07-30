@@ -7,6 +7,38 @@ import {
   getLiveAIStatus,
 } from "@/lib/aiProtection";
 
+type FitCheckReasoningEffort =
+  | "none"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh";
+
+const FITCHECK_AGENT_MODEL =
+  process.env.FITCHECK_AGENT_MODEL?.trim() || "gpt-5.6-terra";
+
+const FITCHECK_AGENT_REASONING_EFFORT = getReasoningEffort(
+  process.env.FITCHECK_AGENT_REASONING_EFFORT
+);
+
+function getReasoningEffort(value: string | undefined): FitCheckReasoningEffort {
+  const allowedEfforts: FitCheckReasoningEffort[] = [
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+  ];
+
+  if (value && allowedEfforts.includes(value as FitCheckReasoningEffort)) {
+    return value as FitCheckReasoningEffort;
+  }
+
+  return "low";
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -61,8 +93,17 @@ export async function POST(request: Request) {
     });
 
     const response = await client.responses.create({
-      model: "gpt-4o-mini",
-      temperature: 0.7,
+      model: FITCHECK_AGENT_MODEL,
+      ...(FITCHECK_AGENT_MODEL.startsWith("gpt-5")
+        ? {
+            reasoning: {
+              effort: FITCHECK_AGENT_REASONING_EFFORT,
+            },
+            text: {
+              verbosity: "medium" as const,
+            },
+          }
+        : {}),
       input: `
 You are FitCheck AI, an LLM-powered fitness coaching assistant inside a fitness analytics app.
 
