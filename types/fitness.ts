@@ -172,6 +172,24 @@ export type AgentCheck = {
   fullResponse: string;
 };
 
+export type GoalHistoryRecord = {
+  id: string;
+  goal: Goal;
+  startedAt: string;
+  endedAt?: string | null;
+  source: "Initial goal" | "Today goal selector" | "Demo reset";
+};
+
+export type GoalMemory = {
+  currentGoal: Goal;
+  startedAt: string;
+  daysActive: number;
+  weeksActive: number;
+  phaseLabel: string;
+  summary: string;
+  previousGoal?: Goal;
+};
+
 export type AgentDecisionAction =
   | "Hold calories"
   | "Reduce calories"

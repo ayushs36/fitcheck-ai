@@ -25,6 +25,8 @@ import type {
   GoalAdaptationRecord,
   CoachingPlanRecord,
   TrainingSignal,
+  GoalHistoryRecord,
+  GoalMemory,
 } from "@/types/fitness";
 import {
   calculateExerciseTrainingOutput,
@@ -206,6 +208,8 @@ export function FitCheckApp({ mode = "personal" }: { mode?: AppMode }) {
   const [aiHistoryStorageReady, setAiHistoryStorageReady] = useState(false);
   const [agentHistoryStorageReady, setAgentHistoryStorageReady] =
     useState(false);
+  const [goalHistoryStorageReady, setGoalHistoryStorageReady] =
+    useState(false);
   const [
     goalAdaptationHistoryStorageReady,
     setGoalAdaptationHistoryStorageReady,
@@ -240,6 +244,7 @@ const [agentReport, setAgentReport] = useState(
 
 const [isAgentLoading, setIsAgentLoading] = useState(false);
 const [agentHistory, setAgentHistory] = useState<AgentCheck[]>([]);
+const [goalHistory, setGoalHistory] = useState<GoalHistoryRecord[]>([]);
 const [expandedAgentCheckId, setExpandedAgentCheckId] =
   useState<string | null>(null);
 const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
@@ -355,6 +360,30 @@ useEffect(() => {
   localStorage.setItem(storageKeys.agentHistory, JSON.stringify(agentHistory));
 }, [agentHistory, agentHistoryStorageReady, storageKeys.agentHistory]);
 useEffect(() => {
+  const savedGoalHistory = localStorage.getItem(storageKeys.goalHistory);
+
+  if (savedGoalHistory) {
+    try {
+      const parsedGoalHistory = JSON.parse(savedGoalHistory) as GoalHistoryRecord[];
+
+      if (Array.isArray(parsedGoalHistory)) {
+        setGoalHistory(parsedGoalHistory);
+      }
+    } catch {
+      localStorage.removeItem(storageKeys.goalHistory);
+    }
+  }
+
+  setGoalHistoryStorageReady(true);
+}, [storageKeys.goalHistory]);
+useEffect(() => {
+  if (!goalHistoryStorageReady) {
+    return;
+  }
+
+  localStorage.setItem(storageKeys.goalHistory, JSON.stringify(goalHistory));
+}, [goalHistory, goalHistoryStorageReady, storageKeys.goalHistory]);
+useEffect(() => {
   const savedGoalAdaptationHistory = localStorage.getItem(
     storageKeys.goalAdaptationHistory
   );
@@ -442,6 +471,64 @@ useEffect(() => {
   const sortedLogs = useMemo(
     () => [...logs].sort((a, b) => a.date.localeCompare(b.date)),
     [logs]
+  );
+
+  useEffect(() => {
+    if (
+      !goalHistoryStorageReady ||
+      !settingsStorageReady ||
+      !logsStorageReady
+    ) {
+      return;
+    }
+
+    setGoalHistory((currentHistory) => {
+      const sortedHistory = [...currentHistory].sort((a, b) =>
+        a.startedAt.localeCompare(b.startedAt)
+      );
+      const latestGoalRecord = sortedHistory[sortedHistory.length - 1];
+
+      if (latestGoalRecord?.goal === goal && !latestGoalRecord.endedAt) {
+        return currentHistory;
+      }
+
+      const now = new Date().toISOString();
+      const startedAt =
+        currentHistory.length === 0
+          ? inferInitialGoalStartDate(sortedLogs)
+          : now;
+      const nextRecord: GoalHistoryRecord = {
+        id: crypto.randomUUID(),
+        goal,
+        startedAt,
+        endedAt: null,
+        source: currentHistory.length === 0 ? "Initial goal" : "Today goal selector",
+      };
+
+      if (!latestGoalRecord) {
+        return [nextRecord];
+      }
+
+      return [
+        ...currentHistory.map((record) =>
+          record.id === latestGoalRecord.id && !record.endedAt
+            ? { ...record, endedAt: now }
+            : record
+        ),
+        nextRecord,
+      ];
+    });
+  }, [
+    goal,
+    goalHistoryStorageReady,
+    logsStorageReady,
+    settingsStorageReady,
+    sortedLogs,
+  ]);
+
+  const goalMemory = useMemo(
+    () => getGoalMemory({ goal, goalHistory, sortedLogs }),
+    [goal, goalHistory, sortedLogs]
   );
 
   const workoutTypes = useMemo(() => {
@@ -1295,7 +1382,7 @@ const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
 
     return {
       trend: weeklyTrend,
-      summary: `This week, your latest logged weight changed by ${weeklyWeightChange.toFixed(
+      summary: `${goalMemory.summary} This week, your latest logged weight changed by ${weeklyWeightChange.toFixed(
         1
       )} lbs, while your trend pace is ${trendPaceLabel}. For your ${goal.toLowerCase()} goal, FitCheck reads this as: ${goalTrendStatus}. You averaged ${avgCalories.toFixed(
         0
@@ -1315,6 +1402,7 @@ const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
     avgCalories,
     avgProtein,
     avgSteps,
+    goalMemory,
     goalStatus,
     goalFeasibility.verdict,
     plateauStatus,
@@ -1645,12 +1733,24 @@ AI Confidence Score: ${confidenceScore}%
   function loadDemoData() {
     const demoLogs = createDemoLogs();
     const demoAgentHistory = createDemoAgentHistory();
+    const demoGoalHistory: GoalHistoryRecord[] = [
+      {
+        id: crypto.randomUUID(),
+        goal: "Cutting",
+        startedAt:
+          demoLogs[0]?.date ??
+          addDays(new Date(), -35).toISOString().slice(0, 10),
+        endedAt: null,
+        source: "Demo reset",
+      },
+    ];
 
     setGoal("Cutting");
     setGoalWeight(134);
     setGoalDate(addDays(new Date(), 28).toISOString().slice(0, 10));
     setLogs(demoLogs);
     setAgentHistory(demoAgentHistory);
+    setGoalHistory(demoGoalHistory);
     setAiHistory([]);
     setGoalAdaptationHistory([]);
     setCoachingPlanHistory([]);
@@ -1680,6 +1780,10 @@ AI Confidence Score: ${confidenceScore}%
     localStorage.setItem(
       storageKeys.agentHistory,
       JSON.stringify(demoAgentHistory)
+    );
+    localStorage.setItem(
+      storageKeys.goalHistory,
+      JSON.stringify(demoGoalHistory)
     );
     localStorage.setItem(storageKeys.aiHistory, JSON.stringify([]));
     localStorage.setItem(
@@ -1850,7 +1954,7 @@ function clearAgentHistory() {
           1
         )} lbs. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. ${requiredPaceLabel}: ${requiredWeeklyLoss.toFixed(
           1
-        )} lbs/week. Verdict: ${goalFeasibility.verdict}. ${goalFeasibility.recommendation}`
+        )} lbs/week. ${goalMemory.summary} Verdict: ${goalFeasibility.verdict}. ${goalFeasibility.recommendation}`
       );
       return;
     }
@@ -1928,6 +2032,7 @@ async function askFitCheckAILLM() {
 
   const context = {
     goal,
+    goalMemory,
     latestWeight,
     effectiveWeight,
     maintenanceEstimate,
@@ -2007,6 +2112,7 @@ async function generateAIWeeklyReport() {
 
   const weeklyContext = {
     goal,
+    goalMemory,
     latestWeight,
     effectiveWeight,
     movingAverage,
@@ -2087,6 +2193,7 @@ async function generateGoalStrategy() {
 
   const strategyContext = {
     goal,
+    goalMemory,
     latestWeight,
     effectiveWeight,
     movingAverage,
@@ -2166,6 +2273,7 @@ async function runFitCheckAgent() {
 
   const agentContext = {
     goal,
+    goalMemory,
     latestWeight,
     movingAverage,
     fourteenDayAverage,
@@ -2204,7 +2312,7 @@ async function runFitCheckAgent() {
       headers: aiRequestHeaders,
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, weeklyPlan, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, weeklyCoachingReview, agentMemory, agentDecisionTrace, and the rule-based agentDecision context. Treat agentDecision as the baseline decision engine output, agentDecisionTrace as the audit trail explaining why the current rule-based action was chosen, dailyBrief as the current day control-center summary, weeklyPlan.adjustment as the next plan-adjustment rule, and weeklyCoachingReview as the last-7-days coaching review. Use agentDecisionTrace.topSignals, decisionPath, guardrails, suppressedActions, and nextDataNeeded to explain what mattered, what was blocked, and what data would raise confidence. Use weeklyPlan.adjustment to explain what change is allowed, what trigger would justify it, what guardrail prevents overreacting, and when to review again. Use weeklyCoachingReview to identify the week's status, biggest change, biggest blocker, priority, evidence, and next actions. Use agentMemory to call out repeated risks, repeated recommendations, the action tracker result, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, muscleGroupTrends, trainingBalanceInsight, and agentTrainingInsight to explain strength progress, muscle-group balance, and workout coverage like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Weekly Review, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, active goal, goalMemory, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, weeklyPlan, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, weeklyCoachingReview, agentMemory, agentDecisionTrace, and the rule-based agentDecision context. Treat goalMemory as the user's current phase duration: if the same goal has been active for multiple weeks, judge the recommendation as part of an ongoing cut, bulk, or maintenance phase rather than a brand-new goal. Treat agentDecision as the baseline decision engine output, agentDecisionTrace as the audit trail explaining why the current rule-based action was chosen, dailyBrief as the current day control-center summary, weeklyPlan.adjustment as the next plan-adjustment rule, and weeklyCoachingReview as the last-7-days coaching review. Use agentDecisionTrace.topSignals, decisionPath, guardrails, suppressedActions, and nextDataNeeded to explain what mattered, what was blocked, and what data would raise confidence. Use weeklyPlan.adjustment to explain what change is allowed, what trigger would justify it, what guardrail prevents overreacting, and when to review again. Use weeklyCoachingReview to identify the week's status, biggest change, biggest blocker, priority, evidence, and next actions. Use agentMemory to call out repeated risks, repeated recommendations, the action tracker result, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, muscleGroupTrends, trainingBalanceInsight, and agentTrainingInsight to explain strength progress, muscle-group balance, and workout coverage like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Weekly Review, Goal Phase, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });
@@ -2444,6 +2552,7 @@ const pageStats = (() => {
   agentDecision={agentDecision}
   agentDecisionTrace={agentDecisionTrace}
   agentMemory={agentMemory}
+  goalMemory={goalMemory}
   latestAgentCheck={latestAgentCheck}
   previousAgentCheck={previousAgentCheck}
 />
@@ -3011,6 +3120,119 @@ function getGoalTrendStatus({
   return trendPace <= 0.3
     ? "On target for maintenance"
     : "Drifting away from maintenance";
+}
+
+function inferInitialGoalStartDate(sortedLogs: LogEntry[]) {
+  return sortedLogs[0]?.date ?? new Date().toISOString();
+}
+
+function getGoalMemory({
+  goal,
+  goalHistory,
+  sortedLogs,
+}: {
+  goal: Goal;
+  goalHistory: GoalHistoryRecord[];
+  sortedLogs: LogEntry[];
+}): GoalMemory {
+  const sortedHistory = [...goalHistory].sort((a, b) =>
+    a.startedAt.localeCompare(b.startedAt)
+  );
+  const activeRecord =
+    [...sortedHistory].reverse().find((record) => record.goal === goal && !record.endedAt) ??
+    sortedHistory[sortedHistory.length - 1];
+  const previousRecord = [...sortedHistory]
+    .reverse()
+    .find((record) => record.goal !== goal);
+  const startedAt = activeRecord?.startedAt ?? inferInitialGoalStartDate(sortedLogs);
+  const daysActive = getDaysSince(startedAt);
+  const weeksActive = Math.max(0, Math.floor(daysActive / 7));
+  const phaseLabel = getGoalPhaseLabel(goal, daysActive);
+  const previousGoal = previousRecord?.goal;
+  const summary = `${goal} has been active for ${formatGoalDuration(
+    daysActive
+  )}. Treat this as ${getGoalPhaseSummary(goal, daysActive)}.`;
+
+  return {
+    currentGoal: goal,
+    startedAt,
+    daysActive,
+    weeksActive,
+    phaseLabel,
+    summary,
+    previousGoal,
+  };
+}
+
+function getDaysSince(dateValue: string) {
+  const start = new Date(
+    dateValue.includes("T") ? dateValue : `${dateValue}T00:00:00`
+  );
+
+  if (Number.isNaN(start.getTime())) {
+    return 0;
+  }
+
+  const today = new Date();
+  return Math.max(
+    0,
+    Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  );
+}
+
+function formatGoalDuration(daysActive: number) {
+  if (daysActive < 1) {
+    return "less than 1 day";
+  }
+
+  if (daysActive < 14) {
+    return `${daysActive} day${daysActive === 1 ? "" : "s"}`;
+  }
+
+  const weeks = Math.floor(daysActive / 7);
+  const extraDays = daysActive % 7;
+
+  if (extraDays === 0) {
+    return `${weeks} week${weeks === 1 ? "" : "s"}`;
+  }
+
+  return `${weeks} week${weeks === 1 ? "" : "s"}, ${extraDays} day${
+    extraDays === 1 ? "" : "s"
+  }`;
+}
+
+function getGoalPhaseLabel(goal: Goal, daysActive: number) {
+  if (daysActive < 7) {
+    return `New ${goal.toLowerCase()} phase`;
+  }
+
+  if (daysActive < 28) {
+    return `Active ${goal.toLowerCase()} phase`;
+  }
+
+  return `Long-running ${goal.toLowerCase()} phase`;
+}
+
+function getGoalPhaseSummary(goal: Goal, daysActive: number) {
+  if (daysActive < 7) {
+    return "a new goal phase, so early noise should be expected";
+  }
+
+  if (goal === "Cutting") {
+    return daysActive >= 28
+      ? "an established cut where adherence, recovery, and plateau risk matter more than quick reactions"
+      : "an active cut where trend direction and consistency matter";
+  }
+
+  if (goal === "Bulking") {
+    return daysActive >= 28
+      ? "an established bulk where training progression and controlled gain rate matter most"
+      : "an active bulk where strength, calories, and scale trend should move together";
+  }
+
+  return daysActive >= 28
+    ? "an established maintenance phase where stability and repeatable habits matter most"
+    : "an active maintenance phase where the agent should watch for drift before adjusting calories";
 }
 
 function getRecommendation({

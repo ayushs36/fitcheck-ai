@@ -22,6 +22,15 @@ type RateLimitResult = {
 
 export type FitCheckAIContext = {
   goal?: string;
+  goalMemory?: {
+    currentGoal?: string;
+    startedAt?: string;
+    daysActive?: number;
+    weeksActive?: number;
+    phaseLabel?: string;
+    summary?: string;
+    previousGoal?: string;
+  };
   latestWeight?: number;
   effectiveWeight?: number;
   movingAverage?: number;
@@ -307,6 +316,7 @@ function createAgentReport(context: FitCheckAIContext, protectionReason: string)
     `Overall Status: ${dailyBrief?.status ?? weeklyReview?.status ?? context.goalStatus ?? "Needs more logged data"}`,
     `Today's Brief: ${dailyBrief?.todayFocus ?? weeklyReview?.priority ?? "Keep logging weight, calories, protein, steps, and workouts so the agent can evaluate the plan."}`,
     `Weekly Review: ${weeklyReview?.summary ?? "The agent has enough structure to review the trend once more complete weekly logs are available."}`,
+    `Goal Phase: ${context.goalMemory?.summary ?? "Goal duration is still being established."}`,
     `Agent Memory: ${memory?.noticedPattern ?? "No repeated pattern is strong enough yet to override the current plan."}`,
     `Biggest Risk: ${weeklyReview?.biggestBlocker ?? nutrition?.biggestBlocker ?? "Reacting too aggressively to short-term scale noise."}`,
     `Evidence: ${formatEvidence(context)}`,
@@ -331,6 +341,7 @@ function createWeeklyReport(context: FitCheckAIContext, protectionReason: string
     `Protected mode: ${protectionReason}`,
     "",
     `Weekly status: ${weeklyReview?.status ?? context.goalTrendStatus ?? "Needs review"}.`,
+    `Goal phase: ${context.goalMemory?.summary ?? "Goal duration is still being established."}`,
     `Win: You have ${context.logsCount ?? 0} logs available, which gives the app enough context to compare weight, calories, protein, steps, and training signals.`,
     `Problem: ${weeklyReview?.biggestBlocker ?? context.planAdherence?.biggestBlocker ?? "The main risk is making changes before the trend is clear."}`,
     `Biggest risk: ${context.plateauStatus ?? "Trend noise or incomplete logging could distort the recommendation."}`,
@@ -346,6 +357,7 @@ function createGoalStrategy(context: FitCheckAIContext, protectionReason: string
     `Protected mode: ${protectionReason}`,
     "",
     `Goal strategy: ${context.goalFeasibility?.verdict ?? "Keep the current timeline under review"}.`,
+    `Goal phase: ${context.goalMemory?.summary ?? "Goal duration is still being established."}`,
     `Calories: ${plan?.calories ?? context.agentDecision?.calorieGuidance ?? formatCalories(context)}.`,
     `Protein: ${plan?.protein ?? context.agentDecision?.proteinGuidance ?? formatProtein(context)}.`,
     `Steps: ${plan?.steps ?? context.agentDecision?.stepGuidance ?? formatSteps(context)}.`,
@@ -364,6 +376,7 @@ function createAskAIAnswer(
     `Protected mode: ${protectionReason}`,
     "",
     `For your question, "${question}", the safest coaching read is to follow the current decision engine output: ${context.agentDecision?.action ?? "hold the plan and keep collecting complete logs"}.`,
+    `Goal phase: ${context.goalMemory?.summary ?? "Goal duration is still being established."}`,
     `Key context: weight trend is ${context.trendPaceLabel ?? "not fully established"}, average calories are ${formatNumber(context.avgCalories, "unknown")} cal/day, protein averages ${formatNumber(context.avgProtein, "unknown")} g/day, and steps average ${formatNumber(context.avgSteps, "unknown")} per day.`,
     `Next action: ${context.dailyBrief?.nextAction ?? context.agentDecision?.priority ?? context.recommendation ?? "log the next full day and rerun the agent."}`,
   ].join("\n");

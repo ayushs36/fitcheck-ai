@@ -1,16 +1,23 @@
-import type { AgentCheck, AgentDecision, AgentMemory } from "@/types/fitness";
+import type {
+  AgentCheck,
+  AgentDecision,
+  AgentMemory,
+  GoalMemory,
+} from "@/types/fitness";
 import type { AgentDecisionTrace } from "@/lib/agentDecisionTrace";
 
 export function AgentDashboardCard({
   agentDecision,
   agentDecisionTrace,
   agentMemory,
+  goalMemory,
   latestAgentCheck,
   previousAgentCheck,
 }: {
   agentDecision: AgentDecision;
   agentDecisionTrace: AgentDecisionTrace;
   agentMemory: AgentMemory;
+  goalMemory: GoalMemory;
   latestAgentCheck?: AgentCheck;
   previousAgentCheck?: AgentCheck;
 }) {
@@ -47,6 +54,7 @@ export function AgentDashboardCard({
           label="Last Agent Check"
           value={latestAgentCheck?.date ?? "No saved check yet"}
         />
+        <AgentDashboardStat label="Goal Phase" value={goalMemory.phaseLabel} />
       </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
@@ -55,6 +63,7 @@ export function AgentDashboardCard({
             Current Plan
           </p>
           <div className="mt-3 space-y-2 text-sm text-slate-700">
+            <p>{goalMemory.summary}</p>
             <p>{agentDecision.calorieGuidance}</p>
             <p>{agentDecision.proteinGuidance}</p>
             <p>{agentDecision.stepGuidance}</p>
