@@ -1,8 +1,10 @@
 import type {
+  AgentCheck,
   AgentDecision,
   DailyBrief,
   DataFreshness,
   Goal,
+  GoalMemory,
   LogEntry,
   NutritionDiagnosis,
   ReadinessScore,
@@ -12,7 +14,9 @@ import type { LoggingQuality } from "@/lib/logQuality";
 
 type DailyBriefInput = {
   goal: Goal;
+  goalMemory: GoalMemory;
   logs: LogEntry[];
+  latestAgentCheck?: AgentCheck;
   agentDecision: AgentDecision;
   dataFreshness: DataFreshness;
   loggingQuality: LoggingQuality;
@@ -23,7 +27,9 @@ type DailyBriefInput = {
 
 export function getDailyBrief({
   goal,
+  goalMemory,
   logs,
+  latestAgentCheck,
   agentDecision,
   dataFreshness,
   loggingQuality,
@@ -40,10 +46,21 @@ export function getDailyBrief({
     nutritionDiagnosis,
     trainingSignal,
   });
+  const operatingMode = getAgentOperatingMode({
+    logs: sortedLogs,
+    latestAgentCheck,
+    dataFreshness,
+    loggingQuality,
+    agentDecision,
+  });
 
   return {
     status,
+    agentMode: operatingMode.mode,
     todayFocus: getTodayFocus(status, agentDecision, goal),
+    goalContext: goalMemory.summary,
+    checkpointStatus: operatingMode.checkpointStatus,
+    agentRunAdvice: operatingMode.advice,
     changedSinceLastLog: getChangeSummary(latestLog, previousLog),
     nextAction:
       status === "Nutrition focus"
@@ -52,10 +69,104 @@ export function getDailyBrief({
     confidence: getBriefConfidence(agentDecision, dataFreshness, loggingQuality),
     evidence: [
       `Decision: ${agentDecision.action}`,
+      `Agent mode: ${operatingMode.mode}`,
       `Readiness: ${readinessScore.status} (${readinessScore.score}/100)`,
       `Logging: ${loggingQuality.summary}`,
       `Training: ${trainingSignal.status}`,
     ],
+  };
+}
+
+function getAgentOperatingMode({
+  logs,
+  latestAgentCheck,
+  dataFreshness,
+  loggingQuality,
+  agentDecision,
+}: {
+  logs: LogEntry[];
+  latestAgentCheck?: AgentCheck;
+  dataFreshness: DataFreshness;
+  loggingQuality: LoggingQuality;
+  agentDecision: AgentDecision;
+}): {
+  mode: DailyBrief["agentMode"];
+  checkpointStatus: string;
+  advice: string;
+} {
+  if (logs.length < 7) {
+    return {
+      mode: "Build baseline",
+      checkpointStatus: `${logs.length}/7 logs saved before a reliable agent check.`,
+      advice:
+        "Keep logging whatever reliable fields you have. Run the agent after 7 saved days.",
+    };
+  }
+
+  if (
+    dataFreshness.status === "No data" ||
+    dataFreshness.status === "Aging" ||
+    dataFreshness.status === "Stale"
+  ) {
+    return {
+      mode: "Refresh data",
+      checkpointStatus: dataFreshness.message,
+      advice: dataFreshness.recommendation,
+    };
+  }
+
+  if (!latestAgentCheck) {
+    return {
+      mode: "Ready to run",
+      checkpointStatus: "No saved agent check yet.",
+      advice:
+        "Run FitCheck Agent once so the app can save a baseline recommendation and start tracking follow-through.",
+    };
+  }
+
+  const logsAfterCheck = getLogsAfterAgentCheck(logs, latestAgentCheck);
+  const daysSinceCheck = getDaysSinceAgentCheck(latestAgentCheck);
+
+  if (latestAgentCheck.decision && latestAgentCheck.decision !== agentDecision.action) {
+    return {
+      mode: "Rerun due",
+      checkpointStatus: `Decision changed from ${latestAgentCheck.decision} to ${agentDecision.action}.`,
+      advice:
+        "Run FitCheck Agent again so the saved recommendation matches the current trend and decision engine.",
+    };
+  }
+
+  if (logsAfterCheck.length >= 4 || daysSinceCheck >= 7) {
+    return {
+      mode: "Rerun due",
+      checkpointStatus:
+        logsAfterCheck.length >= 4
+          ? `${logsAfterCheck.length} logs have been added since the last agent check.`
+          : `Last agent check was ${daysSinceCheck} days ago.`,
+      advice:
+        "Run FitCheck Agent to convert the new logs into an updated recommendation.",
+    };
+  }
+
+  if (loggingQuality.averageCoverageScore < 50) {
+    return {
+      mode: "Build baseline",
+      checkpointStatus: `Recent logging coverage is ${loggingQuality.averageCoverageScore}%.`,
+      advice:
+        "Improve logging coverage before asking the agent to change calories, steps, or training.",
+    };
+  }
+
+  return {
+    mode: "Follow plan",
+    checkpointStatus:
+      logsAfterCheck.length > 0
+        ? `${logsAfterCheck.length} log${
+            logsAfterCheck.length === 1 ? "" : "s"
+          } since the last agent check.`
+        : "No new logs since the last agent check.",
+    advice:
+      "Keep executing the current recommendation until enough new data accumulates.",
   };
 }
 
@@ -221,4 +332,45 @@ function getBriefConfidence(
   }
 
   return agentDecision.confidence === "Low" ? "Low" : "Medium";
+}
+
+function getLogsAfterAgentCheck(logs: LogEntry[], latestAgentCheck: AgentCheck) {
+  const checkDate = parseAgentDate(latestAgentCheck.date);
+
+  if (!checkDate) {
+    return logs.slice(-7);
+  }
+
+  return logs.filter((log) => parseLogDate(log.date) > checkDate);
+}
+
+function getDaysSinceAgentCheck(latestAgentCheck: AgentCheck) {
+  const checkDate = parseAgentDate(latestAgentCheck.date);
+
+  if (!checkDate) {
+    return 0;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Math.max(
+    0,
+    Math.floor((today.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+}
+
+function parseAgentDate(date: string) {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function parseLogDate(date: string) {
+  return new Date(`${date}T00:00:00`);
 }

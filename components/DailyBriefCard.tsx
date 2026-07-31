@@ -1,6 +1,8 @@
 import type { DailyBrief } from "@/types/fitness";
 
 export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
+  const modeClass = getModeClass(brief.agentMode);
+
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -14,6 +16,11 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-sm font-semibold ${modeClass}`}
+          >
+            {brief.agentMode}
+          </span>
           <span className="rounded-full bg-slate-950 px-3 py-1 text-sm font-semibold text-white">
             {brief.status}
           </span>
@@ -23,7 +30,33 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Agent Loop
+            </p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {brief.checkpointStatus}
+            </p>
+          </div>
+
+          <p className="max-w-2xl text-sm leading-6 text-slate-600">
+            {brief.agentRunAdvice}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Goal Phase
+        </p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-900">
+          {brief.goalContext}
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <div className="rounded-2xl bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Changed Since Last Log
@@ -55,4 +88,20 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
       </div>
     </section>
   );
+}
+
+function getModeClass(mode: DailyBrief["agentMode"]) {
+  if (mode === "Rerun due") {
+    return "bg-blue-50 text-blue-700";
+  }
+
+  if (mode === "Ready to run") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (mode === "Refresh data" || mode === "Build baseline") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  return "bg-slate-100 text-slate-600";
 }

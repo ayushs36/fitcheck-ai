@@ -77,7 +77,16 @@ export type LogEntry = {
 
 export type DailyBrief = {
   status: "Progress day" | "Recovery watch" | "Data refresh" | "Nutrition focus" | "Normal day";
+  agentMode:
+    | "Build baseline"
+    | "Ready to run"
+    | "Follow plan"
+    | "Rerun due"
+    | "Refresh data";
   todayFocus: string;
+  goalContext: string;
+  checkpointStatus: string;
+  agentRunAdvice: string;
   changedSinceLastLog: string;
   nextAction: string;
   confidence: "Low" | "Medium" | "High";

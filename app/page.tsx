@@ -1541,7 +1541,9 @@ AI Confidence Score: ${confidenceScore}%
   );
   const dailyBrief = getDailyBrief({
     goal,
+    goalMemory,
     logs: sortedLogs,
+    latestAgentCheck,
     agentDecision,
     dataFreshness,
     loggingQuality,
@@ -1731,17 +1733,33 @@ AI Confidence Score: ${confidenceScore}%
   }
 
   function deleteLog(id: string) {
+    if (!confirm("Delete this log? This only removes the selected day.")) {
+      return;
+    }
+
     setLogs(logs.filter((log) => log.id !== id));
     setLogSaveStatus("Deleted log.");
   }
 
   function clearAllLogs() {
-    if (confirm("Delete all logs?")) {
-      setLogs([]);
-      localStorage.removeItem(storageKeys.logs);
-      setLogSaveStatus("Cleared saved logs.");
-      resetEntry();
+    const backupKey = `${storageKeys.logs}:last-cleared-backup`;
+    const confirmed = isDemoMode
+      ? confirm("Reset demo logs? This clears the current demo workspace only.")
+      : window.prompt(
+          "This clears every personal log in this browser. Type DELETE LOGS to continue."
+        ) === "DELETE LOGS";
+
+    if (!confirmed) {
+      return;
     }
+
+    localStorage.setItem(backupKey, JSON.stringify(logs));
+    setLogs([]);
+    localStorage.removeItem(storageKeys.logs);
+    setLogSaveStatus(
+      `Cleared saved logs. A local backup was saved as ${backupKey}.`
+    );
+    resetEntry();
   }
 
   function loadDemoData() {
