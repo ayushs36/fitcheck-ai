@@ -4,10 +4,12 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
   const modeClass = getModeClass(brief.agentMode);
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
+      <div className="h-1.5 bg-blue-600" />
+      <div className="p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
             Agent Daily Brief
           </p>
           <h2 className="mt-1 text-2xl font-semibold text-slate-950">
@@ -30,7 +32,7 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -57,7 +59,7 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl bg-slate-50 p-4">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Changed Since Last Log
           </p>
@@ -66,11 +68,11 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 p-4">
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Do This Next
           </p>
-          <p className="mt-2 text-sm font-semibold text-slate-900">
+          <p className="mt-2 text-sm font-semibold text-emerald-950">
             {brief.nextAction}
           </p>
         </div>
@@ -85,6 +87,7 @@ export function DailyBriefCard({ brief }: { brief: DailyBrief }) {
             {item}
           </span>
         ))}
+      </div>
       </div>
     </section>
   );

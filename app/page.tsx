@@ -27,6 +27,7 @@ import type {
   TrainingSignal,
   GoalHistoryRecord,
   GoalMemory,
+  DailyBrief,
 } from "@/types/fitness";
 import {
   calculateExerciseTrainingOutput,
@@ -2452,17 +2453,20 @@ const pageStats = (() => {
     { label: "Saved plans", value: `${coachingPlanHistory.length}` },
   ];
 })();
+const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-6">
+    <main className="min-h-screen bg-[#f6f8fb] p-4 text-slate-900 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <header className="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-blue-600" />
+          <div className="p-5 md:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Fitness Analytics Agent
-                </p>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                  AI Fitness Coaching Agent
+                </span>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     isDemoMode
@@ -2479,16 +2483,39 @@ const pageStats = (() => {
               </h1>
 
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">
-                Log fitness data, read trend quality, and turn AI agent
-                decisions into practical next actions.
+                A goal-aware coaching agent that turns weight, nutrition,
+                steps, workouts, and training trends into a practical next
+                action.
               </p>
             </div>
 
-            <div className="w-fit rounded-2xl bg-slate-950 px-4 py-3 text-white shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Active Decision
-              </p>
-              <p className="mt-1 text-sm font-semibold">{agentDecision.action}</p>
+            <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+              <div className="rounded-2xl bg-slate-950 px-4 py-3 text-white shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Active Decision
+                </p>
+                <p className="mt-1 text-sm font-semibold">
+                  {agentDecision.action}
+                </p>
+              </div>
+
+              <div className={`rounded-2xl px-4 py-3 shadow-sm ${agentModeClass}`}>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                  Agent Mode
+                </p>
+                <p className="mt-1 text-sm font-semibold">
+                  {dailyBrief.agentMode}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Goal Phase
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {goalMemory.phaseLabel}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -2511,6 +2538,7 @@ const pageStats = (() => {
               );
             })}
           </nav>
+          </div>
         </header>
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -2528,7 +2556,7 @@ const pageStats = (() => {
               {pageStats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  className="rounded-2xl border border-slate-200 border-l-blue-500 bg-slate-50 px-4 py-3"
                 >
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     {stat.label}
@@ -3075,6 +3103,22 @@ function EmptyMetricState({
       <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
     </div>
   );
+}
+
+function getAgentModeShellClass(mode: DailyBrief["agentMode"]) {
+  if (mode === "Rerun due") {
+    return "bg-blue-50 text-blue-700";
+  }
+
+  if (mode === "Ready to run") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (mode === "Refresh data" || mode === "Build baseline") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  return "bg-slate-100 text-slate-700";
 }
 
 function getStrengthStatusFromTrainingSignal(trainingSignal: TrainingSignal) {

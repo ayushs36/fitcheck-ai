@@ -29,13 +29,21 @@ export function AgentDashboardCard({
     Boolean(previousDecision) && previousDecision === latestDecision;
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="h-1.5 bg-slate-950" />
+      <div className="p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
             Agent Dashboard
           </p>
-          <h2 className="mt-1 text-3xl font-bold">AI Coach Control Center</h2>
+          <h2 className="mt-1 text-3xl font-bold text-slate-950">
+            AI Coach Control Center
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+            Combines rule-based decisions, LLM coaching, memory, guardrails,
+            and follow-through tracking into one current recommendation.
+          </p>
         </div>
 
         <span className="w-fit rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
@@ -71,7 +79,7 @@ export function AgentDashboardCard({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             Next Recommended Action
           </p>
@@ -83,7 +91,7 @@ export function AgentDashboardCard({
         </div>
       </div>
 
-      <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50">
+      <details className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60">
         <summary className="cursor-pointer list-none px-4 py-3">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
@@ -94,13 +102,13 @@ export function AgentDashboardCard({
                 Why the agent chose this action
               </p>
             </div>
-            <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+            <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
               Explainability
             </span>
           </div>
         </summary>
 
-        <div className="space-y-5 border-t border-slate-200 px-4 py-4">
+        <div className="space-y-5 border-t border-blue-100 bg-white/70 px-4 py-4">
           <p className="text-sm leading-6 text-slate-700">
             {agentDecisionTrace.summary}
           </p>
@@ -151,7 +159,9 @@ export function AgentDashboardCard({
       </details>
 
       <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-sm font-semibold text-slate-500">Agent Memory</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Agent Memory
+        </p>
         <p className="mt-2 font-semibold text-slate-900">
           {agentMemory.noticedPattern}
         </p>
@@ -203,8 +213,8 @@ export function AgentDashboardCard({
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl bg-slate-100 p-4">
-        <p className="text-sm font-semibold text-slate-500">
+      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Recommendation Change
         </p>
 
@@ -230,6 +240,7 @@ export function AgentDashboardCard({
             Run FitCheck Agent at least twice to compare recommendation changes.
           </p>
         )}
+      </div>
       </div>
     </section>
   );
@@ -261,7 +272,7 @@ function AgentDashboardStat({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl bg-slate-100 p-4">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
