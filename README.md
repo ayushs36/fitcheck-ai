@@ -55,8 +55,11 @@ steps, improve protein, focus recovery, or adjust the goal timeline.
 ## Core Features
 
 - Daily logging for weight, calories, protein, steps, workouts, and exercises
+- Blank numeric inputs for optional metrics, while missing values stay
+  analytics-safe as unknown rather than real zeros
 - Partial-log handling so missing fields are treated as unknown, not failed
   adherence
+- Autosaved daily log draft and edit-past-log flow
 - Weight trend analytics with 7-day moving average
 - Weight, calorie, and step charts
 - Maintenance calorie estimator with confidence and guardrails
@@ -69,6 +72,8 @@ steps, improve protein, focus recovery, or adjust the goal timeline.
   loss
 - Agent decision engine and decision audit trail
 - Agent memory and saved agent history
+- Agent operating loop showing whether to build baseline, refresh data, follow
+  the current plan, or rerun the agent
 - Protected public demo mode
 
 ## Agent Decision Engine
@@ -158,30 +163,19 @@ FITCHECK_PERSONAL_PASSWORD=choose-a-private-password
 
 Do not commit `.env.local`.
 
-## Resume Bullets
-
-- Built an AI fitness coaching agent in Next.js and TypeScript that analyzes
-  weight trends, calories, protein, steps, workouts, goal feasibility, recovery,
-  and strength progression to generate practical coaching decisions.
-- Designed a rule-based decision engine with agent memory, explainable decision
-  audits, confidence scoring, and protected server-side OpenAI routes.
-- Implemented a privacy-safe public portfolio demo with fictional data,
-  localStorage persistence, API-key protection, and Vercel deployment.
-
 ## Roadmap
 
-Near-term web polish:
+Current web app status:
 
-- Final recruiter demo QA
-- README and LinkedIn/resume polish
-- Mobile responsiveness review
-- Public demo verification in a clean browser session
+- Recruiter-facing demo is the public default route.
+- Personal workspace is separated behind `/personal`.
+- Public demo data is fictional and isolated from personal browser storage.
+- OpenAI calls are server-side and protected from public demo visitors.
 
-Mobile app phase:
+Next phase:
 
 - React Native or Expo app
 - Multi-screen mobile layout
 - Local workout, nutrition, step, and weight tracking
 - Mobile charts and progress views
 - Rule-based coaching without bundling an API key
-- Future authenticated backend if live AI is added to mobile

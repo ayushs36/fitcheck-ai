@@ -9,6 +9,8 @@ export function NumberInput({
   onChange: (value: number) => void;
   suffix?: string;
 }) {
+  const displayValue = value === 0 ? "" : String(value);
+
   return (
     <label className="block">
       <span className="text-sm text-slate-500">{label}</span>
@@ -16,8 +18,23 @@ export function NumberInput({
         <input
           className="w-full rounded-xl border p-2"
           type="number"
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
+          inputMode="decimal"
+          value={displayValue}
+          placeholder="Optional"
+          onWheel={(event) => event.currentTarget.blur()}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            const parsedValue = Number(nextValue);
+
+            if (nextValue === "") {
+              onChange(0);
+              return;
+            }
+
+            if (Number.isFinite(parsedValue)) {
+              onChange(parsedValue);
+            }
+          }}
         />
         {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
       </div>
