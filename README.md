@@ -171,8 +171,6 @@ Current web app status:
 - Personal workspace is separated behind `/personal`.
 - Public demo data is fictional and isolated from personal browser storage.
 - OpenAI calls are server-side and protected from public demo visitors.
-- Final web launch QA is documented in
-  [`docs/day-66-web-launch-qa.md`](docs/day-66-web-launch-qa.md).
 
 Next phase:
 
