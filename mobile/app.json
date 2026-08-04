@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "FitCheck AI",
+    "slug": "fitcheck-ai-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "fitcheckai",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ayushs36.fitcheckai"
+    },
+    "android": {
+      "package": "com.ayushs36.fitcheckai",
+      "adaptiveIcon": {
+        "backgroundColor": "#F7F9FC"
+      }
+    },
+    "extra": {
+      "productTrack": "mobile-app-store"
+    }
+  }
+}
