@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
+import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
-import { upsertDailyLog } from "../storage/mobileStorage";
+import { getDailyLogByDate, loadRecentDailyLogs, upsertDailyLog } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { DailyLog, GoalType, TodayLogDraft, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
+import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 
 const goalOptions: { label: string; value: GoalType }[] = [
   { label: "Cut", value: "cut" },
@@ -27,29 +29,44 @@ const workoutTypes: WorkoutType[] = [
   "Other",
 ];
 
-const blankDraft: TodayLogDraft = {
-  goal: "maintain",
-  weightLbs: "",
-  calories: "",
-  proteinGrams: "",
-  steps: "",
-  workoutType: "Rest",
-  notes: "",
-};
-
-function parseOptionalNumber(value: string): number | undefined {
-  const trimmedValue = value.trim();
-  if (!trimmedValue) {
-    return undefined;
-  }
-
-  const parsedValue = Number(trimmedValue);
-  return Number.isFinite(parsedValue) ? parsedValue : undefined;
-}
-
 export function TodayScreen() {
-  const [draft, setDraft] = useState<TodayLogDraft>(blankDraft);
+  const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
+  const [existingLog, setExistingLog] = useState<DailyLog | undefined>();
+  const [recentLogs, setRecentLogs] = useState<DailyLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const todayKey = useMemo(() => getTodayKey(), []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSavedLog() {
+      try {
+        const [savedTodayLog, savedRecentLogs] = await Promise.all([
+          getDailyLogByDate(todayKey),
+          loadRecentDailyLogs(5),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setExistingLog(savedTodayLog);
+        setDraft(dailyLogToDraft(savedTodayLog));
+        setRecentLogs(savedRecentLogs);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadSavedLog();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [todayKey]);
 
   function updateDraft<Value extends keyof TodayLogDraft>(
     key: Value,
@@ -62,22 +79,16 @@ export function TodayScreen() {
   }
 
   async function saveLog() {
-    const now = new Date().toISOString();
-    const dailyLog: DailyLog = {
-      id: todayKey,
+    const dailyLog = createDailyLogFromDraft({
       date: todayKey,
-      goal: draft.goal,
-      weightLbs: parseOptionalNumber(draft.weightLbs),
-      calories: parseOptionalNumber(draft.calories),
-      proteinGrams: parseOptionalNumber(draft.proteinGrams),
-      steps: parseOptionalNumber(draft.steps),
-      workoutType: draft.workoutType,
-      notes: draft.notes.trim() || undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
+      draft,
+      existingLog,
+    });
 
-    await upsertDailyLog(dailyLog);
+    const updatedLogs = await upsertDailyLog(dailyLog);
+    setExistingLog(dailyLog);
+    setRecentLogs(updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5));
+    setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Log saved", "Your daily log was saved on this device.");
   }
 
@@ -89,12 +100,22 @@ export function TodayScreen() {
       <Card>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{formatReadableDate(todayKey)}</Text>
-          <Text style={styles.cardMeta}>Daily check-in</Text>
+          <Text style={styles.cardMeta}>
+            {isLoading
+              ? "Loading saved log"
+              : existingLog
+                ? "Editing saved daily log"
+                : "New daily check-in"}
+          </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>Current goal</Text>
-          <SegmentedControl options={goalOptions} value={draft.goal} onChange={(goal) => updateDraft("goal", goal)} />
+          <SegmentedControl
+            options={goalOptions}
+            value={draft.goal}
+            onChange={(goal) => updateDraft("goal", goal)}
+          />
         </View>
 
         <View style={styles.grid}>
@@ -159,8 +180,18 @@ export function TodayScreen() {
         />
 
         <Pressable accessibilityRole="button" onPress={saveLog} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Today</Text>
+          <Text style={styles.saveButtonText}>{existingLog ? "Update Today" : "Save Today"}</Text>
         </Pressable>
+
+        {lastSavedAt ? <Text style={styles.savedMeta}>Last saved at {lastSavedAt}</Text> : null}
+      </Card>
+
+      <Card>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Recent Logs</Text>
+          <Text style={styles.cardMeta}>Saved on this device</Text>
+        </View>
+        <RecentLogsList logs={recentLogs} />
       </Card>
     </Screen>
   );
@@ -204,6 +235,12 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontSize: 16,
     fontWeight: "800",
+  },
+  savedMeta: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
   },
   section: {
     gap: 10,

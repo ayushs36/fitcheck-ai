@@ -1,0 +1,107 @@
+import { StyleSheet, Text, View } from "react-native";
+import { colors } from "../theme/colors";
+import { DailyLog } from "../types/fitness";
+import { formatReadableDate } from "../utils/date";
+
+type RecentLogsListProps = {
+  logs: DailyLog[];
+};
+
+function formatMetric(label: string, value?: number, suffix = ""): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return `${label}: blank`;
+  }
+
+  return `${label}: ${value}${suffix}`;
+}
+
+export function RecentLogsList({ logs }: RecentLogsListProps) {
+  if (logs.length === 0) {
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyTitle}>No logs yet</Text>
+        <Text style={styles.emptyBody}>
+          Save your first day to start building mobile progress history.
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.list}>
+      {logs.map((log) => (
+        <View key={log.id} style={styles.row}>
+          <View style={styles.rowHeader}>
+            <Text style={styles.date}>{formatReadableDate(log.date)}</Text>
+            <Text style={styles.goal}>{log.goal}</Text>
+          </View>
+          <Text style={styles.metrics}>
+            {[
+              formatMetric("Weight", log.weightLbs, " lb"),
+              formatMetric("Cals", log.calories),
+              formatMetric("Protein", log.proteinGrams, "g"),
+              formatMetric("Steps", log.steps),
+            ].join("   ")}
+          </Text>
+          <Text style={styles.workout}>{log.workoutType ?? "No workout selected"}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  date: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  emptyBody: {
+    color: colors.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  emptyState: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 16,
+    gap: 6,
+    padding: 16,
+  },
+  emptyTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  goal: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  list: {
+    gap: 10,
+  },
+  metrics: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  row: {
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    padding: 14,
+  },
+  rowHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  workout: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+});

@@ -24,6 +24,11 @@ export async function saveDailyLogs(logs: DailyLog[]): Promise<void> {
   await AsyncStorage.setItem(MOBILE_STORAGE_KEYS.logs, JSON.stringify(logs));
 }
 
+export async function getDailyLogByDate(date: string): Promise<DailyLog | undefined> {
+  const logs = await loadDailyLogs();
+  return logs.find((log) => log.date === date);
+}
+
 export async function upsertDailyLog(log: DailyLog): Promise<DailyLog[]> {
   const logs = await loadDailyLogs();
   const existingIndex = logs.findIndex((existingLog) => existingLog.date === log.date);
@@ -35,6 +40,14 @@ export async function upsertDailyLog(log: DailyLog): Promise<DailyLog[]> {
   const sortedLogs = nextLogs.sort((a, b) => a.date.localeCompare(b.date));
   await saveDailyLogs(sortedLogs);
   return sortedLogs;
+}
+
+export async function loadRecentDailyLogs(limit = 7): Promise<DailyLog[]> {
+  const logs = await loadDailyLogs();
+  return logs
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limit);
 }
 
 export async function loadUserSettings(): Promise<UserSettings | null> {
