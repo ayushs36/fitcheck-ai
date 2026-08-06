@@ -50,6 +50,11 @@ export async function loadRecentDailyLogs(limit = 7): Promise<DailyLog[]> {
     .slice(0, limit);
 }
 
+export async function loadDailyLogsDescending(): Promise<DailyLog[]> {
+  const logs = await loadDailyLogs();
+  return logs.slice().sort((a, b) => b.date.localeCompare(a.date));
+}
+
 export async function loadUserSettings(): Promise<UserSettings | null> {
   const rawSettings = await AsyncStorage.getItem(MOBILE_STORAGE_KEYS.settings);
   if (!rawSettings) {
