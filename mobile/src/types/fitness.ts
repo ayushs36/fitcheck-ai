@@ -33,6 +33,8 @@ export type WorkoutSession = {
   type: WorkoutType;
   exercises: ExerciseLog[];
   notes?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type DailyLog = {
@@ -64,5 +66,27 @@ export type TodayLogDraft = {
   proteinGrams: string;
   steps: string;
   workoutType: WorkoutType;
+  notes: string;
+};
+
+export type ExerciseSetDraft = {
+  id: string;
+  reps: string;
+  weightLbs: string;
+  isBodyweight: boolean;
+  formFocus: boolean;
+  notes: string;
+};
+
+export type ExerciseDraft = {
+  id: string;
+  name: string;
+  muscleGroup: string;
+  sets: ExerciseSetDraft[];
+};
+
+export type WorkoutDraft = {
+  type: WorkoutType;
+  exercises: ExerciseDraft[];
   notes: string;
 };
