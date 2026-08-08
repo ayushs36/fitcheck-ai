@@ -17,6 +17,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 2: Added local log persistence, safe partial logs, today editing, and basic history.
 - Day 3: Added past-log editing from the Progress screen with tap-to-edit saved days.
 - Day 4: Added workout session logging with exercises, sets, reps, weight, bodyweight sets, and form-focus tracking.
+- Day 5: Added workout-type exercise templates, custom exercise entry, Use Last Workout, and a simplified rest-day flow.
 
 ## Product Direction
 

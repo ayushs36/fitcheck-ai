@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
+import { exerciseTemplatesByWorkoutType, ExerciseTemplate } from "../data/exerciseTemplates";
 import { addWorkoutSession, loadRecentWorkoutSessions } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
@@ -11,6 +12,8 @@ import {
   createBlankExercise,
   createBlankSet,
   createBlankWorkoutDraft,
+  createExerciseFromTemplate,
+  createWorkoutDraftFromSession,
   createWorkoutSessionFromDraft,
 } from "../utils/workoutDraft";
 
@@ -57,6 +60,49 @@ export function TrainingScreen() {
     }));
   }
 
+  function addTemplateExercise(template: ExerciseTemplate) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      exercises: [...currentDraft.exercises, createExerciseFromTemplate(template)],
+    }));
+  }
+
+  function selectWorkoutType(type: WorkoutType) {
+    setDraft((currentDraft) => {
+      if (type === "Rest") {
+        return {
+          ...currentDraft,
+          type,
+          exercises: [],
+        };
+      }
+
+      if (currentDraft.type === "Rest") {
+        return createBlankWorkoutDraft(type);
+      }
+
+      return {
+        ...currentDraft,
+        type,
+      };
+    });
+  }
+
+  function useLastWorkout() {
+    const matchingWorkout = recentSessions.find(
+      (session) => session.type === draft.type && session.exercises.length > 0,
+    );
+    const fallbackWorkout = recentSessions.find((session) => session.exercises.length > 0);
+    const sourceWorkout = matchingWorkout ?? fallbackWorkout;
+
+    if (!sourceWorkout) {
+      Alert.alert("No previous workout", "Save a workout first, then you can reuse it here.");
+      return;
+    }
+
+    setDraft(createWorkoutDraftFromSession(sourceWorkout));
+  }
+
   function addSet(exerciseId: string) {
     setDraft((currentDraft) => ({
       ...currentDraft,
@@ -86,6 +132,9 @@ export function TrainingScreen() {
     Alert.alert("Workout saved", "Your workout was saved on this device.");
   }
 
+  const suggestedExercises = exerciseTemplatesByWorkoutType[draft.type];
+  const isRestDay = draft.type === "Rest";
+
   return (
     <Screen
       title="Training"
@@ -106,7 +155,7 @@ export function TrainingScreen() {
                 <Pressable
                   accessibilityRole="button"
                   key={type}
-                  onPress={() => setDraft((currentDraft) => ({ ...currentDraft, type }))}
+                  onPress={() => selectWorkoutType(type)}
                   style={[styles.typeChip, isSelected && styles.selectedTypeChip]}
                 >
                   <Text style={[styles.typeText, isSelected && styles.selectedTypeText]}>{type}</Text>
@@ -116,7 +165,55 @@ export function TrainingScreen() {
           </View>
         </View>
 
-        {draft.exercises.map((exercise, exerciseIndex) => (
+        {isRestDay ? (
+          <View style={styles.restState}>
+            <Text style={styles.restTitle}>Rest day selected</Text>
+            <Text style={styles.body}>
+              Save a rest day with notes for recovery, soreness, sleep, or mobility. No exercises
+              are needed.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.quickActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={useLastWorkout}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Use Last Workout</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={addExercise}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Add Custom Exercise</Text>
+              </Pressable>
+            </View>
+
+            {suggestedExercises.length ? (
+              <View style={styles.section}>
+                <Text style={styles.label}>Suggested exercises</Text>
+                <View style={styles.templateGrid}>
+                  {suggestedExercises.map((template) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      key={`${template.name}-${template.muscleGroup}`}
+                      onPress={() => addTemplateExercise(template)}
+                      style={styles.templateChip}
+                    >
+                      <Text style={styles.templateName}>{template.name}</Text>
+                      <Text style={styles.templateMeta}>{template.muscleGroup || "Custom"}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </>
+        )}
+
+        {!isRestDay && draft.exercises.map((exercise, exerciseIndex) => (
           <View key={exercise.id} style={styles.exerciseBlock}>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseTitle}>Exercise {exerciseIndex + 1}</Text>
@@ -229,10 +326,6 @@ export function TrainingScreen() {
           </View>
         ))}
 
-        <Pressable accessibilityRole="button" onPress={addExercise} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Add Exercise</Text>
-        </Pressable>
-
         <TextField
           label="Workout notes"
           multiline
@@ -316,6 +409,22 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     textAlignVertical: "top",
   },
+  quickActions: {
+    gap: 10,
+  },
+  restState: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 8,
+    padding: 16,
+  },
+  restTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: "800",
+  },
   saveButton: {
     alignItems: "center",
     backgroundColor: colors.primary,
@@ -395,6 +504,27 @@ const styles = StyleSheet.create({
   setTitle: {
     color: colors.text,
     fontSize: 15,
+    fontWeight: "800",
+  },
+  templateChip: {
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  templateGrid: {
+    gap: 8,
+  },
+  templateMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  templateName: {
+    color: colors.text,
+    fontSize: 14,
     fontWeight: "800",
   },
   title: {

@@ -3,10 +3,11 @@ import {
   ExerciseLog,
   ExerciseSet,
   ExerciseSetDraft,
-  WorkoutDraft,
   WorkoutSession,
+  WorkoutDraft,
   WorkoutType,
 } from "../types/fitness";
+import { ExerciseTemplate } from "../data/exerciseTemplates";
 import { parseOptionalNumber } from "./logDraft";
 
 function createId(prefix: string): string {
@@ -33,10 +34,46 @@ export function createBlankExercise(): ExerciseDraft {
   };
 }
 
+export function createExerciseFromTemplate(template: ExerciseTemplate): ExerciseDraft {
+  return {
+    id: createId("exercise"),
+    name: template.name,
+    muscleGroup: template.muscleGroup,
+    sets: [
+      {
+        ...createBlankSet(),
+        isBodyweight: Boolean(template.isBodyweight),
+      },
+    ],
+  };
+}
+
 export function createBlankWorkoutDraft(type: WorkoutType = "Push"): WorkoutDraft {
   return {
     type,
-    exercises: [createBlankExercise()],
+    exercises: type === "Rest" ? [] : [createBlankExercise()],
+    notes: "",
+  };
+}
+
+export function createWorkoutDraftFromSession(session: WorkoutSession): WorkoutDraft {
+  return {
+    type: session.type,
+    exercises: session.exercises.map((exercise) => ({
+      id: createId("exercise"),
+      name: exercise.name,
+      muscleGroup: exercise.muscleGroup ?? "",
+      sets: exercise.sets.length
+        ? exercise.sets.map((set) => ({
+            id: createId("set"),
+            reps: "",
+            weightLbs: "",
+            isBodyweight: Boolean(set.isBodyweight),
+            formFocus: Boolean(set.formFocus),
+            notes: "",
+          }))
+        : [createBlankSet()],
+    })),
     notes: "",
   };
 }
