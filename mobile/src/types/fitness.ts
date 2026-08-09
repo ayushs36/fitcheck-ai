@@ -54,9 +54,13 @@ export type DailyLog = {
 export type UserSettings = {
   unitSystem: "imperial" | "metric";
   defaultGoal: GoalType;
+  startingWeightLbs?: number;
+  targetWeightLbs?: number;
+  weeklyGoalPaceLbs?: number;
   calorieTarget?: number;
   proteinTarget?: number;
   stepTarget?: number;
+  updatedAt?: string;
 };
 
 export type TodayLogDraft = {

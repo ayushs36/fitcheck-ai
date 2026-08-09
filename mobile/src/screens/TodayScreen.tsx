@@ -4,7 +4,12 @@ import { Card } from "../components/Card";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
-import { getDailyLogByDate, loadRecentDailyLogs, upsertDailyLog } from "../storage/mobileStorage";
+import {
+  getDailyLogByDate,
+  loadRecentDailyLogs,
+  loadUserSettings,
+  upsertDailyLog,
+} from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { DailyLog, TodayLogDraft } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
@@ -23,9 +28,10 @@ export function TodayScreen() {
 
     async function loadSavedLog() {
       try {
-        const [savedTodayLog, savedRecentLogs] = await Promise.all([
+        const [savedTodayLog, savedRecentLogs, savedSettings] = await Promise.all([
           getDailyLogByDate(todayKey),
           loadRecentDailyLogs(5),
+          loadUserSettings(),
         ]);
 
         if (!isMounted) {
@@ -33,7 +39,11 @@ export function TodayScreen() {
         }
 
         setExistingLog(savedTodayLog);
-        setDraft(dailyLogToDraft(savedTodayLog));
+        setDraft(
+          savedTodayLog
+            ? dailyLogToDraft(savedTodayLog)
+            : { ...dailyLogToDraft(undefined), goal: savedSettings?.defaultGoal ?? "maintain" },
+        );
         setRecentLogs(savedRecentLogs);
       } finally {
         if (isMounted) {
