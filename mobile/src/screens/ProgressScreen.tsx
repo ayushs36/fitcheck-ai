@@ -2,25 +2,32 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { LogEditorCard } from "../components/LogEditorCard";
+import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
-import { loadDailyLogsDescending, upsertDailyLog } from "../storage/mobileStorage";
+import { loadDailyLogsDescending, loadUserSettings, upsertDailyLog } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
-import { DailyLog, TodayLogDraft } from "../types/fitness";
+import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
 import { formatReadableDate } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
+import { calculateProgressInsights } from "../utils/progressInsights";
 
 export function ProgressScreen() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<DailyLog | undefined>();
   const [editDraft, setEditDraft] = useState<TodayLogDraft>(blankTodayDraft);
+  const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastEditedDate, setLastEditedDate] = useState<string | null>(null);
 
   async function refreshLogs() {
     setIsLoading(true);
-    const savedLogs = await loadDailyLogsDescending();
+    const [savedLogs, savedSettings] = await Promise.all([
+      loadDailyLogsDescending(),
+      loadUserSettings(),
+    ]);
     setLogs(savedLogs);
+    setSettings(savedSettings);
 
     if (selectedLog) {
       const refreshedSelectedLog = savedLogs.find((log) => log.date === selectedLog.date);
@@ -67,11 +74,15 @@ export function ProgressScreen() {
     refreshLogs();
   }, []);
 
+  const insights = calculateProgressInsights(logs, settings);
+
   return (
     <Screen
       title="Progress"
-      subtitle="Review saved days and tap a log to edit it. Blank fields stay blank."
+      subtitle="Track goal-aware trends while skipping missing fields from averages."
     >
+      <ProgressDashboardCard insights={insights} />
+
       <Card>
         <View style={styles.headerRow}>
           <View style={styles.headerCopy}>
