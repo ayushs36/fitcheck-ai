@@ -1,19 +1,26 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
+import { ProgressChartsCard } from "../components/ProgressChartsCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
-import { loadDailyLogsDescending, loadUserSettings, upsertDailyLog } from "../storage/mobileStorage";
+import {
+  loadDailyLogsDescending,
+  loadRecentWorkoutSessions,
+  loadUserSettings,
+  upsertDailyLog,
+} from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
-import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
+import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
 import { formatReadableDate } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
 
 export function ProgressScreen() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [selectedLog, setSelectedLog] = useState<DailyLog | undefined>();
   const [editDraft, setEditDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -22,12 +29,14 @@ export function ProgressScreen() {
 
   async function refreshLogs() {
     setIsLoading(true);
-    const [savedLogs, savedSettings] = await Promise.all([
+    const [savedLogs, savedSettings, savedWorkouts] = await Promise.all([
       loadDailyLogsDescending(),
       loadUserSettings(),
+      loadRecentWorkoutSessions(10),
     ]);
     setLogs(savedLogs);
     setSettings(savedSettings);
+    setWorkouts(savedWorkouts);
 
     if (selectedLog) {
       const refreshedSelectedLog = savedLogs.find((log) => log.date === selectedLog.date);
@@ -82,6 +91,7 @@ export function ProgressScreen() {
       subtitle="Track goal-aware trends while skipping missing fields from averages."
     >
       <ProgressDashboardCard insights={insights} />
+      <ProgressChartsCard logs={logs} workouts={workouts} />
 
       <Card>
         <View style={styles.headerRow}>
