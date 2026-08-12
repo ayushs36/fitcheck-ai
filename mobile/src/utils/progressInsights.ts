@@ -8,6 +8,7 @@ export type MetricAverage = {
   target?: number;
   unit: string;
   loggedDays: number;
+  status: "above" | "below" | "onTarget" | "noTarget" | "noData";
 };
 
 export type WeightTrend = {
@@ -20,6 +21,9 @@ export type WeightTrend = {
 export type ProgressInsights = {
   activeGoal: GoalType;
   summary: string;
+  priority: string;
+  nextAction: string;
+  evidence: string[];
   weightTrend: WeightTrend;
   averages: MetricAverage[];
   loggedDays: number;
@@ -50,6 +54,16 @@ function calculateMetricAverage(
   const values = getNumericValues(logs, key);
   const total = values.reduce((sum, value) => sum + value, 0);
   const average = values.length ? total / values.length : undefined;
+  const status =
+    typeof average !== "number"
+      ? "noData"
+      : typeof target !== "number"
+        ? "noTarget"
+        : Math.abs(average - target) <= target * 0.05
+          ? "onTarget"
+          : average > target
+            ? "above"
+            : "below";
 
   return {
     label: metricLabels[key].label,
@@ -57,6 +71,7 @@ function calculateMetricAverage(
     target,
     unit: metricLabels[key].unit,
     loggedDays: values.length,
+    status,
   };
 }
 
@@ -148,6 +163,99 @@ function buildSummary(goal: GoalType, trend: WeightTrend): string {
     : "Your maintenance trend is moving. Decide whether that movement matches your intent.";
 }
 
+function findAverage(averages: MetricAverage[], label: string): MetricAverage | undefined {
+  return averages.find((average) => average.label === label);
+}
+
+function buildEvidence(trend: WeightTrend, averages: MetricAverage[]): string[] {
+  const evidence = [
+    `${trend.weighIns} weigh-ins used`,
+    ...averages.map((average) => `${average.label}: ${average.loggedDays} logged days`),
+  ];
+
+  return evidence.slice(0, 4);
+}
+
+function buildGoalAction(goal: GoalType, trend: WeightTrend, averages: MetricAverage[]) {
+  const calories = findAverage(averages, "Calories");
+  const protein = findAverage(averages, "Protein");
+  const steps = findAverage(averages, "Steps");
+
+  if (trend.direction === "unknown") {
+    return {
+      priority: "Build a baseline",
+      nextAction: "Log weight plus at least one nutrition or step field for the next 3 days.",
+    };
+  }
+
+  if (protein?.status === "below") {
+    return {
+      priority: "Improve protein",
+      nextAction: "Bring protein closer to target before judging the goal pace too aggressively.",
+    };
+  }
+
+  if (goal === "cut") {
+    if (trend.direction === "up") {
+      return {
+        priority: "Tighten the cut",
+        nextAction:
+          calories?.status === "above"
+            ? "Bring calories closer to target and keep steps consistent for the next week."
+            : "Audit calories and steps because weight is moving against the cut.",
+      };
+    }
+
+    if (trend.direction === "down") {
+      return {
+        priority: "Hold the plan",
+        nextAction: "Keep calories, protein, steps, and training consistent while the trend moves down.",
+      };
+    }
+
+    return {
+      priority: "Create movement",
+      nextAction: "Keep protein steady and add a small calorie or step adjustment if the trend stays flat.",
+    };
+  }
+
+  if (goal === "bulk") {
+    if (trend.direction === "down") {
+      return {
+        priority: "Increase intake",
+        nextAction: "Raise calories slightly or improve meal consistency so the bulk can move upward.",
+      };
+    }
+
+    if (trend.direction === "up") {
+      return {
+        priority: "Support training",
+        nextAction: "Keep gaining slowly while prioritizing workout quality and progressive volume.",
+      };
+    }
+
+    return {
+      priority: "Nudge calories",
+      nextAction: "Add a small calorie increase if weight remains flat and workouts are consistent.",
+    };
+  }
+
+  if (trend.direction === "flat") {
+    return {
+      priority: "Maintain consistency",
+      nextAction: "Keep calories, steps, and protein steady while weight remains stable.",
+    };
+  }
+
+  return {
+    priority: "Stabilize maintenance",
+    nextAction:
+      steps?.status === "below"
+        ? "Bring steps closer to target and avoid changing calories until activity is consistent."
+        : "Adjust calories only if this trend continues for another week.",
+  };
+}
+
 export function calculateProgressInsights(
   logs: DailyLog[],
   settings: UserSettings | null,
@@ -155,16 +263,21 @@ export function calculateProgressInsights(
   const activeGoal = getActiveGoal(logs, settings);
   const recentLogs = logs.slice(0, 14);
   const weightTrend = calculateWeightTrend(recentLogs, activeGoal, settings?.weeklyGoalPaceLbs);
+  const averages = [
+    calculateMetricAverage(recentLogs, "calories", settings?.calorieTarget),
+    calculateMetricAverage(recentLogs, "proteinGrams", settings?.proteinTarget),
+    calculateMetricAverage(recentLogs, "steps", settings?.stepTarget),
+  ];
+  const goalAction = buildGoalAction(activeGoal, weightTrend, averages);
 
   return {
     activeGoal,
     summary: buildSummary(activeGoal, weightTrend),
+    priority: goalAction.priority,
+    nextAction: goalAction.nextAction,
+    evidence: buildEvidence(weightTrend, averages),
     weightTrend,
-    averages: [
-      calculateMetricAverage(recentLogs, "calories", settings?.calorieTarget),
-      calculateMetricAverage(recentLogs, "proteinGrams", settings?.proteinTarget),
-      calculateMetricAverage(recentLogs, "steps", settings?.stepTarget),
-    ],
+    averages,
     loggedDays: recentLogs.length,
   };
 }

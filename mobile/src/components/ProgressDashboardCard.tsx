@@ -23,6 +23,26 @@ function formatTarget(target?: number, unit = ""): string {
   return `Target ${target}${unit ? ` ${unit}` : ""}`;
 }
 
+function formatMetricStatus(status: string): string {
+  if (status === "above") {
+    return "Above target";
+  }
+
+  if (status === "below") {
+    return "Below target";
+  }
+
+  if (status === "onTarget") {
+    return "On target";
+  }
+
+  if (status === "noData") {
+    return "No data";
+  }
+
+  return "No target";
+}
+
 function getTrendSymbol(direction: ProgressInsights["weightTrend"]["direction"]): string {
   if (direction === "up") {
     return "UP";
@@ -68,12 +88,26 @@ export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) 
 
       <Text style={styles.summary}>{insights.summary}</Text>
 
+      <View style={styles.actionBox}>
+        <Text style={styles.actionEyebrow}>Current Priority</Text>
+        <Text style={styles.actionTitle}>{insights.priority}</Text>
+        <Text style={styles.actionBody}>{insights.nextAction}</Text>
+        <View style={styles.evidenceList}>
+          {insights.evidence.map((item) => (
+            <Text key={item} style={styles.evidenceItem}>
+              {item}
+            </Text>
+          ))}
+        </View>
+      </View>
+
       <View style={styles.metricGrid}>
         {insights.averages.map((average) => (
           <View key={average.label} style={styles.metricBox}>
             <Text style={styles.metricLabel}>{average.label}</Text>
             <Text style={styles.metricValue}>{formatValue(average.value)}</Text>
             <Text style={styles.metricMeta}>{formatTarget(average.target)}</Text>
+            <Text style={styles.metricStatus}>{formatMetricStatus(average.status)}</Text>
             <Text style={styles.metricMeta}>{average.loggedDays} logged days</Text>
           </View>
         ))}
@@ -83,6 +117,29 @@ export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) 
 }
 
 const styles = StyleSheet.create({
+  actionBody: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22,
+  },
+  actionBox: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 18,
+    gap: 7,
+    padding: 14,
+  },
+  actionEyebrow: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  actionTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: "900",
+  },
   body: {
     color: colors.textMuted,
     fontSize: 13,
@@ -93,6 +150,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
+  },
+  evidenceItem: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  evidenceList: {
+    gap: 4,
   },
   header: {
     alignItems: "flex-start",
@@ -122,6 +187,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     fontWeight: "700",
+  },
+  metricStatus: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
   },
   metricValue: {
     color: colors.text,
