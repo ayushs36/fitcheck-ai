@@ -109,10 +109,26 @@ export function ProgressChartsCard({ logs, workouts }: ProgressChartsCardProps) 
         <Text style={styles.body}>
           {strengthPreview.latestWorkout ?? "Log workouts to start seeing training direction."}
         </Text>
+        <Text style={styles.body}>{strengthPreview.detail}</Text>
         {typeof strengthPreview.latestSets === "number" ? (
-          <Text style={styles.chartMeta}>
-            Latest: {strengthPreview.latestSets} sets, {strengthPreview.latestReps ?? 0} reps
-          </Text>
+          <View style={styles.strengthMetricGrid}>
+            <View style={styles.strengthMetric}>
+              <Text style={styles.strengthMetricValue}>{strengthPreview.latestSets}</Text>
+              <Text style={styles.chartMeta}>sets</Text>
+            </View>
+            <View style={styles.strengthMetric}>
+              <Text style={styles.strengthMetricValue}>{strengthPreview.latestReps ?? 0}</Text>
+              <Text style={styles.chartMeta}>reps</Text>
+            </View>
+            <View style={styles.strengthMetric}>
+              <Text style={styles.strengthMetricValue}>{strengthPreview.latestBodyweightSets ?? 0}</Text>
+              <Text style={styles.chartMeta}>bodyweight</Text>
+            </View>
+            <View style={styles.strengthMetric}>
+              <Text style={styles.strengthMetricValue}>{strengthPreview.latestFormFocusSets ?? 0}</Text>
+              <Text style={styles.chartMeta}>form focus</Text>
+            </View>
+          </View>
         ) : null}
       </View>
     </Card>
@@ -186,6 +202,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 6,
     padding: 14,
+  },
+  strengthMetric: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    flex: 1,
+    gap: 2,
+    minWidth: 96,
+    padding: 10,
+  },
+  strengthMetricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  strengthMetricValue: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900",
   },
   strengthStatus: {
     color: colors.text,

@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
+import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
 import { exerciseTemplatesByWorkoutType, ExerciseTemplate } from "../data/exerciseTemplates";
 import { addWorkoutSession, loadRecentWorkoutSessions } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
@@ -362,6 +363,8 @@ export function TrainingScreen() {
           </View>
         )}
       </Card>
+
+      <TrainingAnalyticsCard sessions={recentSessions} />
     </Screen>
   );
 }
