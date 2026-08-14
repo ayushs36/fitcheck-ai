@@ -40,14 +40,11 @@ FitCheck AI is designed as a coaching loop rather than a passive tracker.
 The agent can recommend holding calories, reducing calories, increasing steps,
 improving protein, focusing recovery, or adjusting the goal timeline.
 
-## Demo And Privacy
+## Demo Mode
 
-The public demo uses fictional data and isolated demo storage. Visitors can try
-the app without seeing personal data.
-
-OpenAI API calls are kept inside Next.js server routes, and the API key is never
-exposed to the browser or committed to GitHub. Public demo visitors receive
-protected demo responses so they cannot spend the owner's API credits.
+The public demo uses fictional fitness data so visitors can explore the app
+without accessing personal logs. OpenAI calls are handled through server-side
+Next.js API routes, keeping API keys out of the browser and source code.
 
 ## Tech Stack
 
