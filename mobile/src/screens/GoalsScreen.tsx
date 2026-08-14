@@ -8,11 +8,13 @@ import { loadUserSettings, saveUserSettings } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { GoalType, UserSettings } from "../types/fitness";
 import { parseOptionalNumber } from "../utils/logDraft";
+import { formatWeightFromLbs, getWeightUnitLabel, parseWeightToLbs, UnitSystem } from "../utils/units";
 
 type GoalDraft = {
+  unitSystem: UnitSystem;
   defaultGoal: GoalType;
-  startingWeightLbs: string;
-  targetWeightLbs: string;
+  startingWeight: string;
+  targetWeight: string;
   weeklyGoalPaceLbs: string;
   calorieTarget: string;
   proteinTarget: string;
@@ -25,10 +27,16 @@ const goalOptions: { label: string; value: GoalType }[] = [
   { label: "Bulk", value: "bulk" },
 ];
 
+const unitOptions: { label: string; value: UnitSystem }[] = [
+  { label: "Imperial", value: "imperial" },
+  { label: "Metric", value: "metric" },
+];
+
 const defaultDraft: GoalDraft = {
+  unitSystem: "imperial",
   defaultGoal: "maintain",
-  startingWeightLbs: "",
-  targetWeightLbs: "",
+  startingWeight: "",
+  targetWeight: "",
   weeklyGoalPaceLbs: "",
   calorieTarget: "",
   proteinTarget: "",
@@ -45,10 +53,11 @@ function settingsToDraft(settings: UserSettings | null): GoalDraft {
   }
 
   return {
+    unitSystem: settings.unitSystem,
     defaultGoal: settings.defaultGoal,
-    startingWeightLbs: formatOptionalValue(settings.startingWeightLbs),
-    targetWeightLbs: formatOptionalValue(settings.targetWeightLbs),
-    weeklyGoalPaceLbs: formatOptionalValue(settings.weeklyGoalPaceLbs),
+    startingWeight: formatWeightFromLbs(settings.startingWeightLbs, settings.unitSystem),
+    targetWeight: formatWeightFromLbs(settings.targetWeightLbs, settings.unitSystem),
+    weeklyGoalPaceLbs: formatWeightFromLbs(settings.weeklyGoalPaceLbs, settings.unitSystem),
     calorieTarget: formatOptionalValue(settings.calorieTarget),
     proteinTarget: formatOptionalValue(settings.proteinTarget),
     stepTarget: formatOptionalValue(settings.stepTarget),
@@ -57,7 +66,7 @@ function settingsToDraft(settings: UserSettings | null): GoalDraft {
 
 function getGoalCopy(goal: GoalType): string {
   if (goal === "cut") {
-    return "Use this when the main goal is fat loss. Pace should usually be entered as pounds lost per week.";
+    return "Use this when the main goal is fat loss. Pace should usually be entered as weight lost per week.";
   }
 
   if (goal === "bulk") {
@@ -71,6 +80,7 @@ export function GoalsScreen() {
   const [draft, setDraft] = useState<GoalDraft>(defaultDraft);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const weightUnit = getWeightUnitLabel(draft.unitSystem);
 
   useEffect(() => {
     let isMounted = true;
@@ -104,14 +114,15 @@ export function GoalsScreen() {
 
   async function saveGoalSettings() {
     const settings: UserSettings = {
-      unitSystem: "imperial",
+      unitSystem: draft.unitSystem,
       defaultGoal: draft.defaultGoal,
-      startingWeightLbs: parseOptionalNumber(draft.startingWeightLbs),
-      targetWeightLbs: parseOptionalNumber(draft.targetWeightLbs),
-      weeklyGoalPaceLbs: parseOptionalNumber(draft.weeklyGoalPaceLbs),
+      startingWeightLbs: parseWeightToLbs(draft.startingWeight, draft.unitSystem),
+      targetWeightLbs: parseWeightToLbs(draft.targetWeight, draft.unitSystem),
+      weeklyGoalPaceLbs: parseWeightToLbs(draft.weeklyGoalPaceLbs, draft.unitSystem),
       calorieTarget: parseOptionalNumber(draft.calorieTarget),
       proteinTarget: parseOptionalNumber(draft.proteinTarget),
       stepTarget: parseOptionalNumber(draft.stepTarget),
+      hasCompletedOnboarding: true,
       updatedAt: new Date().toISOString(),
     };
 
@@ -140,26 +151,35 @@ export function GoalsScreen() {
           />
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.label}>Units</Text>
+          <SegmentedControl
+            options={unitOptions}
+            value={draft.unitSystem}
+            onChange={(unitSystem) => updateDraft("unitSystem", unitSystem)}
+          />
+        </View>
+
         <View style={styles.grid}>
           <TextField
             keyboardType="decimal-pad"
             label="Starting weight"
-            onChangeText={(value) => updateDraft("startingWeightLbs", value)}
-            placeholder="lbs"
-            value={draft.startingWeightLbs}
+            onChangeText={(value) => updateDraft("startingWeight", value)}
+            placeholder={weightUnit}
+            value={draft.startingWeight}
           />
           <TextField
             keyboardType="decimal-pad"
             label="Target weight"
-            onChangeText={(value) => updateDraft("targetWeightLbs", value)}
-            placeholder={draft.defaultGoal === "maintain" ? "optional" : "lbs"}
-            value={draft.targetWeightLbs}
+            onChangeText={(value) => updateDraft("targetWeight", value)}
+            placeholder={draft.defaultGoal === "maintain" ? "optional" : weightUnit}
+            value={draft.targetWeight}
           />
           <TextField
             keyboardType="decimal-pad"
             label="Weekly pace"
             onChangeText={(value) => updateDraft("weeklyGoalPaceLbs", value)}
-            placeholder={draft.defaultGoal === "maintain" ? "0" : "lbs/week"}
+            placeholder={draft.defaultGoal === "maintain" ? "0" : `${weightUnit}/week`}
             value={draft.weeklyGoalPaceLbs}
           />
         </View>

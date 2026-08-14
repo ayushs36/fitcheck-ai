@@ -60,6 +60,7 @@ export type UserSettings = {
   calorieTarget?: number;
   proteinTarget?: number;
   stepTarget?: number;
+  hasCompletedOnboarding?: boolean;
   updatedAt?: string;
 };
 
