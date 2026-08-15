@@ -105,3 +105,33 @@ export async function loadUserSettings(): Promise<UserSettings | null> {
 export async function saveUserSettings(settings: UserSettings): Promise<void> {
   await AsyncStorage.setItem(MOBILE_STORAGE_KEYS.settings, JSON.stringify(settings));
 }
+
+export type MobileDataBackup = {
+  exportedAt: string;
+  logs: DailyLog[];
+  workouts: WorkoutSession[];
+  settings: UserSettings | null;
+};
+
+export async function loadMobileDataBackup(): Promise<MobileDataBackup> {
+  const [logs, workouts, settings] = await Promise.all([
+    loadDailyLogs(),
+    loadWorkoutSessions(),
+    loadUserSettings(),
+  ]);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    logs,
+    workouts,
+    settings,
+  };
+}
+
+export async function clearMobileData(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    MOBILE_STORAGE_KEYS.logs,
+    MOBILE_STORAGE_KEYS.workouts,
+    MOBILE_STORAGE_KEYS.settings,
+  ]);
+}
