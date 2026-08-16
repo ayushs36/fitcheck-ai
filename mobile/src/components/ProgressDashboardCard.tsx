@@ -59,7 +59,34 @@ function getTrendSymbol(direction: ProgressInsights["weightTrend"]["direction"])
   return "--";
 }
 
+function formatQualityStatus(status: ProgressInsights["loggingQuality"]["status"]): string {
+  if (status === "strong") {
+    return "Strong";
+  }
+
+  if (status === "usable") {
+    return "Usable";
+  }
+
+  if (status === "thin") {
+    return "Thin";
+  }
+
+  return "Build baseline";
+}
+
+function formatStreak(days: number): string {
+  return `${days} day${days === 1 ? "" : "s"} logged in a row`;
+}
+
 export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) {
+  const coverageItems = [
+    { label: "Weight", value: insights.loggingQuality.coverage.weight },
+    { label: "Calories", value: insights.loggingQuality.coverage.calories },
+    { label: "Protein", value: insights.loggingQuality.coverage.protein },
+    { label: "Steps", value: insights.loggingQuality.coverage.steps },
+  ];
+
   return (
     <Card>
       <View style={styles.header}>
@@ -87,6 +114,35 @@ export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) 
       </View>
 
       <Text style={styles.summary}>{insights.summary}</Text>
+
+      <View style={styles.qualityBox}>
+        <View style={styles.qualityHeader}>
+          <View style={styles.qualityScoreWrap}>
+            <Text style={styles.qualityScore}>{insights.loggingQuality.score}</Text>
+            <Text style={styles.qualityScoreMeta}>/100</Text>
+          </View>
+          <View style={styles.qualityCopy}>
+            <Text style={styles.actionEyebrow}>Logging Quality</Text>
+            <Text style={styles.qualityTitle}>
+              {formatQualityStatus(insights.loggingQuality.status)}
+            </Text>
+            <Text style={styles.body}>{insights.loggingQuality.summary}</Text>
+          </View>
+        </View>
+
+        <View style={styles.coverageGrid}>
+          {coverageItems.map((item) => (
+            <View key={item.label} style={styles.coverageItem}>
+              <Text style={styles.coverageValue}>{item.value}/7</Text>
+              <Text style={styles.coverageLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <Text style={styles.qualityAction}>
+          {formatStreak(insights.loggingQuality.streakDays)}. {insights.loggingQuality.nextAction}
+        </Text>
+      </View>
 
       <View style={styles.actionBox}>
         <Text style={styles.actionEyebrow}>Current Priority</Text>
@@ -196,6 +252,71 @@ const styles = StyleSheet.create({
   metricValue: {
     color: colors.text,
     fontSize: 20,
+    fontWeight: "900",
+  },
+  coverageGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  coverageItem: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    flex: 1,
+    gap: 2,
+    padding: 10,
+  },
+  coverageLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  coverageValue: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  qualityAction: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 19,
+  },
+  qualityBox: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 18,
+    gap: 10,
+    padding: 14,
+  },
+  qualityCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  qualityHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+  },
+  qualityScore: {
+    color: colors.primary,
+    fontSize: 25,
+    fontWeight: "900",
+  },
+  qualityScoreMeta: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  qualityScoreWrap: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    justifyContent: "center",
+    minHeight: 70,
+    width: 70,
+  },
+  qualityTitle: {
+    color: colors.text,
+    fontSize: 18,
     fontWeight: "900",
   },
   statusPill: {

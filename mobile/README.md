@@ -25,6 +25,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 10: Added training analytics that separate weighted, bodyweight, and form-focus work so volume changes are interpreted with context.
 - Day 11: Added first-launch onboarding for units, goal setup, starting weight, targets, and blank-field guidance.
 - Day 12: Added Settings data management with local data summary, backup export, privacy context, and guarded reset.
+- Day 13: Added logging quality scoring so Progress can judge whether recent weight, nutrition, and step data are strong enough for reliable coaching.
 
 ## Product Direction
 

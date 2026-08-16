@@ -18,6 +18,21 @@ export type WeightTrend = {
   weighIns: number;
 };
 
+export type LoggingQuality = {
+  status: "strong" | "usable" | "thin" | "baseline";
+  score: number;
+  summary: string;
+  nextAction: string;
+  streakDays: number;
+  recentDaysWithAnyLog: number;
+  coverage: {
+    weight: number;
+    calories: number;
+    protein: number;
+    steps: number;
+  };
+};
+
 export type ProgressInsights = {
   activeGoal: GoalType;
   summary: string;
@@ -25,6 +40,7 @@ export type ProgressInsights = {
   nextAction: string;
   evidence: string[];
   weightTrend: WeightTrend;
+  loggingQuality: LoggingQuality;
   averages: MetricAverage[];
   loggedDays: number;
 };
@@ -80,6 +96,103 @@ function daysBetween(startDate: string, endDate: string): number {
   const end = new Date(`${endDate}T12:00:00`).getTime();
   const days = Math.abs(end - start) / 86_400_000;
   return Math.max(days, 1);
+}
+
+function formatDateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number): Date {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function getTodayKey(): string {
+  return formatDateKey(new Date());
+}
+
+function hasValue(value: unknown): boolean {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function calculateStreakDays(logsByDate: Map<string, DailyLog>): number {
+  let streakDays = 0;
+  let cursor = new Date(`${getTodayKey()}T12:00:00`);
+
+  while (logsByDate.has(formatDateKey(cursor))) {
+    streakDays += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streakDays;
+}
+
+function buildLoggingQuality(logs: DailyLog[]): LoggingQuality {
+  const logsByDate = new Map(logs.map((log) => [log.date, log]));
+  const today = new Date(`${getTodayKey()}T12:00:00`);
+  const recentDates = Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(today, -index)));
+  const recentLogs = recentDates.map((date) => logsByDate.get(date)).filter(Boolean) as DailyLog[];
+
+  const coverage = {
+    weight: recentLogs.filter((log) => hasValue(log.weightLbs)).length,
+    calories: recentLogs.filter((log) => hasValue(log.calories)).length,
+    protein: recentLogs.filter((log) => hasValue(log.proteinGrams)).length,
+    steps: recentLogs.filter((log) => hasValue(log.steps)).length,
+  };
+  const recentDaysWithAnyLog = recentLogs.length;
+  const score = round(
+    ((recentDaysWithAnyLog + coverage.weight + coverage.calories + coverage.protein + coverage.steps) /
+      35) *
+      100,
+  );
+  const streakDays = calculateStreakDays(logsByDate);
+
+  if (score >= 80) {
+    return {
+      status: "strong",
+      score,
+      summary: "Recent logging is strong enough for confident coaching signals.",
+      nextAction: "Keep the same logging rhythm so trends stay reliable.",
+      streakDays,
+      recentDaysWithAnyLog,
+      coverage,
+    };
+  }
+
+  if (score >= 55) {
+    return {
+      status: "usable",
+      score,
+      summary: "Recent data is usable, but one or two missing fields may weaken recommendations.",
+      nextAction: "Prioritize the fields you missed most often over the next few days.",
+      streakDays,
+      recentDaysWithAnyLog,
+      coverage,
+    };
+  }
+
+  if (score >= 30) {
+    return {
+      status: "thin",
+      score,
+      summary: "FitCheck has a thin baseline, so goal advice should stay conservative.",
+      nextAction: "Log weight plus calories, protein, or steps for the next 3 days.",
+      streakDays,
+      recentDaysWithAnyLog,
+      coverage,
+    };
+  }
+
+  return {
+    status: "baseline",
+    score,
+    summary: "FitCheck needs more recent logs before judging goal progress.",
+    nextAction: "Start with one complete day of weight, nutrition, and steps.",
+    streakDays,
+    recentDaysWithAnyLog,
+    coverage,
+  };
 }
 
 function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): WeightTrend {
@@ -176,10 +289,29 @@ function buildEvidence(trend: WeightTrend, averages: MetricAverage[]): string[] 
   return evidence.slice(0, 4);
 }
 
-function buildGoalAction(goal: GoalType, trend: WeightTrend, averages: MetricAverage[]) {
+function buildGoalAction(
+  goal: GoalType,
+  trend: WeightTrend,
+  averages: MetricAverage[],
+  loggingQuality: LoggingQuality,
+) {
   const calories = findAverage(averages, "Calories");
   const protein = findAverage(averages, "Protein");
   const steps = findAverage(averages, "Steps");
+
+  if (loggingQuality.status === "baseline") {
+    return {
+      priority: "Build logging baseline",
+      nextAction: loggingQuality.nextAction,
+    };
+  }
+
+  if (loggingQuality.status === "thin") {
+    return {
+      priority: "Improve data quality",
+      nextAction: loggingQuality.nextAction,
+    };
+  }
 
   if (trend.direction === "unknown") {
     return {
@@ -262,13 +394,14 @@ export function calculateProgressInsights(
 ): ProgressInsights {
   const activeGoal = getActiveGoal(logs, settings);
   const recentLogs = logs.slice(0, 14);
+  const loggingQuality = buildLoggingQuality(logs);
   const weightTrend = calculateWeightTrend(recentLogs, activeGoal, settings?.weeklyGoalPaceLbs);
   const averages = [
     calculateMetricAverage(recentLogs, "calories", settings?.calorieTarget),
     calculateMetricAverage(recentLogs, "proteinGrams", settings?.proteinTarget),
     calculateMetricAverage(recentLogs, "steps", settings?.stepTarget),
   ];
-  const goalAction = buildGoalAction(activeGoal, weightTrend, averages);
+  const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
 
   return {
     activeGoal,
@@ -277,6 +410,7 @@ export function calculateProgressInsights(
     nextAction: goalAction.nextAction,
     evidence: buildEvidence(weightTrend, averages),
     weightTrend,
+    loggingQuality,
     averages,
     loggedDays: recentLogs.length,
   };
