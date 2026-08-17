@@ -1,4 +1,5 @@
 import { DailyLog, GoalType, UserSettings } from "../types/fitness";
+import { getProteinTarget } from "./proteinTargets";
 
 type MetricKey = "calories" | "proteinGrams" | "steps";
 
@@ -6,6 +7,7 @@ export type MetricAverage = {
   label: string;
   value?: number;
   target?: number;
+  targetLabel?: string;
   unit: string;
   loggedDays: number;
   status: "above" | "below" | "onTarget" | "noTarget" | "noData";
@@ -66,6 +68,7 @@ function calculateMetricAverage(
   logs: DailyLog[],
   key: MetricKey,
   target?: number,
+  targetLabel?: string,
 ): MetricAverage {
   const values = getNumericValues(logs, key);
   const total = values.reduce((sum, value) => sum + value, 0);
@@ -85,6 +88,7 @@ function calculateMetricAverage(
     label: metricLabels[key].label,
     value: typeof average === "number" ? round(average) : undefined,
     target,
+    targetLabel,
     unit: metricLabels[key].unit,
     loggedDays: values.length,
     status,
@@ -254,6 +258,15 @@ function getActiveGoal(logs: DailyLog[], settings: UserSettings | null): GoalTyp
   return settings?.defaultGoal ?? logs[0]?.goal ?? "maintain";
 }
 
+function getLatestWeight(logs: DailyLog[], settings: UserSettings | null): number {
+  const latestWeightLog = logs
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .find((log) => typeof log.weightLbs === "number" && Number.isFinite(log.weightLbs));
+
+  return latestWeightLog?.weightLbs ?? settings?.startingWeightLbs ?? 0;
+}
+
 function buildSummary(goal: GoalType, trend: WeightTrend): string {
   if (trend.direction === "unknown") {
     return "Keep logging. FitCheck needs more saved days before judging progress.";
@@ -395,10 +408,16 @@ export function calculateProgressInsights(
   const activeGoal = getActiveGoal(logs, settings);
   const recentLogs = logs.slice(0, 14);
   const loggingQuality = buildLoggingQuality(logs);
+  const proteinTarget = getProteinTarget(activeGoal, getLatestWeight(logs, settings));
   const weightTrend = calculateWeightTrend(recentLogs, activeGoal, settings?.weeklyGoalPaceLbs);
   const averages = [
     calculateMetricAverage(recentLogs, "calories", settings?.calorieTarget),
-    calculateMetricAverage(recentLogs, "proteinGrams", settings?.proteinTarget),
+    calculateMetricAverage(
+      recentLogs,
+      "proteinGrams",
+      settings?.proteinTarget ?? proteinTarget.low,
+      settings?.proteinTarget ? undefined : proteinTarget.range,
+    ),
     calculateMetricAverage(recentLogs, "steps", settings?.stepTarget),
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);

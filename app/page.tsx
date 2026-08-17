@@ -62,6 +62,7 @@ import { getDailyBrief } from "@/lib/dailyBrief";
 import { getAgentMemory } from "@/lib/agentMemory";
 import { getWeeklyCoachingReview } from "@/lib/weeklyCoachingReview";
 import { getAgentDecisionTrace } from "@/lib/agentDecisionTrace";
+import { getProteinTarget } from "@/lib/proteinTargets";
 import {
   assertStorageKeysAreSeparated,
   DEMO_STORAGE_KEYS,
@@ -663,6 +664,7 @@ const fourteenDayAverage =
 
   const effectiveWeight =
     movingAverage > 0 ? movingAverage : latestWeight;
+  const proteinTarget = getProteinTarget(goal, effectiveWeight);
 
   const signedPoundsToGoal = goalWeight - effectiveWeight;
   const poundsToGoal =
@@ -1077,13 +1079,13 @@ const goalTrendStatus = getGoalTrendStatus({
       ? "If weight and training are not progressing after a consistent trend window, increase calories slightly instead of jumping to a large surplus."
       : "If weight is drifting, confirm calorie logging, steps, and weigh-in consistency before making a small adjustment.";
   const proteinQuestionGuidance =
-    avgProtein >= 130
+    avgProtein >= proteinTarget.low
       ? goal === "Cutting"
         ? "This is strong for preserving muscle during a cut."
         : goal === "Bulking"
         ? "This is strong for supporting muscle gain while bulking."
         : "This is strong for maintaining muscle and training performance."
-      : "This may be low for your goal. Try to get closer to 130-150g per day.";
+      : `This may be low for your goal. Try to get closer to ${proteinTarget.range}.`;
   const stepQuestionGuidance =
     avgSteps >= 10000
       ? "Your activity level is solid. Keep steps consistent rather than forcing extreme days."
@@ -1325,7 +1327,7 @@ const trainingSignal = getTrainingSignal(sortedLogs);
 const strengthStatus = getStrengthStatusFromTrainingSignal(trainingSignal);
 const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
 
-  const proteinTargetMet = avgProtein >= 130;
+  const proteinTargetMet = avgProtein >= proteinTarget.low;
   const stepTargetMet = avgSteps >= 10000;
   const enoughData = logs.length >= 3;
 
@@ -1457,6 +1459,7 @@ AI Confidence Score: ${confidenceScore}%
     totalExercises,
     strengthStatus,
     plateauStatus,
+    proteinTargetLow: proteinTarget.low,
   });
 
   const dataFreshness = getDataFreshness(sortedLogs);
@@ -1472,6 +1475,7 @@ AI Confidence Score: ${confidenceScore}%
   });
   const baseAgentDecision = getAgentDecision({
     goal,
+    effectiveWeight,
     logsCount: logs.length,
     avgCalories,
     avgProtein,
@@ -1553,6 +1557,8 @@ AI Confidence Score: ${confidenceScore}%
     trainingSignal,
   });
   const agentMemory = getAgentMemory({
+    goal,
+    effectiveWeight,
     agentHistory,
     logs: sortedLogs,
     avgProtein,
@@ -1578,6 +1584,7 @@ AI Confidence Score: ${confidenceScore}%
   });
   const agentDecisionTrace = getAgentDecisionTrace({
     goal,
+    effectiveWeight,
     logsCount: logs.length,
     avgCalories,
     avgProtein,
@@ -3324,6 +3331,7 @@ function getRecommendation({
   totalExercises,
   strengthStatus,
   plateauStatus,
+  proteinTargetLow,
 }: {
   goal: Goal;
   logsCount: number;
@@ -3336,6 +3344,7 @@ function getRecommendation({
   totalExercises: number;
   strengthStatus: string;
   plateauStatus: string;
+  proteinTargetLow: number;
 }) {
   if (logsCount === 0) {
     return "Add your first daily log to start generating personalized recommendations.";
@@ -3346,7 +3355,7 @@ function getRecommendation({
       return "Goal reached. Consider moving into maintenance before deciding whether to lean bulk.";
     }
 
-    if (avgProtein < 130) {
+    if (avgProtein < proteinTargetLow) {
       return "Protein is below target. Increase protein to better preserve muscle while cutting.";
     }
 

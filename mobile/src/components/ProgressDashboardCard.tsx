@@ -15,7 +15,11 @@ function formatValue(value?: number, unit = ""): string {
   return `${value}${unit ? ` ${unit}` : ""}`;
 }
 
-function formatTarget(target?: number, unit = ""): string {
+function formatTarget(target?: number, unit = "", targetLabel?: string): string {
+  if (targetLabel) {
+    return `Target ${targetLabel}`;
+  }
+
   if (typeof target !== "number" || !Number.isFinite(target)) {
     return "No target";
   }
@@ -162,7 +166,9 @@ export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) 
           <View key={average.label} style={styles.metricBox}>
             <Text style={styles.metricLabel}>{average.label}</Text>
             <Text style={styles.metricValue}>{formatValue(average.value)}</Text>
-            <Text style={styles.metricMeta}>{formatTarget(average.target)}</Text>
+            <Text style={styles.metricMeta}>
+              {formatTarget(average.target, average.unit, average.targetLabel)}
+            </Text>
             <Text style={styles.metricStatus}>{formatMetricStatus(average.status)}</Text>
             <Text style={styles.metricMeta}>{average.loggedDays} logged days</Text>
           </View>

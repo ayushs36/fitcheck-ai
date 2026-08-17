@@ -4,9 +4,11 @@ import type {
   GoalFeasibility,
   MaintenanceEstimate,
 } from "@/types/fitness";
+import { getProteinTarget } from "@/lib/proteinTargets";
 
 type AgentDecisionInput = {
   goal: Goal;
+  effectiveWeight: number;
   logsCount: number;
   avgCalories: number;
   avgProtein: number;
@@ -20,12 +22,12 @@ type AgentDecisionInput = {
   maintenanceEstimate: MaintenanceEstimate;
 };
 
-const PROTEIN_TARGET = 130;
 const STEP_TARGET = 10000;
 
 export function getAgentDecision(input: AgentDecisionInput): AgentDecision {
   const {
     goal,
+    effectiveWeight,
     logsCount,
     avgCalories,
     avgProtein,
@@ -41,12 +43,13 @@ export function getAgentDecision(input: AgentDecisionInput): AgentDecision {
 
   const confidence = getDecisionConfidence(logsCount, maintenanceEstimate);
   const calorieTarget = getCalorieTarget(avgCalories, maintenanceEstimate);
-  const proteinTargetText = `${PROTEIN_TARGET}-150g/day`;
+  const proteinTarget = getProteinTarget(goal, effectiveWeight);
+  const proteinTargetText = proteinTarget.range;
   const stepTargetText = `${STEP_TARGET.toLocaleString()} steps/day`;
   const isCutting = goal === "Cutting";
   const isBulking = goal === "Bulking";
   const isMaintaining = goal === "Maintaining";
-  const proteinLow = avgProtein > 0 && avgProtein < PROTEIN_TARGET;
+  const proteinLow = avgProtein > 0 && avgProtein < proteinTarget.low;
   const stepsLow = avgSteps > 0 && avgSteps < STEP_TARGET;
   const plateauDetected = plateauStatus === "Potential plateau detected";
   const strengthDropping = strengthStatus === "Strength/performance dropping";
@@ -142,7 +145,7 @@ export function getAgentDecision(input: AgentDecisionInput): AgentDecision {
       action: "Improve protein",
       priority: "Muscle retention",
       rationale:
-        "Protein is below the minimum target for preserving strength and lean mass.",
+        "Protein is below the bodyweight-based target for preserving strength and lean mass.",
       calorieGuidance:
         "Hold calories steady while shifting food choices toward higher-protein meals.",
       proteinGuidance: `Raise protein from ${avgProtein.toFixed(

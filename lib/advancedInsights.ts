@@ -11,6 +11,7 @@ import type {
   WeeklyPlan,
 } from "@/types/fitness";
 import { addDays } from "@/lib/calculations";
+import { getProteinTarget } from "@/lib/proteinTargets";
 
 type AdvancedInsightInput = {
   goal: Goal;
@@ -112,7 +113,7 @@ export function getNutritionTargets(
 ): NutritionTargets {
   const { goal, effectiveWeight, avgCalories, avgProtein, maintenanceEstimate } =
     input;
-  const proteinTarget = Math.round(Math.max(130, effectiveWeight));
+  const proteinTarget = getProteinTarget(goal, effectiveWeight);
   const calorieTarget =
     goal === "Cutting"
       ? maintenanceEstimate.fatLossCaloriesOnePound || avgCalories - 150
@@ -125,7 +126,7 @@ export function getNutritionTargets(
       ? `${roundedCalories - 100}-${roundedCalories + 100} cal/day`
       : "Need more calorie data";
   const priority =
-    avgProtein < proteinTarget
+    avgProtein < proteinTarget.low
       ? "Raise protein first"
       : goal === "Bulking"
       ? "Fuel training progression"
@@ -133,8 +134,8 @@ export function getNutritionTargets(
       ? "Keep intake stable"
       : "Keep calories consistent";
   const guidance =
-    avgProtein < proteinTarget
-      ? "Protein is the highest-leverage nutrition target before changing calories again."
+    avgProtein < proteinTarget.low
+      ? "Protein is below the research-aligned bodyweight range, so bring it up before changing calories again."
       : goal === "Bulking"
       ? "Use the surplus to support progressive training, not just faster scale gain."
       : goal === "Maintaining"
@@ -144,8 +145,8 @@ export function getNutritionTargets(
   return {
     calorieTarget: roundedCalories,
     calorieRange,
-    proteinTarget,
-    proteinRange: `${proteinTarget}-${proteinTarget + 20}g/day`,
+    proteinTarget: proteinTarget.low,
+    proteinRange: proteinTarget.range,
     priority,
     guidance,
     confidence: maintenanceEstimate.confidence,
@@ -216,7 +217,7 @@ function getPlanAdjustment(
         input.goal === "Cutting"
           ? "Hold calories steady and make protein the adjustment before cutting food lower."
           : "Hold calories steady and make protein the adjustment before changing calories.",
-      trigger: `Average protein is ${input.avgProtein.toFixed(0)}g/day versus ${nutritionTargets.proteinTarget}g+ target.`,
+      trigger: `Average protein is ${input.avgProtein.toFixed(0)}g/day versus ${nutritionTargets.proteinRange} target.`,
       guardrail:
         input.goal === "Cutting"
           ? "Do not lower calories until protein execution is strong enough to protect training and lean mass."
@@ -315,9 +316,9 @@ export function getRecoveryRisk(input: AdvancedInsightInput): RecoveryRisk {
     );
   }
 
-  if (input.avgProtein < 130) {
+  if (input.avgProtein < getProteinTarget(input.goal, input.effectiveWeight).low) {
     score += 15;
-    drivers.push("Protein is below the muscle-retention target.");
+    drivers.push("Protein is below the bodyweight-based muscle-retention target.");
   }
 
   if (input.volumeChange < -10) {

@@ -1,4 +1,5 @@
 import type { LoggingQuality } from "@/lib/logQuality";
+import { getProteinTarget } from "@/lib/proteinTargets";
 import type {
   AgentDecision,
   DataFreshness,
@@ -14,6 +15,7 @@ import type {
 
 type AgentDecisionTraceInput = {
   goal: Goal;
+  effectiveWeight: number;
   logsCount: number;
   avgCalories: number;
   avgProtein: number;
@@ -51,7 +53,6 @@ export type AgentDecisionTrace = {
   nextDataNeeded: string[];
 };
 
-const PROTEIN_TARGET = 130;
 const STEP_TARGET = 10000;
 
 export function getAgentDecisionTrace(
@@ -174,6 +175,7 @@ function getTopSignals(input: AgentDecisionTraceInput) {
 }
 
 function getDecisionPath(input: AgentDecisionTraceInput) {
+  const proteinTarget = getProteinTarget(input.goal, input.effectiveWeight);
   const path = [
     `Checked logging quality first: ${input.loggingQuality.summary}`,
     `Checked goal feasibility: ${input.goalFeasibility.verdict} with ${input.goalFeasibility.score}/100 score.`,
@@ -185,7 +187,7 @@ function getDecisionPath(input: AgentDecisionTraceInput) {
     path.push(
       `Protein averaged ${Math.round(
         input.avgProtein
-      )}g, below the ${PROTEIN_TARGET}g minimum target.`
+      )}g, below the ${proteinTarget.range} bodyweight-based target.`
     );
   }
 
@@ -258,6 +260,7 @@ function getGuardrails(input: AgentDecisionTraceInput) {
 }
 
 function getSuppressedActions(input: AgentDecisionTraceInput) {
+  const proteinTarget = getProteinTarget(input.goal, input.effectiveWeight);
   const suppressed: string[] = [];
 
   if (input.goal === "Cutting" && input.agentDecision.action !== "Reduce calories") {
@@ -285,7 +288,7 @@ function getSuppressedActions(input: AgentDecisionTraceInput) {
   if (
     input.agentDecision.action !== "Improve protein" &&
     input.avgProtein > 0 &&
-    input.avgProtein < PROTEIN_TARGET
+    input.avgProtein < proteinTarget.low
   ) {
     suppressed.push(
       "Protein is still watched, but it was not the highest-priority adjustment."

@@ -2,15 +2,18 @@ import type {
   AgentCheck,
   AgentDecisionAction,
   AgentMemory,
+  Goal,
   LogEntry,
   TrainingSignal,
 } from "@/types/fitness";
 import type { LoggingQuality } from "@/lib/logQuality";
+import { getProteinTarget } from "@/lib/proteinTargets";
 
-const PROTEIN_TARGET = 130;
 const STEP_TARGET = 10000;
 
 type AgentMemoryInput = {
+  goal: Goal;
+  effectiveWeight: number;
   agentHistory: AgentCheck[];
   logs: LogEntry[];
   avgProtein: number;
@@ -22,6 +25,8 @@ type AgentMemoryInput = {
 };
 
 export function getAgentMemory({
+  goal,
+  effectiveWeight,
   agentHistory,
   logs,
   avgProtein,
@@ -44,6 +49,8 @@ export function getAgentMemory({
     avgCalories,
     trainingSignal,
     loggingQuality,
+    goal,
+    effectiveWeight,
   });
   const actionReview = getActionReview({
     latestCheck,
@@ -51,6 +58,8 @@ export function getAgentMemory({
     currentDecision,
     trainingSignal,
     loggingQuality,
+    goal,
+    effectiveWeight,
   });
 
   return {
@@ -134,6 +143,8 @@ function getFollowThrough({
   avgCalories,
   trainingSignal,
   loggingQuality,
+  goal,
+  effectiveWeight,
 }: {
   decision: AgentDecisionAction | undefined;
   logs: LogEntry[];
@@ -142,6 +153,8 @@ function getFollowThrough({
   avgCalories: number;
   trainingSignal: TrainingSignal;
   loggingQuality: LoggingQuality;
+  goal: Goal;
+  effectiveWeight: number;
 }): {
   status: AgentMemory["followThroughStatus"];
   evidence: string;
@@ -154,14 +167,15 @@ function getFollowThrough({
   }
 
   if (decision === "Improve protein") {
-    return avgProtein >= PROTEIN_TARGET
+    const proteinTarget = getProteinTarget(goal, effectiveWeight);
+    return avgProtein >= proteinTarget.low
       ? {
           status: "On track",
-          evidence: `Protein is averaging ${avgProtein.toFixed(0)}g, which meets the ${PROTEIN_TARGET}g minimum.`,
+          evidence: `Protein is averaging ${avgProtein.toFixed(0)}g, which meets the ${proteinTarget.range} bodyweight-based target.`,
         }
       : {
           status: "Needs follow-through",
-          evidence: `Protein is averaging ${avgProtein.toFixed(0)}g, still below the ${PROTEIN_TARGET}g minimum.`,
+          evidence: `Protein is averaging ${avgProtein.toFixed(0)}g, still below the ${proteinTarget.range} bodyweight-based target.`,
         };
   }
 
@@ -276,12 +290,16 @@ function getActionReview({
   currentDecision,
   trainingSignal,
   loggingQuality,
+  goal,
+  effectiveWeight,
 }: {
   latestCheck: AgentCheck | undefined;
   logs: LogEntry[];
   currentDecision: AgentDecisionAction;
   trainingSignal: TrainingSignal;
   loggingQuality: LoggingQuality;
+  goal: Goal;
+  effectiveWeight: number;
 }): {
   trackedAction: AgentMemory["trackedAction"];
   window: string;
@@ -327,7 +345,8 @@ function getActionReview({
   const previousStats = getActionStats(previousLogs);
 
   if (latestCheck.decision === "Improve protein") {
-    const result = stats.averageProtein >= PROTEIN_TARGET ? "Working" : "Needs action";
+    const proteinTarget = getProteinTarget(goal, effectiveWeight);
+    const result = stats.averageProtein >= proteinTarget.low ? "Working" : "Needs action";
     return {
       trackedAction: latestCheck.decision,
       window,
@@ -339,7 +358,7 @@ function getActionReview({
       nextStep:
         result === "Working"
           ? "Keep protein anchored while watching weight and training response."
-          : `Bring protein toward ${PROTEIN_TARGET}g/day before changing calories.`,
+          : `Bring protein toward ${proteinTarget.range} before changing calories.`,
     };
   }
 
@@ -457,7 +476,7 @@ function getActionStats(logs: LogEntry[]) {
 
 function getActionNextStep(decision: AgentDecisionAction) {
   if (decision === "Improve protein") {
-    return `Log protein and aim toward ${PROTEIN_TARGET}g/day.`;
+    return "Log protein and aim for the bodyweight-based target shown in Nutrition Targets.";
   }
 
   if (decision === "Increase steps") {
