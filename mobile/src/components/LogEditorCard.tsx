@@ -56,8 +56,13 @@ export function LogEditorCard({
   return (
     <Card>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{dateLabel}</Text>
-        <Text style={styles.cardMeta}>{statusLabel}</Text>
+        <View style={styles.cardHeaderCopy}>
+          <Text style={styles.eyebrow}>Daily Log</Text>
+          <Text style={styles.cardTitle}>{dateLabel}</Text>
+        </View>
+        <View style={styles.statusPill}>
+          <Text style={styles.statusText}>{statusLabel}</Text>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -70,34 +75,46 @@ export function LogEditorCard({
       </View>
 
       <View style={styles.grid}>
-        <TextField
-          keyboardType="decimal-pad"
-          label="Weight"
-          onChangeText={(value) => updateDraft("weightLbs", value)}
-          placeholder="lbs"
-          value={draft.weightLbs}
-        />
-        <TextField
-          keyboardType="number-pad"
-          label="Calories"
-          onChangeText={(value) => updateDraft("calories", value)}
-          placeholder="blank"
-          value={draft.calories}
-        />
-        <TextField
-          keyboardType="number-pad"
-          label="Protein"
-          onChangeText={(value) => updateDraft("proteinGrams", value)}
-          placeholder="grams"
-          value={draft.proteinGrams}
-        />
-        <TextField
-          keyboardType="number-pad"
-          label="Steps"
-          onChangeText={(value) => updateDraft("steps", value)}
-          placeholder="blank"
-          value={draft.steps}
-        />
+        <View style={styles.inputPair}>
+          <View style={styles.inputCell}>
+            <TextField
+              keyboardType="decimal-pad"
+              label="Weight"
+              onChangeText={(value) => updateDraft("weightLbs", value)}
+              placeholder="lbs"
+              value={draft.weightLbs}
+            />
+          </View>
+          <View style={styles.inputCell}>
+            <TextField
+              keyboardType="number-pad"
+              label="Calories"
+              onChangeText={(value) => updateDraft("calories", value)}
+              placeholder="blank"
+              value={draft.calories}
+            />
+          </View>
+        </View>
+        <View style={styles.inputPair}>
+          <View style={styles.inputCell}>
+            <TextField
+              keyboardType="number-pad"
+              label="Protein"
+              onChangeText={(value) => updateDraft("proteinGrams", value)}
+              placeholder="grams"
+              value={draft.proteinGrams}
+            />
+          </View>
+          <View style={styles.inputCell}>
+            <TextField
+              keyboardType="number-pad"
+              label="Steps"
+              onChangeText={(value) => updateDraft("steps", value)}
+              placeholder="blank"
+              value={draft.steps}
+            />
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -141,20 +158,35 @@ export function LogEditorCard({
 
 const styles = StyleSheet.create({
   cardHeader: {
-    gap: 4,
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
   },
-  cardMeta: {
-    color: colors.textMuted,
-    fontSize: 14,
-    fontWeight: "600",
+  cardHeaderCopy: {
+    flex: 1,
+    gap: 3,
   },
   cardTitle: {
     color: colors.text,
     fontSize: 22,
     fontWeight: "800",
   },
+  eyebrow: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
   grid: {
     gap: 12,
+  },
+  inputCell: {
+    flex: 1,
+  },
+  inputPair: {
+    flexDirection: "row",
+    gap: 10,
   },
   label: {
     color: colors.text,
@@ -181,6 +213,19 @@ const styles = StyleSheet.create({
   section: {
     gap: 10,
   },
+  statusPill: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  statusText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+  },
   selectedWorkoutChip: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
@@ -190,6 +235,7 @@ const styles = StyleSheet.create({
   },
   workoutChip: {
     alignItems: "center",
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: 999,
     borderWidth: 1,

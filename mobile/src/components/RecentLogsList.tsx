@@ -21,9 +21,10 @@ export function RecentLogsList({ logs, selectedDate, onSelectLog }: RecentLogsLi
   if (logs.length === 0) {
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>No logs yet</Text>
+        <Text style={styles.emptyTitle}>Your first trend starts here</Text>
         <Text style={styles.emptyBody}>
-          Save your first day to start building mobile progress history.
+          Save today with any fields you know. Blank fields stay blank and will be skipped in
+          averages.
         </Text>
       </View>
     );
@@ -44,7 +45,9 @@ export function RecentLogsList({ logs, selectedDate, onSelectLog }: RecentLogsLi
           >
             <View style={styles.rowHeader}>
               <Text style={styles.date}>{formatReadableDate(log.date)}</Text>
-              <Text style={styles.goal}>{log.goal}</Text>
+              <View style={styles.goalPill}>
+                <Text style={styles.goal}>{log.goal}</Text>
+              </View>
             </View>
             <Text style={styles.metrics}>
               {[
@@ -79,8 +82,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   emptyState: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
     borderRadius: 16,
+    borderWidth: 1,
     gap: 6,
     padding: 16,
   },
@@ -103,8 +108,14 @@ const styles = StyleSheet.create({
   goal: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
     textTransform: "uppercase",
+  },
+  goalPill: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
   list: {
     gap: 10,
@@ -115,6 +126,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   row: {
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: 16,
     borderWidth: 1,

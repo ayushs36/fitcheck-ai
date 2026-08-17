@@ -1,24 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
+import { DailyCoachBriefCard } from "../components/DailyCoachBriefCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
 import {
   getDailyLogByDate,
-  loadRecentDailyLogs,
+  loadDailyLogsDescending,
   loadUserSettings,
   upsertDailyLog,
 } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
-import { DailyLog, TodayLogDraft } from "../types/fitness";
+import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
+import { calculateProgressInsights } from "../utils/progressInsights";
 
 export function TodayScreen() {
   const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [existingLog, setExistingLog] = useState<DailyLog | undefined>();
+  const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
   const [recentLogs, setRecentLogs] = useState<DailyLog[]>([]);
+  const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const todayKey = useMemo(() => getTodayKey(), []);
@@ -28,9 +32,9 @@ export function TodayScreen() {
 
     async function loadSavedLog() {
       try {
-        const [savedTodayLog, savedRecentLogs, savedSettings] = await Promise.all([
+        const [savedTodayLog, savedLogs, savedSettings] = await Promise.all([
           getDailyLogByDate(todayKey),
-          loadRecentDailyLogs(5),
+          loadDailyLogsDescending(),
           loadUserSettings(),
         ]);
 
@@ -39,12 +43,14 @@ export function TodayScreen() {
         }
 
         setExistingLog(savedTodayLog);
+        setAllLogs(savedLogs);
+        setSettings(savedSettings);
         setDraft(
           savedTodayLog
             ? dailyLogToDraft(savedTodayLog)
             : { ...dailyLogToDraft(undefined), goal: savedSettings?.defaultGoal ?? "maintain" },
         );
-        setRecentLogs(savedRecentLogs);
+        setRecentLogs(savedLogs.slice(0, 5));
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -67,17 +73,35 @@ export function TodayScreen() {
     });
 
     const updatedLogs = await upsertDailyLog(dailyLog);
+    const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
     setExistingLog(dailyLog);
-    setRecentLogs(updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5));
+    setAllLogs(sortedLogs);
+    setRecentLogs(sortedLogs.slice(0, 5));
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Log saved", "Your daily log was saved on this device.");
   }
+
+  const coachSettings: UserSettings = {
+    unitSystem: settings?.unitSystem ?? "imperial",
+    defaultGoal: draft.goal,
+    startingWeightLbs: settings?.startingWeightLbs,
+    targetWeightLbs: settings?.targetWeightLbs,
+    weeklyGoalPaceLbs: settings?.weeklyGoalPaceLbs,
+    calorieTarget: settings?.calorieTarget,
+    proteinTarget: settings?.proteinTarget,
+    stepTarget: settings?.stepTarget,
+    hasCompletedOnboarding: settings?.hasCompletedOnboarding,
+    updatedAt: settings?.updatedAt,
+  };
+  const coachInsights = calculateProgressInsights(allLogs, coachSettings);
 
   return (
     <Screen
       title="Today"
       subtitle="Log what you know. Blank fields stay blank and will not count against your trends."
     >
+      <DailyCoachBriefCard insights={coachInsights} />
+
       <LogEditorCard
         dateLabel={formatReadableDate(todayKey)}
         draft={draft}
@@ -99,7 +123,7 @@ export function TodayScreen() {
       <Card>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Recent Logs</Text>
-          <Text style={styles.cardMeta}>Saved on this device</Text>
+          <Text style={styles.cardMeta}>Last 5 saved days on this device</Text>
         </View>
         <RecentLogsList logs={recentLogs} />
       </Card>
