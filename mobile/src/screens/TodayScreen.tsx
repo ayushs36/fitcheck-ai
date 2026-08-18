@@ -16,6 +16,7 @@ import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
+import { getWeightUnitLabel } from "../utils/units";
 
 export function TodayScreen() {
   const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
@@ -45,10 +46,11 @@ export function TodayScreen() {
         setExistingLog(savedTodayLog);
         setAllLogs(savedLogs);
         setSettings(savedSettings);
+        const unitSystem = savedSettings?.unitSystem ?? "imperial";
         setDraft(
           savedTodayLog
-            ? dailyLogToDraft(savedTodayLog)
-            : { ...dailyLogToDraft(undefined), goal: savedSettings?.defaultGoal ?? "maintain" },
+            ? dailyLogToDraft(savedTodayLog, unitSystem)
+            : { ...dailyLogToDraft(undefined, unitSystem), goal: savedSettings?.defaultGoal ?? "maintain" },
         );
         setRecentLogs(savedLogs.slice(0, 5));
       } finally {
@@ -70,6 +72,7 @@ export function TodayScreen() {
       date: todayKey,
       draft,
       existingLog,
+      unitSystem: settings?.unitSystem ?? "imperial",
     });
 
     const updatedLogs = await upsertDailyLog(dailyLog);
@@ -94,19 +97,22 @@ export function TodayScreen() {
     updatedAt: settings?.updatedAt,
   };
   const coachInsights = calculateProgressInsights(allLogs, coachSettings);
+  const unitSystem = settings?.unitSystem ?? "imperial";
+  const weightUnit = getWeightUnitLabel(unitSystem);
 
   return (
     <Screen
       title="Today"
       subtitle="Log what you know. Blank fields stay blank and will not count against your trends."
     >
-      <DailyCoachBriefCard insights={coachInsights} />
+      <DailyCoachBriefCard insights={coachInsights} unitSystem={unitSystem} />
 
       <LogEditorCard
         dateLabel={formatReadableDate(todayKey)}
         draft={draft}
         onDraftChange={setDraft}
         onSubmit={saveLog}
+        weightUnit={weightUnit}
         statusLabel={
           isLoading
             ? "Loading saved log"
@@ -125,7 +131,7 @@ export function TodayScreen() {
           <Text style={styles.cardTitle}>Recent Logs</Text>
           <Text style={styles.cardMeta}>Last 5 saved days on this device</Text>
         </View>
-        <RecentLogsList logs={recentLogs} />
+        <RecentLogsList logs={recentLogs} unitSystem={unitSystem} />
       </Card>
     </Screen>
   );

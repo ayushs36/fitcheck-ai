@@ -8,6 +8,10 @@ export function getWeightUnitLabel(unitSystem: UnitSystem): string {
   return unitSystem === "metric" ? "kg" : "lb";
 }
 
+export function convertWeightFromLbs(value: number, unitSystem: UnitSystem): number {
+  return unitSystem === "metric" ? value / poundsPerKilogram : value;
+}
+
 export function parseWeightToLbs(value: string, unitSystem: UnitSystem): number | undefined {
   const parsedValue = Number(value);
   if (!Number.isFinite(parsedValue) || value.trim() === "") {
@@ -23,6 +27,6 @@ export function formatWeightFromLbs(value: number | undefined, unitSystem: UnitS
     return "";
   }
 
-  const displayValue = unitSystem === "metric" ? value / poundsPerKilogram : value;
+  const displayValue = convertWeightFromLbs(value, unitSystem);
   return String(Math.round(displayValue * 10) / 10);
 }

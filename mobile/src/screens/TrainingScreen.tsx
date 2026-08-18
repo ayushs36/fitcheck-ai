@@ -5,10 +5,11 @@ import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
 import { exerciseTemplatesByWorkoutType, ExerciseTemplate } from "../data/exerciseTemplates";
-import { addWorkoutSession, loadRecentWorkoutSessions } from "../storage/mobileStorage";
+import { addWorkoutSession, loadRecentWorkoutSessions, loadUserSettings } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
+import { getWeightUnitLabel, UnitSystem } from "../utils/units";
 import {
   createBlankExercise,
   createBlankSet,
@@ -34,11 +35,16 @@ export function TrainingScreen() {
   const todayKey = useMemo(() => getTodayKey(), []);
   const [draft, setDraft] = useState<WorkoutDraft>(() => createBlankWorkoutDraft());
   const [recentSessions, setRecentSessions] = useState<WorkoutSession[]>([]);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>("imperial");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   async function refreshSessions() {
-    const sessions = await loadRecentWorkoutSessions(5);
+    const [sessions, settings] = await Promise.all([
+      loadRecentWorkoutSessions(5),
+      loadUserSettings(),
+    ]);
     setRecentSessions(sessions);
+    setUnitSystem(settings?.unitSystem ?? "imperial");
   }
 
   useEffect(() => {
@@ -119,6 +125,7 @@ export function TrainingScreen() {
     const workoutSession = createWorkoutSessionFromDraft({
       date: todayKey,
       draft,
+      unitSystem,
     });
 
     if (workoutSession.exercises.length === 0 && draft.type !== "Rest") {
@@ -135,6 +142,7 @@ export function TrainingScreen() {
 
   const suggestedExercises = exerciseTemplatesByWorkoutType[draft.type];
   const isRestDay = draft.type === "Rest";
+  const weightUnit = getWeightUnitLabel(unitSystem);
 
   return (
     <Screen
@@ -267,7 +275,7 @@ export function TrainingScreen() {
                         ),
                       })
                     }
-                    placeholder={set.isBodyweight ? "bodyweight" : "lbs"}
+                    placeholder={set.isBodyweight ? "bodyweight" : weightUnit}
                     value={set.isBodyweight ? "" : set.weightLbs}
                   />
                 </View>

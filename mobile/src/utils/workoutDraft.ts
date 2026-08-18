@@ -9,6 +9,7 @@ import {
 } from "../types/fitness";
 import { ExerciseTemplate } from "../data/exerciseTemplates";
 import { parseOptionalNumber } from "./logDraft";
+import { parseWeightToLbs, UnitSystem } from "./units";
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -78,18 +79,21 @@ export function createWorkoutDraftFromSession(session: WorkoutSession): WorkoutD
   };
 }
 
-function setDraftToLog(setDraft: ExerciseSetDraft): ExerciseSet {
+function setDraftToLog(setDraft: ExerciseSetDraft, unitSystem: UnitSystem): ExerciseSet {
   return {
     id: setDraft.id,
     reps: parseOptionalNumber(setDraft.reps),
-    weightLbs: setDraft.isBodyweight ? undefined : parseOptionalNumber(setDraft.weightLbs),
+    weightLbs: setDraft.isBodyweight ? undefined : parseWeightToLbs(setDraft.weightLbs, unitSystem),
     isBodyweight: setDraft.isBodyweight,
     formFocus: setDraft.formFocus,
     notes: setDraft.notes.trim() || undefined,
   };
 }
 
-function exerciseDraftToLog(exerciseDraft: ExerciseDraft): ExerciseLog | null {
+function exerciseDraftToLog(
+  exerciseDraft: ExerciseDraft,
+  unitSystem: UnitSystem,
+): ExerciseLog | null {
   const name = exerciseDraft.name.trim();
   if (!name) {
     return null;
@@ -99,20 +103,22 @@ function exerciseDraftToLog(exerciseDraft: ExerciseDraft): ExerciseLog | null {
     id: exerciseDraft.id,
     name,
     muscleGroup: exerciseDraft.muscleGroup.trim() || undefined,
-    sets: exerciseDraft.sets.map(setDraftToLog),
+    sets: exerciseDraft.sets.map((setDraft) => setDraftToLog(setDraft, unitSystem)),
   };
 }
 
 export function createWorkoutSessionFromDraft({
   date,
   draft,
+  unitSystem = "imperial",
 }: {
   date: string;
   draft: WorkoutDraft;
+  unitSystem?: UnitSystem;
 }): WorkoutSession {
   const now = new Date().toISOString();
   const exercises = draft.exercises
-    .map(exerciseDraftToLog)
+    .map((exerciseDraft) => exerciseDraftToLog(exerciseDraft, unitSystem))
     .filter((exercise): exercise is ExerciseLog => Boolean(exercise));
 
   return {

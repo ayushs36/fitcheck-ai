@@ -18,6 +18,7 @@ import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/
 import { formatReadableDate } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
+import { getWeightUnitLabel } from "../utils/units";
 
 export function ProgressScreen() {
   const [logs, setLogs] = useState<DailyLog[]>([]);
@@ -42,7 +43,7 @@ export function ProgressScreen() {
     if (selectedLog) {
       const refreshedSelectedLog = savedLogs.find((log) => log.date === selectedLog.date);
       setSelectedLog(refreshedSelectedLog);
-      setEditDraft(dailyLogToDraft(refreshedSelectedLog));
+      setEditDraft(dailyLogToDraft(refreshedSelectedLog, savedSettings?.unitSystem ?? "imperial"));
     }
 
     setIsLoading(false);
@@ -50,7 +51,7 @@ export function ProgressScreen() {
 
   function selectLog(log: DailyLog) {
     setSelectedLog(log);
-    setEditDraft(dailyLogToDraft(log));
+    setEditDraft(dailyLogToDraft(log, settings?.unitSystem ?? "imperial"));
     setLastEditedDate(null);
   }
 
@@ -69,13 +70,14 @@ export function ProgressScreen() {
       date: selectedLog.date,
       draft: editDraft,
       existingLog: selectedLog,
+      unitSystem: settings?.unitSystem ?? "imperial",
     });
 
     const updatedLogs = await upsertDailyLog(updatedLog);
     const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
     setLogs(sortedLogs);
     setSelectedLog(updatedLog);
-    setEditDraft(dailyLogToDraft(updatedLog));
+    setEditDraft(dailyLogToDraft(updatedLog, settings?.unitSystem ?? "imperial"));
     setLastEditedDate(updatedLog.date);
     Alert.alert("Past log updated", `${formatReadableDate(updatedLog.date)} was updated.`);
   }
@@ -85,14 +87,16 @@ export function ProgressScreen() {
   }, []);
 
   const insights = calculateProgressInsights(logs, settings);
+  const unitSystem = settings?.unitSystem ?? "imperial";
+  const weightUnit = getWeightUnitLabel(unitSystem);
 
   return (
     <Screen
       title="Progress"
       subtitle="Track goal-aware trends while skipping missing fields from averages."
     >
-      <ProgressDashboardCard insights={insights} />
-      <ProgressChartsCard logs={logs} workouts={workouts} />
+      <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />
+      <ProgressChartsCard logs={logs} workouts={workouts} unitSystem={unitSystem} />
       <GoalInsightGuideCard goal={insights.activeGoal} />
 
       <Card>
@@ -109,6 +113,7 @@ export function ProgressScreen() {
         </View>
         <RecentLogsList
           logs={logs}
+          unitSystem={unitSystem}
           onSelectLog={selectLog}
           selectedDate={selectedLog?.date}
         />
@@ -120,6 +125,7 @@ export function ProgressScreen() {
           draft={editDraft}
           onDraftChange={setEditDraft}
           onSubmit={savePastLog}
+          weightUnit={weightUnit}
           statusLabel="Editing past log"
           submitLabel="Update Past Log"
           footer={

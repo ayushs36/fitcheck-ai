@@ -1,19 +1,22 @@
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { ProgressInsights } from "../utils/progressInsights";
+import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
 
 type DailyCoachBriefCardProps = {
   insights: ProgressInsights;
+  unitSystem?: UnitSystem;
 };
 
-function formatTrend(insights: ProgressInsights): string {
+function formatTrend(insights: ProgressInsights, unitSystem: UnitSystem): string {
   const weeklyChange = insights.weightTrend.weeklyChange;
   if (typeof weeklyChange !== "number") {
     return "Need more weigh-ins";
   }
 
-  return `${weeklyChange} lb/week`;
+  const convertedChange = Math.round(convertWeightFromLbs(weeklyChange, unitSystem) * 10) / 10;
+  return `${convertedChange} ${getWeightUnitLabel(unitSystem)}/week`;
 }
 
 function formatQualityLabel(status: ProgressInsights["loggingQuality"]["status"]): string {
@@ -32,7 +35,10 @@ function formatQualityLabel(status: ProgressInsights["loggingQuality"]["status"]
   return "Build baseline";
 }
 
-export function DailyCoachBriefCard({ insights }: DailyCoachBriefCardProps) {
+export function DailyCoachBriefCard({
+  insights,
+  unitSystem = "imperial",
+}: DailyCoachBriefCardProps) {
   return (
     <Card>
       <View style={styles.accentBar} />
@@ -51,7 +57,7 @@ export function DailyCoachBriefCard({ insights }: DailyCoachBriefCardProps) {
       <View style={styles.signalRow}>
         <View style={styles.signalBox}>
           <Text style={styles.signalLabel}>Trend</Text>
-          <Text style={styles.signalValue}>{formatTrend(insights)}</Text>
+          <Text style={styles.signalValue}>{formatTrend(insights, unitSystem)}</Text>
           <Text style={styles.signalMeta}>{insights.weightTrend.status}</Text>
         </View>
         <View style={styles.signalBox}>

@@ -2,9 +2,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { DailyLog } from "../types/fitness";
 import { formatReadableDate } from "../utils/date";
+import { formatWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 
 type RecentLogsListProps = {
   logs: DailyLog[];
+  unitSystem?: UnitSystem;
   selectedDate?: string;
   onSelectLog?: (log: DailyLog) => void;
 };
@@ -17,7 +19,20 @@ function formatMetric(label: string, value?: number, suffix = ""): string {
   return `${label}: ${value}${suffix}`;
 }
 
-export function RecentLogsList({ logs, selectedDate, onSelectLog }: RecentLogsListProps) {
+function formatWeight(value: number | undefined, unitSystem: UnitSystem): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "Weight: blank";
+  }
+
+  return `Weight: ${formatWeightFromLbs(value, unitSystem)} ${getWeightUnitLabel(unitSystem)}`;
+}
+
+export function RecentLogsList({
+  logs,
+  unitSystem = "imperial",
+  selectedDate,
+  onSelectLog,
+}: RecentLogsListProps) {
   if (logs.length === 0) {
     return (
       <View style={styles.emptyState}>
@@ -51,7 +66,7 @@ export function RecentLogsList({ logs, selectedDate, onSelectLog }: RecentLogsLi
             </View>
             <Text style={styles.metrics}>
               {[
-                formatMetric("Weight", log.weightLbs, " lb"),
+                formatWeight(log.weightLbs, unitSystem),
                 formatMetric("Cals", log.calories),
                 formatMetric("Protein", log.proteinGrams, "g"),
                 formatMetric("Steps", log.steps),

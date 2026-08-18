@@ -1,10 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { ProgressInsights } from "../utils/progressInsights";
+import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
 
 type ProgressDashboardCardProps = {
   insights: ProgressInsights;
+  unitSystem?: UnitSystem;
 };
 
 function formatValue(value?: number, unit = ""): string {
@@ -83,7 +85,15 @@ function formatStreak(days: number): string {
   return `${days} day${days === 1 ? "" : "s"} logged in a row`;
 }
 
-export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) {
+function formatWeeklyChange(value: number, unitSystem: UnitSystem): string {
+  const convertedValue = Math.round(convertWeightFromLbs(value, unitSystem) * 10) / 10;
+  return `${convertedValue} ${getWeightUnitLabel(unitSystem)}/week`;
+}
+
+export function ProgressDashboardCard({
+  insights,
+  unitSystem = "imperial",
+}: ProgressDashboardCardProps) {
   const coverageItems = [
     { label: "Weight", value: insights.loggingQuality.coverage.weight },
     { label: "Calories", value: insights.loggingQuality.coverage.calories },
@@ -108,7 +118,7 @@ export function ProgressDashboardCard({ insights }: ProgressDashboardCardProps) 
         <View style={styles.trendCopy}>
           <Text style={styles.trendValue}>
             {typeof insights.weightTrend.weeklyChange === "number"
-              ? `${insights.weightTrend.weeklyChange} lb/week`
+              ? formatWeeklyChange(insights.weightTrend.weeklyChange, unitSystem)
               : "Not enough data"}
           </Text>
           <Text style={styles.body}>

@@ -1,4 +1,5 @@
 import { DailyLog, GoalType, TodayLogDraft, WorkoutType } from "../types/fitness";
+import { formatWeightFromLbs, parseWeightToLbs, UnitSystem } from "./units";
 
 export const blankTodayDraft: TodayLogDraft = {
   goal: "maintain",
@@ -24,14 +25,14 @@ export function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsedValue) ? parsedValue : undefined;
 }
 
-export function dailyLogToDraft(log?: DailyLog): TodayLogDraft {
+export function dailyLogToDraft(log?: DailyLog, unitSystem: UnitSystem = "imperial"): TodayLogDraft {
   if (!log) {
     return blankTodayDraft;
   }
 
   return {
     goal: log.goal,
-    weightLbs: formatOptionalNumber(log.weightLbs),
+    weightLbs: formatWeightFromLbs(log.weightLbs, unitSystem),
     calories: formatOptionalNumber(log.calories),
     proteinGrams: formatOptionalNumber(log.proteinGrams),
     steps: formatOptionalNumber(log.steps),
@@ -44,10 +45,12 @@ export function createDailyLogFromDraft({
   date,
   draft,
   existingLog,
+  unitSystem = "imperial",
 }: {
   date: string;
   draft: TodayLogDraft;
   existingLog?: DailyLog;
+  unitSystem?: UnitSystem;
 }): DailyLog {
   const now = new Date().toISOString();
 
@@ -55,7 +58,7 @@ export function createDailyLogFromDraft({
     id: existingLog?.id ?? date,
     date,
     goal: draft.goal as GoalType,
-    weightLbs: parseOptionalNumber(draft.weightLbs),
+    weightLbs: parseWeightToLbs(draft.weightLbs, unitSystem),
     calories: parseOptionalNumber(draft.calories),
     proteinGrams: parseOptionalNumber(draft.proteinGrams),
     steps: parseOptionalNumber(draft.steps),

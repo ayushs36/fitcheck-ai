@@ -2,11 +2,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { DailyLog, WorkoutSession } from "../types/fitness";
 import { buildStrengthPreview, buildTrendSeries, TrendPoint } from "../utils/trendSeries";
+import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
 
 type ProgressChartsCardProps = {
   logs: DailyLog[];
   workouts: WorkoutSession[];
+  unitSystem?: UnitSystem;
 };
 
 function getRange(points: TrendPoint[]): { min: number; max: number } {
@@ -83,11 +85,19 @@ function getDirectionText(direction: string): string {
   return "More data needed";
 }
 
-export function ProgressChartsCard({ logs, workouts }: ProgressChartsCardProps) {
-  const weightPoints = buildTrendSeries(logs, "weightLbs");
+export function ProgressChartsCard({
+  logs,
+  workouts,
+  unitSystem = "imperial",
+}: ProgressChartsCardProps) {
+  const weightPoints = buildTrendSeries(logs, "weightLbs").map((point) => ({
+    ...point,
+    value: Math.round(convertWeightFromLbs(point.value, unitSystem) * 10) / 10,
+  }));
   const caloriePoints = buildTrendSeries(logs, "calories");
   const stepPoints = buildTrendSeries(logs, "steps");
   const strengthPreview = buildStrengthPreview(workouts);
+  const weightUnit = getWeightUnitLabel(unitSystem);
 
   return (
     <Card>
@@ -96,7 +106,7 @@ export function ProgressChartsCard({ logs, workouts }: ProgressChartsCardProps) 
         <Text style={styles.body}>Charts only use days where that field was logged.</Text>
       </View>
 
-      <ChartSection label="Weight" points={weightPoints} unit="lb" />
+      <ChartSection label="Weight" points={weightPoints} unit={weightUnit} />
       <ChartSection label="Calories" points={caloriePoints} unit="cal" />
       <ChartSection label="Steps" points={stepPoints} unit="steps" />
 

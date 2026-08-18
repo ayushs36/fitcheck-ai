@@ -29,6 +29,7 @@ type LogEditorCardProps = {
   draft: TodayLogDraft;
   statusLabel: string;
   submitLabel: string;
+  weightUnit: string;
   footer?: ReactNode;
   onDraftChange: (draft: TodayLogDraft) => void;
   onSubmit: () => void;
@@ -39,6 +40,7 @@ export function LogEditorCard({
   draft,
   statusLabel,
   submitLabel,
+  weightUnit,
   footer,
   onDraftChange,
   onSubmit,
@@ -81,7 +83,7 @@ export function LogEditorCard({
               keyboardType="decimal-pad"
               label="Weight"
               onChangeText={(value) => updateDraft("weightLbs", value)}
-              placeholder="lbs"
+              placeholder={weightUnit}
               value={draft.weightLbs}
             />
           </View>
