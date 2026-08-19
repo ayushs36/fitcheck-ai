@@ -1323,6 +1323,10 @@ const volumeChange =
       100
     : 0;
 const trainingSignal = getTrainingSignal(sortedLogs);
+const aiDataAccess = useMemo(
+  () => buildAIDataAccess(sortedLogs),
+  [sortedLogs]
+);
 
 const strengthStatus = getStrengthStatusFromTrainingSignal(trainingSignal);
 const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
@@ -2072,6 +2076,7 @@ async function askFitCheckAILLM() {
 
   const context = {
     goal,
+    dataAccess: aiDataAccess,
     goalMemory,
     latestWeight,
     effectiveWeight,
@@ -2082,7 +2087,6 @@ async function askFitCheckAILLM() {
     goalDate,
     poundsToGoal,
     poundsRemaining,
-    GoalProgressBar,
     currentPace,
     requiredWeeklyLoss,
     projectedGoalDateText,
@@ -2152,6 +2156,7 @@ async function generateAIWeeklyReport() {
 
   const weeklyContext = {
     goal,
+    dataAccess: aiDataAccess,
     goalMemory,
     latestWeight,
     effectiveWeight,
@@ -2233,6 +2238,7 @@ async function generateGoalStrategy() {
 
   const strategyContext = {
     goal,
+    dataAccess: aiDataAccess,
     goalMemory,
     latestWeight,
     effectiveWeight,
@@ -2313,6 +2319,7 @@ async function runFitCheckAgent() {
 
   const agentContext = {
     goal,
+    dataAccess: aiDataAccess,
     goalMemory,
     latestWeight,
     movingAverage,
@@ -3317,6 +3324,62 @@ function getGoalPhaseSummary(goal: Goal, daysActive: number) {
   return daysActive >= 28
     ? "an established maintenance phase where stability and repeatable habits matter most"
     : "an active maintenance phase where the agent should watch for drift before adjusting calories";
+}
+
+function buildAIDataAccess(sortedLogs: LogEntry[]) {
+  const includedLogs = sortedLogs.slice(-180);
+  const omittedOlderLogs = Math.max(0, sortedLogs.length - includedLogs.length);
+
+  return {
+    available: true,
+    note:
+      "Exact daily app logs are included below. Null means that field was blank or not logged; do not treat null as zero.",
+    totalLogs: sortedLogs.length,
+    includedLogs: includedLogs.length,
+    omittedOlderLogs,
+    firstLogDate: sortedLogs[0]?.date ?? null,
+    latestLogDate: sortedLogs[sortedLogs.length - 1]?.date ?? null,
+    exactDailyLogs: includedLogs.map(compactLogForAI),
+    workoutLogs: includedLogs
+      .filter((log) => log.workout.trim() || log.exercises.length > 0)
+      .map((log) => ({
+        date: log.date,
+        workout: log.workout.trim() || "Workout logged",
+        exercises: log.exercises.map(formatExerciseForAI),
+      })),
+  };
+}
+
+function compactLogForAI(log: LogEntry) {
+  return {
+    date: log.date,
+    weight: positiveOrNull(log.weight),
+    calories: positiveOrNull(log.calories),
+    protein: positiveOrNull(log.protein),
+    steps: positiveOrNull(log.steps),
+    workout: log.workout.trim() || null,
+    exercises: log.exercises.map((exercise) => ({
+      name: exercise.name.trim() || "Unnamed exercise",
+      sets: positiveOrNull(exercise.sets),
+      reps: positiveOrNull(exercise.reps),
+      weight: positiveOrNull(exercise.weight),
+    })),
+  };
+}
+
+function formatExerciseForAI(exercise: Exercise) {
+  const name = exercise.name.trim() || "Unnamed exercise";
+  const sets = positiveOrNull(exercise.sets);
+  const reps = positiveOrNull(exercise.reps);
+  const weight = positiveOrNull(exercise.weight);
+
+  return `${name}: ${sets ?? "?"} sets x ${reps ?? "?"} reps${
+    weight ? ` @ ${weight} lbs` : ""
+  }`;
+}
+
+function positiveOrNull(value: number) {
+  return value > 0 ? value : null;
 }
 
 function getRecommendation({

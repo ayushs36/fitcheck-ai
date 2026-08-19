@@ -22,6 +22,34 @@ type RateLimitResult = {
 
 export type FitCheckAIContext = {
   goal?: string;
+  dataAccess?: {
+    available?: boolean;
+    note?: string;
+    totalLogs?: number;
+    includedLogs?: number;
+    omittedOlderLogs?: number;
+    firstLogDate?: string | null;
+    latestLogDate?: string | null;
+    exactDailyLogs?: Array<{
+      date: string;
+      weight: number | null;
+      calories: number | null;
+      protein: number | null;
+      steps: number | null;
+      workout: string | null;
+      exercises: Array<{
+        name: string;
+        sets: number | null;
+        reps: number | null;
+        weight: number | null;
+      }>;
+    }>;
+    workoutLogs?: Array<{
+      date: string;
+      workout: string;
+      exercises: string[];
+    }>;
+  };
   goalMemory?: {
     currentGoal?: string;
     startedAt?: string;

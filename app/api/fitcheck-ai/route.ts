@@ -36,7 +36,7 @@ function getReasoningEffort(value: string | undefined): FitCheckReasoningEffort 
     return value as FitCheckReasoningEffort;
   }
 
-  return "low";
+  return "medium";
 }
 
 export async function POST(request: Request) {
@@ -111,6 +111,9 @@ You are NOT allowed to give a generic answer.
 You must answer the user's exact question.
 You must use the user's actual fitness context below.
 Mention at least 3 specific metrics from the context when possible.
+If context.dataAccess.exactDailyLogs exists, you can inspect individual saved daily logs by date. Use those exact rows when the user asks about a specific day, logged calories, logged protein, logged steps, weigh-ins, workouts, exercises, or missing fields.
+If the user asks about a date or metric that is not present in exactDailyLogs, say it was not logged or not included in the available app context. Do not say you cannot see the app data when exactDailyLogs is present.
+Treat null, missing, or zero-valued log fields as unknown/not logged unless the context explicitly says otherwise.
 Do not repeat the same response every time.
 If the user asks different questions, give different answers.
 If the context has missing or zero values, say that clearly.
@@ -121,8 +124,9 @@ Rules:
 - Match the selected goal in the context. Cutting should focus on sustainable fat loss, bulking should focus on controlled muscle gain and training progression, and maintaining should focus on weight stability, consistency, and performance.
 - Use goalMemory when present. If the current goal has been active for multiple weeks, treat this as an ongoing phase and judge whether the current plan needs refinement rather than acting like the goal just started.
 - Prioritize strength retention, protein, sleep, consistency, steps, recovery, and sustainable calorie changes.
+- For data lookup questions, answer with the relevant exact log rows first, then add coaching interpretation only if useful.
 - Be direct, practical, and specific.
-- Keep the answer under 180 words.
+- Keep the answer under 220 words unless the user asks for a list or table.
 
 User question:
 ${question}
