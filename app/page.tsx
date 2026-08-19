@@ -485,13 +485,17 @@ useEffect(() => {
     return;
   }
 
-  const activeConversationId = localStorage.getItem(
+  localStorage.removeItem(storageKeys.activeAIConversationId);
+
+  const activeConversationId = sessionStorage.getItem(
     storageKeys.activeAIConversationId
   );
 
   if (!activeConversationId) {
     return;
   }
+
+  sessionStorage.removeItem(storageKeys.activeAIConversationId);
 
   const conversation = aiHistory.find(
     (item) => item.id === activeConversationId && item.type === "Ask AI"
@@ -2031,6 +2035,7 @@ function clearAskAIHistory() {
     current.filter((conversation) => conversation.type !== "Ask AI")
   );
   localStorage.removeItem(storageKeys.activeAIConversationId);
+  sessionStorage.removeItem(storageKeys.activeAIConversationId);
   setActiveAIConversationContext(null);
   setExpandedAIConversationId(null);
   setExpandedAIHistoryMonths([]);
@@ -2047,7 +2052,8 @@ function toggleAIHistoryMonth(monthYear: string) {
 function continueAskAIConversation(conversation: AIConversation) {
   const cleanConversation = sanitizeAIConversation(conversation);
 
-  localStorage.setItem(storageKeys.activeAIConversationId, cleanConversation.id);
+  localStorage.removeItem(storageKeys.activeAIConversationId);
+  sessionStorage.setItem(storageKeys.activeAIConversationId, cleanConversation.id);
   setActiveAIConversationContext(cleanConversation);
   setCoachAnswer(cleanConversation.answer);
   setCoachQuestion("");
@@ -3173,6 +3179,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   activeConversationQuestion={activeAIConversationContext?.question ?? null}
   clearActiveConversation={() => {
     localStorage.removeItem(storageKeys.activeAIConversationId);
+    sessionStorage.removeItem(storageKeys.activeAIConversationId);
     setActiveAIConversationContext(null);
     setCoachQuestion("");
     setCoachAnswer("Ask FitCheck AI a question...");
