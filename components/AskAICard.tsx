@@ -18,6 +18,10 @@ export function AskAICard({
   clearActiveConversation: () => void;
 }) {
   const isReopenedChat = Boolean(activeConversationLabel);
+  const chatMessages = buildChatMessages({
+    question: activeConversationQuestion,
+    answer: coachAnswer,
+  });
 
   return (
     <section
@@ -61,12 +65,9 @@ export function AskAICard({
               </button>
             </div>
 
-            {activeConversationQuestion && (
-              <div className="mt-4 rounded-2xl bg-white p-4 text-sm leading-6 text-slate-700">
-                <p className="font-semibold text-slate-950">Original question</p>
-                <p className="mt-2">{activeConversationQuestion}</p>
-              </div>
-            )}
+            <p className="mt-3 text-xs leading-5 text-blue-800">
+              Continue this saved chat below, or start a fresh one.
+            </p>
           </div>
         )}
 
@@ -97,9 +98,97 @@ export function AskAICard({
           <p className="font-semibold text-slate-950">
             {isReopenedChat ? "Ask FitCheck AI Chat" : "FitCheck AI Response"}
           </p>
-          <p className="mt-2 whitespace-pre-line">{coachAnswer}</p>
+          <div className="mt-4 space-y-3">
+            {chatMessages.map((message, index) => (
+              <ChatBubble
+                key={`${message.role}-${index}-${message.content.slice(0, 24)}`}
+                message={message}
+              />
+            ))}
+          </div>
         </div>
       </details>
     </section>
   );
+}
+
+type ChatMessage = {
+  role: "You" | "FitCheck AI";
+  content: string;
+};
+
+function ChatBubble({ message }: { message: ChatMessage }) {
+  const isUser = message.role === "You";
+
+  return (
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[92%] rounded-2xl px-4 py-3 shadow-sm md:max-w-[78%] ${
+          isUser
+            ? "rounded-br-md bg-slate-950 text-white"
+            : "rounded-bl-md border border-slate-200 bg-white text-slate-700"
+        }`}
+      >
+        <p
+          className={`text-[11px] font-semibold uppercase tracking-wide ${
+            isUser ? "text-slate-300" : "text-slate-500"
+          }`}
+        >
+          {message.role}
+        </p>
+        <p className="mt-2 whitespace-pre-line">{message.content}</p>
+      </div>
+    </div>
+  );
+}
+
+function buildChatMessages({
+  question,
+  answer,
+}: {
+  question?: string | null;
+  answer: string;
+}) {
+  const messages: ChatMessage[] = [];
+
+  if (question?.trim()) {
+    messages.push({ role: "You", content: question.trim() });
+  }
+
+  const lines = answer.split("\n");
+  let currentRole: ChatMessage["role"] = "FitCheck AI";
+  let currentLines: string[] = [];
+
+  const flushMessage = () => {
+    const content = currentLines.join("\n").trim();
+    if (content) {
+      messages.push({ role: currentRole, content });
+    }
+    currentLines = [];
+  };
+
+  for (const line of lines) {
+    const userMatch = line.match(/^You:\s*(.*)$/i);
+    const aiMatch = line.match(/^FitCheck AI:\s*(.*)$/i);
+
+    if (userMatch) {
+      flushMessage();
+      currentRole = "You";
+      currentLines = [userMatch[1]];
+      continue;
+    }
+
+    if (aiMatch) {
+      flushMessage();
+      currentRole = "FitCheck AI";
+      currentLines = [aiMatch[1]];
+      continue;
+    }
+
+    currentLines.push(line);
+  }
+
+  flushMessage();
+
+  return messages;
 }
