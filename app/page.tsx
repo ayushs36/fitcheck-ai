@@ -250,6 +250,8 @@ const [agentHistory, setAgentHistory] = useState<AgentCheck[]>([]);
 const [goalHistory, setGoalHistory] = useState<GoalHistoryRecord[]>([]);
 const [expandedAgentCheckId, setExpandedAgentCheckId] =
   useState<string | null>(null);
+const [expandedAIConversationId, setExpandedAIConversationId] =
+  useState<string | null>(null);
 const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
   GoalAdaptationRecord[]
 >([]);
@@ -1326,6 +1328,10 @@ const trainingSignal = getTrainingSignal(sortedLogs);
 const aiDataAccess = useMemo(
   () => buildAIDataAccess(sortedLogs),
   [sortedLogs]
+);
+const askAIHistory = useMemo(
+  () => aiHistory.filter((conversation) => conversation.type === "Ask AI"),
+  [aiHistory]
 );
 
 const strengthStatus = getStrengthStatusFromTrainingSignal(trainingSignal);
@@ -2951,6 +2957,79 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
 
 {showHistory && (
 <>
+            <section className="rounded-3xl bg-white p-6 shadow-sm">
+  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Saved AI conversations
+      </p>
+      <h2 className="mt-1 text-2xl font-semibold">Ask FitCheck AI History</h2>
+      <p className="mt-2 max-w-2xl text-sm text-slate-500">
+        Review previous free-form questions and responses from Ask FitCheck AI.
+      </p>
+    </div>
+
+    <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+      {askAIHistory.length} saved
+    </span>
+  </div>
+
+  <div className="mt-5 space-y-3">
+    {askAIHistory.length === 0 ? (
+      <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+        No Ask FitCheck AI conversations saved yet. Ask a question on the Coach
+        tab and it will appear here.
+      </p>
+    ) : (
+      askAIHistory.slice(0, 20).map((conversation) => {
+        const isExpanded = expandedAIConversationId === conversation.id;
+
+        return (
+          <article
+            key={conversation.id}
+            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+          >
+            <button
+              onClick={() =>
+                setExpandedAIConversationId(isExpanded ? null : conversation.id)
+              }
+              className="w-full text-left"
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    {conversation.createdAt}
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-950">
+                    {conversation.question}
+                  </p>
+                </div>
+
+                <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                  {isExpanded ? "Hide" : "View"}
+                </span>
+              </div>
+
+              {!isExpanded && (
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  {truncateText(conversation.answer, 220)}
+                </p>
+              )}
+            </button>
+
+            {isExpanded && (
+              <div className="mt-4 rounded-2xl bg-white p-4 text-sm leading-6 text-slate-700">
+                <p className="font-semibold text-slate-950">Response</p>
+                <p className="mt-2 whitespace-pre-line">{conversation.answer}</p>
+              </div>
+            )}
+          </article>
+        );
+      })
+    )}
+  </div>
+</section>
+
             <AIWeeklyReportCard
   aiWeeklyReport={aiWeeklyReport}
   isWeeklyReportLoading={isWeeklyReportLoading}
@@ -3380,6 +3459,14 @@ function formatExerciseForAI(exercise: Exercise) {
 
 function positiveOrNull(value: number) {
   return value > 0 ? value : null;
+}
+
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength).trim()}...`;
 }
 
 function getRecommendation({
