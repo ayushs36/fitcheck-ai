@@ -1985,6 +1985,36 @@ function updateAIConversation(
   return updatedConversation;
 }
 
+function renameAIConversation(conversation: AIConversation) {
+  const currentTitle = getAIConversationTitle(conversation);
+  const nextTitle = window.prompt("Rename chat", currentTitle);
+
+  if (nextTitle === null) {
+    return;
+  }
+
+  const trimmedTitle = nextTitle.trim();
+
+  if (!trimmedTitle) {
+    return;
+  }
+
+  const updatedConversation = {
+    ...conversation,
+    title: trimmedTitle,
+  };
+
+  setAiHistory((current) =>
+    current.map((item) =>
+      item.id === conversation.id ? updatedConversation : item
+    )
+  );
+
+  if (activeAIConversationContext?.id === conversation.id) {
+    setActiveAIConversationContext(updatedConversation);
+  }
+}
+
 function clearAskAIHistory() {
   if (!confirm("Clear Ask FitCheck AI chat history?")) {
     return;
@@ -3124,7 +3154,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   askFitCheckAILLM={askFitCheckAILLM}
   activeConversationLabel={
     activeAIConversationContext
-      ? truncateText(activeAIConversationContext.question, 90)
+      ? truncateText(getAIConversationTitle(activeAIConversationContext), 90)
       : null
   }
   activeConversationQuestion={activeAIConversationContext?.question ?? null}
@@ -3222,8 +3252,13 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                             {conversation.createdAt}
                           </p>
                           <p className="mt-1 font-semibold text-slate-950">
-                            {truncateText(conversation.question, 96)}
+                            {truncateText(getAIConversationTitle(conversation), 96)}
                           </p>
+                          {conversation.title && (
+                            <p className="mt-1 text-sm text-slate-500">
+                              {truncateText(conversation.question, 120)}
+                            </p>
+                          )}
                         </div>
 
                         <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -3237,12 +3272,20 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                             <p className="font-semibold text-slate-950">
                               Saved chat
                             </p>
-                            <button
-                              onClick={() => continueAskAIConversation(conversation)}
-                              className="w-fit rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white"
-                            >
-                              Continue in Coach
-                            </button>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => renameAIConversation(conversation)}
+                                className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                              >
+                                Rename
+                              </button>
+                              <button
+                                onClick={() => continueAskAIConversation(conversation)}
+                                className="w-fit rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white"
+                              >
+                                Continue in Coach
+                              </button>
+                            </div>
                           </div>
                           <p className="mt-2 whitespace-pre-line">
                             {conversation.answer}
@@ -3817,6 +3860,10 @@ function cleanAIAnswer(value: string) {
     .replace(/\*(.*?)\*/g, "$1")
     .replace(/^\s*\*\s+/gm, "- ")
     .trim();
+}
+
+function getAIConversationTitle(conversation: AIConversation) {
+  return conversation.title?.trim() || conversation.question;
 }
 
 function groupAIConversationsByMonth(conversations: AIConversation[]) {

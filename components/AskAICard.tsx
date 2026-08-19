@@ -36,7 +36,7 @@ export function AskAICard({
               </h2>
             </div>
             <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {isReopenedChat ? "Reopened chat" : "Free-form chat"}
+              Free-form chat
             </span>
           </div>
         </summary>
@@ -77,7 +77,7 @@ export function AskAICard({
             onChange={(event) => setCoachQuestion(event.target.value)}
             placeholder={
               isReopenedChat
-                ? "Ask a follow-up about this chat..."
+                ? "Ask FitCheck AI..."
                 : "Example: Am I on track to reach my goal?"
             }
           />
@@ -89,9 +89,7 @@ export function AskAICard({
           >
             {isCoachLoading
               ? "Thinking..."
-              : isReopenedChat
-                ? "Send Follow-up"
-                : "Ask AI"}
+              : "Ask AI"}
           </button>
         </div>
 

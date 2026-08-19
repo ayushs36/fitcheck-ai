@@ -162,6 +162,7 @@ export type TrainingSignal = {
 export type AIConversation = {
   id: string;
   type: "Ask AI" | "Weekly Report";
+  title?: string;
   question: string;
   answer: string;
   createdAt: string;
