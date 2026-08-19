@@ -229,6 +229,8 @@ export function FitCheckApp({ mode = "personal" }: { mode?: AppMode }) {
 const [coachAnswer, setCoachAnswer] = useState(
   "Ask FitCheck AI a question..."
 );
+const [activeAIConversationContext, setActiveAIConversationContext] =
+  useState<AIConversation | null>(null);
 const [isCoachLoading, setIsCoachLoading] = useState(false);
 
 const [aiWeeklyReport, setAiWeeklyReport] = useState(
@@ -1919,6 +1921,7 @@ function saveAIConversation(
   };
 
   setAiHistory((current) => [newConversation, ...current]);
+  return newConversation;
 }
 
 function clearAskAIHistory() {
@@ -1929,6 +1932,7 @@ function clearAskAIHistory() {
   setAiHistory((current) =>
     current.filter((conversation) => conversation.type !== "Ask AI")
   );
+  setActiveAIConversationContext(null);
   setExpandedAIConversationId(null);
   setExpandedAIHistoryMonths([]);
 }
@@ -1939,6 +1943,13 @@ function toggleAIHistoryMonth(monthYear: string) {
       ? current.filter((item) => item !== monthYear)
       : [...current, monthYear]
   );
+}
+
+function continueAskAIConversation(conversation: AIConversation) {
+  setActiveAIConversationContext(conversation);
+  setCoachAnswer(conversation.answer);
+  setCoachQuestion("");
+  router.push(`${routePrefix}/coach`);
 }
 
 function clearWeeklyReportHistory() {
@@ -2147,6 +2158,13 @@ async function askFitCheckAILLM() {
   const context = {
     goal,
     dataAccess: aiDataAccess,
+    previousConversation: activeAIConversationContext
+      ? {
+          question: activeAIConversationContext.question,
+          answer: activeAIConversationContext.answer,
+          createdAt: activeAIConversationContext.createdAt,
+        }
+      : null,
     goalMemory,
     latestWeight,
     effectiveWeight,
@@ -2194,10 +2212,13 @@ async function askFitCheckAILLM() {
       throw new Error(data.error || "Failed to get AI response.");
     }
 
-    const aiAnswer = data.answer || "No AI response was generated.";
+    const aiAnswer = cleanAIAnswer(
+      data.answer || "No AI response was generated."
+    );
 
 setCoachAnswer(aiAnswer);
-saveAIConversation("Ask AI", coachQuestion, aiAnswer);
+const savedConversation = saveAIConversation("Ask AI", coachQuestion, aiAnswer);
+setActiveAIConversationContext(savedConversation);
   } catch (error) {
   console.error(error);
 
@@ -2273,7 +2294,9 @@ async function generateAIWeeklyReport() {
       );
     }
 
-    const reportAnswer = data.answer || "No weekly AI report was generated.";
+    const reportAnswer = cleanAIAnswer(
+      data.answer || "No weekly AI report was generated."
+    );
 
 setAiWeeklyReport(reportAnswer);
 saveAIConversation(
@@ -2357,7 +2380,9 @@ async function generateGoalStrategy() {
       throw new Error(data.error || "Failed to generate goal strategy.");
     }
 
-    const strategyAnswer = data.answer || "No goal strategy was generated.";
+    const strategyAnswer = cleanAIAnswer(
+      data.answer || "No goal strategy was generated."
+    );
 
     setGoalStrategy(strategyAnswer);
     saveAIConversation(
@@ -2440,7 +2465,9 @@ async function runFitCheckAgent() {
       throw new Error(data.error || "Failed to run FitCheck Agent.");
     }
 
-    const answer = data.answer || "No agent report was generated.";
+    const answer = cleanAIAnswer(
+      data.answer || "No agent report was generated."
+    );
 
     setAgentReport(answer);
     saveAgentCheck(answer);
@@ -3030,6 +3057,16 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   coachAnswer={coachAnswer}
   isCoachLoading={isCoachLoading}
   askFitCheckAILLM={askFitCheckAILLM}
+  activeConversationLabel={
+    activeAIConversationContext
+      ? truncateText(activeAIConversationContext.question, 90)
+      : null
+  }
+  clearActiveConversation={() => {
+    setActiveAIConversationContext(null);
+    setCoachQuestion("");
+    setCoachAnswer("Ask FitCheck AI a question...");
+  }}
 />
 )}
 
@@ -3129,9 +3166,17 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
 
                       {isExpanded && (
                         <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                          <p className="font-semibold text-slate-950">
-                            Full response
-                          </p>
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <p className="font-semibold text-slate-950">
+                              Full response
+                            </p>
+                            <button
+                              onClick={() => continueAskAIConversation(conversation)}
+                              className="w-fit rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white"
+                            >
+                              Continue in Coach
+                            </button>
+                          </div>
                           <p className="mt-2 whitespace-pre-line">
                             {conversation.answer}
                           </p>
@@ -3697,6 +3742,14 @@ function truncateText(value: string, maxLength: number) {
   }
 
   return `${value.slice(0, maxLength).trim()}...`;
+}
+
+function cleanAIAnswer(value: string) {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^\s*\*\s+/gm, "- ")
+    .trim();
 }
 
 function groupAIConversationsByMonth(conversations: AIConversation[]) {

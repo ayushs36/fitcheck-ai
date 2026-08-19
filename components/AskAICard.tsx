@@ -4,12 +4,16 @@ export function AskAICard({
   coachAnswer,
   isCoachLoading,
   askFitCheckAILLM,
+  activeConversationLabel,
+  clearActiveConversation,
 }: {
   coachQuestion: string;
   setCoachQuestion: (value: string) => void;
   coachAnswer: string;
   isCoachLoading: boolean;
   askFitCheckAILLM: () => void;
+  activeConversationLabel?: string | null;
+  clearActiveConversation: () => void;
 }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -25,10 +29,30 @@ export function AskAICard({
               </h2>
             </div>
             <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              Free-form chat
+              {activeConversationLabel ? "Follow-up chat" : "Free-form chat"}
             </span>
           </div>
         </summary>
+
+        {activeConversationLabel && (
+          <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
+                Continuing
+              </p>
+              <p className="mt-1 text-sm font-semibold text-blue-950">
+                {activeConversationLabel}
+              </p>
+            </div>
+
+            <button
+              onClick={clearActiveConversation}
+              className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700"
+            >
+              New chat
+            </button>
+          </div>
+        )}
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row">
           <input

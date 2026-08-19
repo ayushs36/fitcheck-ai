@@ -50,6 +50,11 @@ export type FitCheckAIContext = {
       exercises: string[];
     }>;
   };
+  previousConversation?: {
+    question?: string;
+    answer?: string;
+    createdAt?: string;
+  } | null;
   goalMemory?: {
     currentGoal?: string;
     startedAt?: string;
