@@ -1974,7 +1974,7 @@ function continueAskAIConversation(conversation: AIConversation) {
   setActiveAIConversationContext(conversation);
   setCoachAnswer(conversation.answer);
   setCoachQuestion("");
-  router.push(`${routePrefix}/coach`);
+  router.push(`${routePrefix}/coach#ask-fitcheck-ai`);
 }
 
 function clearWeeklyReportHistory() {
@@ -3089,6 +3089,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
       ? truncateText(activeAIConversationContext.question, 90)
       : null
   }
+  activeConversationQuestion={activeAIConversationContext?.question ?? null}
   clearActiveConversation={() => {
     setActiveAIConversationContext(null);
     setCoachQuestion("");
