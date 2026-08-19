@@ -82,6 +82,7 @@ import { DailyLogCard } from "@/components/DailyLogCard";
 import { FitCheckAgentCard } from "@/components/FitCheckAgentCard";
 
 import { AgentHistoryCard } from "@/components/AgentHistoryCard";
+import { CoachingPlanHistoryCard } from "@/components/CoachingPlanHistoryCard";
 
 import { AgentDashboardCard } from "@/components/AgentDashboardCard";
 import { DailyBriefCard } from "@/components/DailyBriefCard";
@@ -93,6 +94,7 @@ import { WeeklyPlanCard } from "@/components/WeeklyPlanCard";
 import { NutritionTargetsCard } from "@/components/NutritionTargetsCard";
 
 import { GoalForecastCard } from "@/components/GoalForecastCard";
+import { GoalAdaptationCard } from "@/components/GoalAdaptationCard";
 import { NutritionDiagnosisCard } from "@/components/NutritionDiagnosisCard";
 import { TrainingSignalCard } from "@/components/TrainingSignalCard";
 import { WeeklyCoachingReviewCard } from "@/components/WeeklyCoachingReviewCard";
@@ -253,6 +255,11 @@ const [expandedAgentCheckId, setExpandedAgentCheckId] =
 const [expandedAIConversationId, setExpandedAIConversationId] =
   useState<string | null>(null);
 const [expandedAIHistoryMonths, setExpandedAIHistoryMonths] = useState<
+  string[]
+>([]);
+const [expandedWeeklyReportId, setExpandedWeeklyReportId] =
+  useState<string | null>(null);
+const [expandedWeeklyReportMonths, setExpandedWeeklyReportMonths] = useState<
   string[]
 >([]);
 const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
@@ -1340,6 +1347,14 @@ const groupedAskAIHistory = useMemo(
   () => groupAIConversationsByMonth(askAIHistory),
   [askAIHistory]
 );
+const weeklyReportHistory = useMemo(
+  () => aiHistory.filter((conversation) => conversation.type === "Weekly Report"),
+  [aiHistory]
+);
+const groupedWeeklyReportHistory = useMemo(
+  () => groupAIConversationsByMonth(weeklyReportHistory),
+  [weeklyReportHistory]
+);
 
 const strengthStatus = getStrengthStatusFromTrainingSignal(trainingSignal);
 const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
@@ -1660,9 +1675,11 @@ AI Confidence Score: ${confidenceScore}%
   }
 
   function clearCoachingPlanHistory() {
-    if (confirm("Clear saved coaching plans?")) {
-      setCoachingPlanHistory([]);
-    }
+    setCoachingPlanHistory([]);
+  }
+
+  function clearGoalAdaptationHistory() {
+    setGoalAdaptationHistory([]);
   }
 
   function resetEntry() {
@@ -1918,6 +1935,26 @@ function clearAskAIHistory() {
 
 function toggleAIHistoryMonth(monthYear: string) {
   setExpandedAIHistoryMonths((current) =>
+    current.includes(monthYear)
+      ? current.filter((item) => item !== monthYear)
+      : [...current, monthYear]
+  );
+}
+
+function clearWeeklyReportHistory() {
+  if (!confirm("Clear AI weekly report history?")) {
+    return;
+  }
+
+  setAiHistory((current) =>
+    current.filter((conversation) => conversation.type !== "Weekly Report")
+  );
+  setExpandedWeeklyReportId(null);
+  setExpandedWeeklyReportMonths([]);
+}
+
+function toggleWeeklyReportMonth(monthYear: string) {
+  setExpandedWeeklyReportMonths((current) =>
     current.includes(monthYear)
       ? current.filter((item) => item !== monthYear)
       : [...current, monthYear]
@@ -2965,6 +3002,24 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
     </div>
   </div>
 </section>
+
+<GoalAdaptationCard
+  goalAdaptation={goalAdaptation}
+  applyGoalDate={applyGoalDateSuggestion}
+  applyCalories={applyCalorieSuggestion}
+  rejectGoalAdaptation={rejectGoalAdaptation}
+  currentGoalDate={goalDate}
+  currentGoalWeight={goalWeight}
+  adaptationHistory={goalAdaptationHistory}
+  clearAdaptationHistory={clearGoalAdaptationHistory}
+/>
+
+<CoachingPlanHistoryCard
+  weeklyPlan={weeklyPlan}
+  planHistory={coachingPlanHistory}
+  saveCurrentPlan={saveCurrentCoachingPlan}
+  clearPlanHistory={clearCoachingPlanHistory}
+/>
 </>
 )}
 
@@ -3099,6 +3154,117 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   isWeeklyReportLoading={isWeeklyReportLoading}
   generateAIWeeklyReport={generateAIWeeklyReport}
 />
+
+<section className="rounded-3xl bg-white p-6 shadow-sm">
+  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Saved reports
+      </p>
+      <h2 className="mt-1 text-2xl font-semibold">Weekly Report History</h2>
+      <p className="mt-2 max-w-2xl text-sm text-slate-500">
+        Past AI weekly reports grouped by month.
+      </p>
+    </div>
+
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        {weeklyReportHistory.length} saved
+      </span>
+      {weeklyReportHistory.length > 0 && (
+        <button
+          onClick={clearWeeklyReportHistory}
+          className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+        >
+          Clear history
+        </button>
+      )}
+    </div>
+  </div>
+
+  <div className="mt-5 space-y-3">
+    {weeklyReportHistory.length === 0 ? (
+      <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+        No saved weekly reports yet.
+      </p>
+    ) : (
+      groupedWeeklyReportHistory.map((group) => {
+        const isMonthExpanded = expandedWeeklyReportMonths.includes(
+          group.monthYear
+        );
+
+        return (
+          <div key={group.monthYear} className="rounded-2xl bg-slate-100 p-4">
+            <button
+              onClick={() => toggleWeeklyReportMonth(group.monthYear)}
+              className="flex w-full items-center justify-between gap-4 text-left"
+            >
+              <div>
+                <p className="font-semibold text-slate-950">{group.monthYear}</p>
+                <p className="text-sm text-slate-500">
+                  {group.conversations.length} report
+                  {group.conversations.length === 1 ? "" : "s"}
+                </p>
+              </div>
+
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                {isMonthExpanded ? "Hide" : "View"}
+              </span>
+            </button>
+
+            {isMonthExpanded && (
+              <div className="mt-4 space-y-2">
+                {group.conversations.map((conversation) => {
+                  const isExpanded = expandedWeeklyReportId === conversation.id;
+
+                  return (
+                    <article
+                      key={conversation.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-4"
+                    >
+                      <button
+                        onClick={() =>
+                          setExpandedWeeklyReportId(
+                            isExpanded ? null : conversation.id
+                          )
+                        }
+                        className="flex w-full items-start justify-between gap-4 text-left"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            {conversation.createdAt}
+                          </p>
+                          <p className="mt-1 font-semibold text-slate-950">
+                            Weekly coaching report
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                          {isExpanded ? "Hide" : "Open"}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                          <p className="font-semibold text-slate-950">
+                            Full report
+                          </p>
+                          <p className="mt-2 whitespace-pre-line">
+                            {conversation.answer}
+                          </p>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })
+    )}
+  </div>
+</section>
 
             <section className="rounded-3xl bg-white p-6 shadow-sm">
   <h2 className="text-2xl font-semibold">Recent Logs</h2>
