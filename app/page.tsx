@@ -252,6 +252,9 @@ const [expandedAgentCheckId, setExpandedAgentCheckId] =
   useState<string | null>(null);
 const [expandedAIConversationId, setExpandedAIConversationId] =
   useState<string | null>(null);
+const [expandedAIHistoryMonths, setExpandedAIHistoryMonths] = useState<
+  string[]
+>([]);
 const [goalAdaptationHistory, setGoalAdaptationHistory] = useState<
   GoalAdaptationRecord[]
 >([]);
@@ -1333,6 +1336,10 @@ const askAIHistory = useMemo(
   () => aiHistory.filter((conversation) => conversation.type === "Ask AI"),
   [aiHistory]
 );
+const groupedAskAIHistory = useMemo(
+  () => groupAIConversationsByMonth(askAIHistory),
+  [askAIHistory]
+);
 
 const strengthStatus = getStrengthStatusFromTrainingSignal(trainingSignal);
 const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
@@ -1895,6 +1902,26 @@ function saveAIConversation(
   };
 
   setAiHistory((current) => [newConversation, ...current]);
+}
+
+function clearAskAIHistory() {
+  if (!confirm("Clear Ask FitCheck AI chat history?")) {
+    return;
+  }
+
+  setAiHistory((current) =>
+    current.filter((conversation) => conversation.type !== "Ask AI")
+  );
+  setExpandedAIConversationId(null);
+  setExpandedAIHistoryMonths([]);
+}
+
+function toggleAIHistoryMonth(monthYear: string) {
+  setExpandedAIHistoryMonths((current) =>
+    current.includes(monthYear)
+      ? current.filter((item) => item !== monthYear)
+      : [...current, monthYear]
+  );
 }
 
 function getAgentSection(response: string, label: string) {
@@ -2961,17 +2988,27 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Saved AI conversations
+        Saved chats
       </p>
       <h2 className="mt-1 text-2xl font-semibold">Ask FitCheck AI History</h2>
       <p className="mt-2 max-w-2xl text-sm text-slate-500">
-        Review previous free-form questions and responses from Ask FitCheck AI.
+        Previous questions are grouped by month so you can revisit what you asked.
       </p>
     </div>
 
-    <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-      {askAIHistory.length} saved
-    </span>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        {askAIHistory.length} saved
+      </span>
+      {askAIHistory.length > 0 && (
+        <button
+          onClick={clearAskAIHistory}
+          className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+        >
+          Clear history
+        </button>
+      )}
+    </div>
   </div>
 
   <div className="mt-5 space-y-3">
@@ -2981,49 +3018,76 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
         tab and it will appear here.
       </p>
     ) : (
-      askAIHistory.slice(0, 20).map((conversation) => {
-        const isExpanded = expandedAIConversationId === conversation.id;
+      groupedAskAIHistory.map((group) => {
+        const isMonthExpanded = expandedAIHistoryMonths.includes(group.monthYear);
 
         return (
-          <article
-            key={conversation.id}
-            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-          >
+          <div key={group.monthYear} className="rounded-2xl bg-slate-100 p-4">
             <button
-              onClick={() =>
-                setExpandedAIConversationId(isExpanded ? null : conversation.id)
-              }
-              className="w-full text-left"
+              onClick={() => toggleAIHistoryMonth(group.monthYear)}
+              className="flex w-full items-center justify-between gap-4 text-left"
             >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    {conversation.createdAt}
-                  </p>
-                  <p className="mt-1 font-semibold text-slate-950">
-                    {conversation.question}
-                  </p>
-                </div>
-
-                <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                  {isExpanded ? "Hide" : "View"}
-                </span>
+              <div>
+                <p className="font-semibold text-slate-950">{group.monthYear}</p>
+                <p className="text-sm text-slate-500">
+                  {group.conversations.length} chat
+                  {group.conversations.length === 1 ? "" : "s"}
+                </p>
               </div>
 
-              {!isExpanded && (
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  {truncateText(conversation.answer, 220)}
-                </p>
-              )}
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                {isMonthExpanded ? "Hide" : "View"}
+              </span>
             </button>
 
-            {isExpanded && (
-              <div className="mt-4 rounded-2xl bg-white p-4 text-sm leading-6 text-slate-700">
-                <p className="font-semibold text-slate-950">Response</p>
-                <p className="mt-2 whitespace-pre-line">{conversation.answer}</p>
+            {isMonthExpanded && (
+              <div className="mt-4 space-y-2">
+                {group.conversations.map((conversation) => {
+                  const isExpanded = expandedAIConversationId === conversation.id;
+
+                  return (
+                    <article
+                      key={conversation.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-4"
+                    >
+                      <button
+                        onClick={() =>
+                          setExpandedAIConversationId(
+                            isExpanded ? null : conversation.id
+                          )
+                        }
+                        className="flex w-full items-start justify-between gap-4 text-left"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            {conversation.createdAt}
+                          </p>
+                          <p className="mt-1 font-semibold text-slate-950">
+                            {truncateText(conversation.question, 96)}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                          {isExpanded ? "Hide" : "Open"}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                          <p className="font-semibold text-slate-950">
+                            Full response
+                          </p>
+                          <p className="mt-2 whitespace-pre-line">
+                            {conversation.answer}
+                          </p>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
             )}
-          </article>
+          </div>
         );
       })
     )}
@@ -3467,6 +3531,38 @@ function truncateText(value: string, maxLength: number) {
   }
 
   return `${value.slice(0, maxLength).trim()}...`;
+}
+
+function groupAIConversationsByMonth(conversations: AIConversation[]) {
+  const groups: Record<string, AIConversation[]> = {};
+
+  conversations.forEach((conversation) => {
+    const monthYear = getConversationMonthYear(conversation.createdAt);
+
+    if (!groups[monthYear]) {
+      groups[monthYear] = [];
+    }
+
+    groups[monthYear].push(conversation);
+  });
+
+  return Object.entries(groups).map(([monthYear, groupedConversations]) => ({
+    monthYear,
+    conversations: groupedConversations,
+  }));
+}
+
+function getConversationMonthYear(createdAt: string) {
+  const date = new Date(createdAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Saved chats";
+  }
+
+  return date.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function getRecommendation({
