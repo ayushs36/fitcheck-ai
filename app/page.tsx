@@ -1924,6 +1924,31 @@ function saveAIConversation(
   return newConversation;
 }
 
+function updateAIConversation(
+  conversation: AIConversation,
+  followUpQuestion: string,
+  followUpAnswer: string
+) {
+  const updatedConversation: AIConversation = {
+    ...conversation,
+    answer: [
+      conversation.answer,
+      "",
+      `You: ${followUpQuestion}`,
+      `FitCheck AI: ${followUpAnswer}`,
+    ].join("\n"),
+    createdAt: new Date().toLocaleString(),
+  };
+
+  setAiHistory((current) =>
+    current.map((item) =>
+      item.id === updatedConversation.id ? updatedConversation : item
+    )
+  );
+
+  return updatedConversation;
+}
+
 function clearAskAIHistory() {
   if (!confirm("Clear Ask FitCheck AI chat history?")) {
     return;
@@ -2216,8 +2241,10 @@ async function askFitCheckAILLM() {
       data.answer || "No AI response was generated."
     );
 
-setCoachAnswer(aiAnswer);
-const savedConversation = saveAIConversation("Ask AI", coachQuestion, aiAnswer);
+const savedConversation = activeAIConversationContext
+  ? updateAIConversation(activeAIConversationContext, coachQuestion, aiAnswer)
+  : saveAIConversation("Ask AI", coachQuestion, aiAnswer);
+setCoachAnswer(savedConversation.answer);
 setActiveAIConversationContext(savedConversation);
   } catch (error) {
   console.error(error);
@@ -3168,7 +3195,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                         <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <p className="font-semibold text-slate-950">
-                              Full response
+                              Saved chat
                             </p>
                             <button
                               onClick={() => continueAskAIConversation(conversation)}
