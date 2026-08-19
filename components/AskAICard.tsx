@@ -1,3 +1,5 @@
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
+
 export function AskAICard({
   coachQuestion,
   setCoachQuestion,
@@ -136,7 +138,9 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         >
           {message.role}
         </p>
-        <p className="mt-2 whitespace-pre-line">{message.content}</p>
+        <p className="mt-2 whitespace-pre-line">
+          {removeVisibleAsterisks(message.content)}
+        </p>
       </div>
     </div>
   );
@@ -152,7 +156,7 @@ function buildChatMessages({
   const messages: ChatMessage[] = [];
 
   if (question?.trim()) {
-    messages.push({ role: "You", content: question.trim() });
+    messages.push({ role: "You", content: removeVisibleAsterisks(question) });
   }
 
   const lines = answer.split("\n");
@@ -162,7 +166,10 @@ function buildChatMessages({
   const flushMessage = () => {
     const content = currentLines.join("\n").trim();
     if (content) {
-      messages.push({ role: currentRole, content });
+      messages.push({
+        role: currentRole,
+        content: removeVisibleAsterisks(content),
+      });
     }
     currentLines = [];
   };

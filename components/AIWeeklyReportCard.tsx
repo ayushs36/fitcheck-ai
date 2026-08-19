@@ -1,3 +1,5 @@
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
+
 export function AIWeeklyReportCard({
   aiWeeklyReport,
   isWeeklyReportLoading,
@@ -37,7 +39,7 @@ export function AIWeeklyReportCard({
         </summary>
 
         <div className="whitespace-pre-wrap border-t border-slate-200 p-4 text-sm leading-6 text-slate-700">
-          {aiWeeklyReport}
+          {removeVisibleAsterisks(aiWeeklyReport)}
         </div>
       </details>
     </section>

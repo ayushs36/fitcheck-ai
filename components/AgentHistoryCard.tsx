@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AgentCheck } from "@/types/fitness";
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
 
 export function AgentHistoryCard({
   agentHistory,
@@ -101,7 +102,9 @@ export function AgentHistoryCard({
                   <div className="mt-4 space-y-2">
                     {group.checks.map((check) => {
                       const isExpanded = expandedAgentCheckId === check.id;
-                      const decision = check.decision ?? "Not specified";
+                      const decision = removeVisibleAsterisks(
+                        check.decision ?? "Not specified"
+                      );
                       const nextAction =
                         check.nextAction ?? check.recommendation;
 
@@ -126,7 +129,7 @@ export function AgentHistoryCard({
                                 {decision}
                               </p>
                               <p className="mt-1 text-sm text-slate-500">
-                                {check.status}
+                                {removeVisibleAsterisks(check.status)}
                               </p>
                             </div>
 
@@ -139,26 +142,26 @@ export function AgentHistoryCard({
                             <div className="mt-4 space-y-3 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                               <AgentHistoryDetail
                                 label="Biggest risk"
-                                value={check.biggestRisk}
+                                value={removeVisibleAsterisks(check.biggestRisk)}
                               />
                               <AgentHistoryDetail
                                 label="Next action"
-                                value={nextAction}
+                                value={removeVisibleAsterisks(nextAction)}
                               />
                               <AgentHistoryDetail
                                 label="Confidence"
-                                value={check.confidence}
+                                value={removeVisibleAsterisks(check.confidence)}
                               />
                               <AgentHistoryDetail
                                 label="Recommendation change"
                                 value={
-                                  check.changeSummary ??
+                                  removeVisibleAsterisks(check.changeSummary ?? "") ||
                                   "No previous comparison"
                                 }
                               />
                               <AgentHistoryDetail
                                 label="Full response"
-                                value={check.fullResponse}
+                                value={removeVisibleAsterisks(check.fullResponse)}
                                 preserveLines
                               />
                             </div>

@@ -68,6 +68,7 @@ import {
   DEMO_STORAGE_KEYS,
   PERSONAL_STORAGE_KEYS,
 } from "@/lib/storageKeys";
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
 
 import { Stat } from "@/components/Stat";
 
@@ -500,8 +501,10 @@ useEffect(() => {
     return;
   }
 
-  setActiveAIConversationContext(conversation);
-  setCoachAnswer(conversation.answer);
+  const cleanConversation = sanitizeAIConversation(conversation);
+
+  setActiveAIConversationContext(cleanConversation);
+  setCoachAnswer(cleanConversation.answer);
   setCoachQuestion("");
 
   requestAnimationFrame(() => {
@@ -1951,8 +1954,8 @@ function saveAIConversation(
   const newConversation: AIConversation = {
     id: crypto.randomUUID(),
     type,
-    question,
-    answer,
+    question: removeVisibleAsterisks(question),
+    answer: cleanAIAnswer(answer),
     createdAt: new Date().toLocaleString(),
   };
 
@@ -1965,13 +1968,17 @@ function updateAIConversation(
   followUpQuestion: string,
   followUpAnswer: string
 ) {
+  const cleanQuestion = removeVisibleAsterisks(followUpQuestion);
+  const cleanAnswer = cleanAIAnswer(followUpAnswer);
+
   const updatedConversation: AIConversation = {
     ...conversation,
+    question: removeVisibleAsterisks(conversation.question),
     answer: [
-      conversation.answer,
+      cleanAIAnswer(conversation.answer),
       "",
-      `You: ${followUpQuestion}`,
-      `FitCheck AI: ${followUpAnswer}`,
+      `You: ${cleanQuestion}`,
+      `FitCheck AI: ${cleanAnswer}`,
     ].join("\n"),
     createdAt: new Date().toLocaleString(),
   };
@@ -2001,7 +2008,7 @@ function renameAIConversation(conversation: AIConversation) {
 
   const updatedConversation = {
     ...conversation,
-    title: trimmedTitle,
+    title: removeVisibleAsterisks(trimmedTitle),
   };
 
   setAiHistory((current) =>
@@ -2038,9 +2045,11 @@ function toggleAIHistoryMonth(monthYear: string) {
 }
 
 function continueAskAIConversation(conversation: AIConversation) {
-  localStorage.setItem(storageKeys.activeAIConversationId, conversation.id);
-  setActiveAIConversationContext(conversation);
-  setCoachAnswer(conversation.answer);
+  const cleanConversation = sanitizeAIConversation(conversation);
+
+  localStorage.setItem(storageKeys.activeAIConversationId, cleanConversation.id);
+  setActiveAIConversationContext(cleanConversation);
+  setCoachAnswer(cleanConversation.answer);
   setCoachQuestion("");
   router.push(`${routePrefix}/coach#ask-fitcheck-ai`);
 }
@@ -2096,6 +2105,8 @@ function getAgentSection(response: string, label: string) {
 }
 
 function saveAgentCheck(fullResponse: string) {
+  const cleanFullResponse = cleanAIAnswer(fullResponse);
+
   setAgentHistory((current) => {
     const currentDecision = agentDecision.action;
     const previousDecision = current[0]?.decision;
@@ -2108,15 +2119,15 @@ function saveAgentCheck(fullResponse: string) {
     const newAgentCheck: AgentCheck = {
       id: crypto.randomUUID(),
       date: new Date().toLocaleString(),
-      status: getAgentSection(fullResponse, "Overall Status"),
+      status: getAgentSection(cleanFullResponse, "Overall Status"),
       decision: currentDecision,
-      biggestRisk: getAgentSection(fullResponse, "Biggest Risk"),
-      evidence: getAgentSection(fullResponse, "Evidence"),
-      nextAction: getAgentSection(fullResponse, "Next 7-Day Action Plan"),
-      recommendation: getAgentSection(fullResponse, "Next 7-Day Action Plan"),
-      confidence: getAgentSection(fullResponse, "Confidence Level"),
-      changeSummary,
-      fullResponse,
+      biggestRisk: getAgentSection(cleanFullResponse, "Biggest Risk"),
+      evidence: getAgentSection(cleanFullResponse, "Evidence"),
+      nextAction: getAgentSection(cleanFullResponse, "Next 7-Day Action Plan"),
+      recommendation: getAgentSection(cleanFullResponse, "Next 7-Day Action Plan"),
+      confidence: getAgentSection(cleanFullResponse, "Confidence Level"),
+      changeSummary: removeVisibleAsterisks(changeSummary),
+      fullResponse: cleanFullResponse,
     };
 
     return [newAgentCheck, ...current];
@@ -2240,7 +2251,9 @@ function clearAgentHistory() {
     );
   }
 async function askFitCheckAILLM() {
-  if (!coachQuestion.trim()) {
+  const cleanCoachQuestion = removeVisibleAsterisks(coachQuestion);
+
+  if (!cleanCoachQuestion) {
     setCoachAnswer("Ask a question first so FitCheck AI can analyze your data.");
     return;
   }
@@ -2294,7 +2307,7 @@ async function askFitCheckAILLM() {
       method: "POST",
       headers: aiRequestHeaders,
       body: JSON.stringify({
-        question: coachQuestion,
+        question: cleanCoachQuestion,
         context,
       }),
     });
@@ -2310,8 +2323,8 @@ async function askFitCheckAILLM() {
     );
 
 const savedConversation = activeAIConversationContext
-  ? updateAIConversation(activeAIConversationContext, coachQuestion, aiAnswer)
-  : saveAIConversation("Ask AI", coachQuestion, aiAnswer);
+  ? updateAIConversation(activeAIConversationContext, cleanCoachQuestion, aiAnswer)
+  : saveAIConversation("Ask AI", cleanCoachQuestion, aiAnswer);
 setCoachAnswer(savedConversation.answer);
 setActiveAIConversationContext(savedConversation);
   } catch (error) {
@@ -3256,7 +3269,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                           </p>
                           {conversation.title && (
                             <p className="mt-1 text-sm text-slate-500">
-                              {truncateText(conversation.question, 120)}
+                              {truncateText(removeVisibleAsterisks(conversation.question), 120)}
                             </p>
                           )}
                         </div>
@@ -3288,7 +3301,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                             </div>
                           </div>
                           <p className="mt-2 whitespace-pre-line">
-                            {conversation.answer}
+                            {cleanAIAnswer(conversation.answer)}
                           </p>
                         </div>
                       )}
@@ -3405,7 +3418,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                             Full report
                           </p>
                           <p className="mt-2 whitespace-pre-line">
-                            {conversation.answer}
+                            {cleanAIAnswer(conversation.answer)}
                           </p>
                         </div>
                       )}
@@ -3855,15 +3868,25 @@ function truncateText(value: string, maxLength: number) {
 }
 
 function cleanAIAnswer(value: string) {
-  return value
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/^\s*\*\s+/gm, "- ")
-    .trim();
+  return removeVisibleAsterisks(value);
+}
+
+function sanitizeAIConversation(conversation: AIConversation): AIConversation {
+  return {
+    ...conversation,
+    title: conversation.title
+      ? removeVisibleAsterisks(conversation.title)
+      : conversation.title,
+    question: removeVisibleAsterisks(conversation.question),
+    answer: cleanAIAnswer(conversation.answer),
+  };
 }
 
 function getAIConversationTitle(conversation: AIConversation) {
-  return conversation.title?.trim() || conversation.question;
+  return (
+    removeVisibleAsterisks(conversation.title ?? "") ||
+    removeVisibleAsterisks(conversation.question)
+  );
 }
 
 function groupAIConversationsByMonth(conversations: AIConversation[]) {

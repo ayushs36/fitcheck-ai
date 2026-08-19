@@ -1,4 +1,5 @@
 import type { AgentDecision } from "@/types/fitness";
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
 
 export function FitCheckAgentCard({
   agentReport,
@@ -11,13 +12,14 @@ export function FitCheckAgentCard({
   runFitCheckAgent: () => void;
   agentDecision: AgentDecision;
 }) {
-  const status = getAgentReportValue(agentReport, "Overall Status");
-  const risk = getAgentReportValue(agentReport, "Biggest Risk");
-  const nextAction = getAgentReportValue(agentReport, "Next 7-Day Action Plan");
+  const cleanAgentReport = removeVisibleAsterisks(agentReport);
+  const status = getAgentReportValue(cleanAgentReport, "Overall Status");
+  const risk = getAgentReportValue(cleanAgentReport, "Biggest Risk");
+  const nextAction = getAgentReportValue(cleanAgentReport, "Next 7-Day Action Plan");
   const confidence =
-    getAgentReportValue(agentReport, "Confidence Level") ??
+    getAgentReportValue(cleanAgentReport, "Confidence Level") ??
     agentDecision.confidence;
-  const protectedMode = agentReport.toLowerCase().includes("protected mode:");
+  const protectedMode = cleanAgentReport.toLowerCase().includes("protected mode:");
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -94,7 +96,7 @@ export function FitCheckAgentCard({
         </summary>
 
         <div className="max-h-[520px] overflow-auto whitespace-pre-wrap border-t border-slate-200 bg-slate-950 p-4 text-sm leading-6 text-slate-100">
-          {agentReport}
+          {cleanAgentReport}
         </div>
       </details>
     </section>

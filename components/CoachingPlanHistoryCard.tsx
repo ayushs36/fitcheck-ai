@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CoachingPlanRecord, WeeklyPlan } from "@/types/fitness";
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
 
 export function CoachingPlanHistoryCard({
   weeklyPlan,
@@ -74,9 +75,12 @@ export function CoachingPlanHistoryCard({
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Current plan
         </p>
-        <p className="mt-1 font-semibold text-slate-950">{weeklyPlan.focus}</p>
+        <p className="mt-1 font-semibold text-slate-950">
+          {removeVisibleAsterisks(weeklyPlan.focus)}
+        </p>
         <p className="mt-1 text-sm text-slate-600">
-          {weeklyPlan.calories} · {weeklyPlan.steps}
+          {removeVisibleAsterisks(weeklyPlan.calories)} ·{" "}
+          {removeVisibleAsterisks(weeklyPlan.steps)}
         </p>
       </div>
 
@@ -131,10 +135,10 @@ export function CoachingPlanHistoryCard({
                                 {new Date(record.createdAt).toLocaleString()}
                               </p>
                               <p className="mt-1 font-semibold text-slate-950">
-                                {record.decision}
+                                {removeVisibleAsterisks(record.decision)}
                               </p>
                               <p className="mt-1 text-sm text-slate-500">
-                                {record.plan.focus}
+                                {removeVisibleAsterisks(record.plan.focus)}
                               </p>
                             </div>
 
@@ -190,7 +194,7 @@ function PlanDetail({
     <div>
       <p className="font-semibold text-slate-950">{label}</p>
       <p className={`mt-1 text-slate-700 ${preserveLines ? "whitespace-pre-line" : ""}`}>
-        {value}
+        {removeVisibleAsterisks(value)}
       </p>
     </div>
   );

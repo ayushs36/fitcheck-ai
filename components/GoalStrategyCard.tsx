@@ -1,3 +1,5 @@
+import { removeVisibleAsterisks } from "@/lib/textSanitizers";
+
 export function GoalStrategyCard({
   goalStrategy,
   isGoalStrategyLoading,
@@ -26,7 +28,7 @@ export function GoalStrategyCard({
       </button>
 
       <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-slate-100 p-4 text-slate-700">
-        {goalStrategy}
+        {removeVisibleAsterisks(goalStrategy)}
       </div>
     </section>
   );
