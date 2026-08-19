@@ -479,6 +479,42 @@ useEffect(() => {
   setEditingId(logToEdit.id);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }, [logs, routedPathname, storageKeys.editLogId]);
+useEffect(() => {
+  if (routedPathname !== "/coach" || !aiHistoryStorageReady) {
+    return;
+  }
+
+  const activeConversationId = localStorage.getItem(
+    storageKeys.activeAIConversationId
+  );
+
+  if (!activeConversationId) {
+    return;
+  }
+
+  const conversation = aiHistory.find(
+    (item) => item.id === activeConversationId && item.type === "Ask AI"
+  );
+
+  if (!conversation) {
+    return;
+  }
+
+  setActiveAIConversationContext(conversation);
+  setCoachAnswer(conversation.answer);
+  setCoachQuestion("");
+
+  requestAnimationFrame(() => {
+    document
+      .getElementById("ask-fitcheck-ai")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}, [
+  aiHistory,
+  aiHistoryStorageReady,
+  routedPathname,
+  storageKeys.activeAIConversationId,
+]);
   useEffect(() => {
     if (!settingsStorageReady) {
       return;
@@ -1957,6 +1993,7 @@ function clearAskAIHistory() {
   setAiHistory((current) =>
     current.filter((conversation) => conversation.type !== "Ask AI")
   );
+  localStorage.removeItem(storageKeys.activeAIConversationId);
   setActiveAIConversationContext(null);
   setExpandedAIConversationId(null);
   setExpandedAIHistoryMonths([]);
@@ -1971,6 +2008,7 @@ function toggleAIHistoryMonth(monthYear: string) {
 }
 
 function continueAskAIConversation(conversation: AIConversation) {
+  localStorage.setItem(storageKeys.activeAIConversationId, conversation.id);
   setActiveAIConversationContext(conversation);
   setCoachAnswer(conversation.answer);
   setCoachQuestion("");
@@ -3091,6 +3129,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   }
   activeConversationQuestion={activeAIConversationContext?.question ?? null}
   clearActiveConversation={() => {
+    localStorage.removeItem(storageKeys.activeAIConversationId);
     setActiveAIConversationContext(null);
     setCoachQuestion("");
     setCoachAnswer("Ask FitCheck AI a question...");

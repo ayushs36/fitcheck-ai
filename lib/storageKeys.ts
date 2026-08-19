@@ -8,6 +8,7 @@ export const PERSONAL_STORAGE_KEYS = {
   coachingPlanHistory: "fitcheck-personal-coaching-plan-history-v1",
   editLogId: "fitcheck-personal-edit-log-id-v1",
   dailyLogDraft: "fitcheck-personal-daily-log-draft-v1",
+  activeAIConversationId: "fitcheck-personal-active-ai-conversation-id-v1",
 } as const;
 
 export const DEMO_STORAGE_KEYS = {
@@ -20,6 +21,7 @@ export const DEMO_STORAGE_KEYS = {
   coachingPlanHistory: "fitcheck-demo-coaching-plan-history-v1",
   editLogId: "fitcheck-demo-edit-log-id-v1",
   dailyLogDraft: "fitcheck-demo-daily-log-draft-v1",
+  activeAIConversationId: "fitcheck-demo-active-ai-conversation-id-v1",
 } as const;
 
 export type StorageKeySet = typeof PERSONAL_STORAGE_KEYS;
