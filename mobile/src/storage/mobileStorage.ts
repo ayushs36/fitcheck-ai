@@ -50,6 +50,13 @@ export async function addWorkoutSession(session: WorkoutSession): Promise<Workou
   return sortedSessions;
 }
 
+export async function deleteWorkoutSessionById(id: string): Promise<WorkoutSession[]> {
+  const sessions = await loadWorkoutSessions();
+  const nextSessions = sessions.filter((session) => session.id !== id);
+  await saveWorkoutSessions(nextSessions);
+  return nextSessions.slice().sort((a, b) => b.date.localeCompare(a.date));
+}
+
 export async function loadRecentWorkoutSessions(limit = 5): Promise<WorkoutSession[]> {
   const sessions = await loadWorkoutSessions();
   return sessions
@@ -74,6 +81,13 @@ export async function upsertDailyLog(log: DailyLog): Promise<DailyLog[]> {
   const sortedLogs = nextLogs.sort((a, b) => a.date.localeCompare(b.date));
   await saveDailyLogs(sortedLogs);
   return sortedLogs;
+}
+
+export async function deleteDailyLogByDate(date: string): Promise<DailyLog[]> {
+  const logs = await loadDailyLogs();
+  const nextLogs = logs.filter((log) => log.date !== date);
+  await saveDailyLogs(nextLogs);
+  return nextLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export async function loadRecentDailyLogs(limit = 7): Promise<DailyLog[]> {

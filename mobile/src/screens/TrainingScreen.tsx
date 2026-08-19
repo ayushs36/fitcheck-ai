@@ -5,7 +5,12 @@ import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
 import { exerciseTemplatesByWorkoutType, ExerciseTemplate } from "../data/exerciseTemplates";
-import { addWorkoutSession, loadRecentWorkoutSessions, loadUserSettings } from "../storage/mobileStorage";
+import {
+  addWorkoutSession,
+  deleteWorkoutSessionById,
+  loadRecentWorkoutSessions,
+  loadUserSettings,
+} from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
@@ -138,6 +143,25 @@ export function TrainingScreen() {
     setDraft(createBlankWorkoutDraft(draft.type));
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Workout saved", "Your workout was saved on this device.");
+  }
+
+  function deleteWorkout(session: WorkoutSession) {
+    Alert.alert(
+      "Delete this workout?",
+      `${formatReadableDate(session.date)} ${session.type} will be removed from your training analytics.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const sessions = await deleteWorkoutSessionById(session.id);
+            setRecentSessions(sessions.slice(0, 5));
+            Alert.alert("Workout deleted", "The workout was removed from this device.");
+          },
+        },
+      ],
+    );
   }
 
   const suggestedExercises = exerciseTemplatesByWorkoutType[draft.type];
@@ -360,12 +384,24 @@ export function TrainingScreen() {
             {recentSessions.map((session) => (
               <View key={session.id} style={styles.sessionRow}>
                 <View style={styles.sessionHeader}>
-                  <Text style={styles.sessionDate}>{formatReadableDate(session.date)}</Text>
-                  <Text style={styles.sessionType}>{session.type}</Text>
+                  <View style={styles.sessionCopy}>
+                    <Text style={styles.sessionDate}>{formatReadableDate(session.date)}</Text>
+                    <Text style={styles.body}>
+                      {session.exercises.length}{" "}
+                      {session.exercises.length === 1 ? "exercise" : "exercises"}
+                    </Text>
+                  </View>
+                  <View style={styles.sessionActions}>
+                    <Text style={styles.sessionType}>{session.type}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => deleteWorkout(session)}
+                      style={styles.deleteSessionButton}
+                    >
+                      <Text style={styles.deleteSessionText}>Delete</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <Text style={styles.body}>
-                  {session.exercises.length} {session.exercises.length === 1 ? "exercise" : "exercises"}
-                </Text>
               </View>
             ))}
           </View>
@@ -389,6 +425,20 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 15,
     lineHeight: 22,
+  },
+  deleteSessionButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 34,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  deleteSessionText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: "800",
   },
   exerciseBlock: {
     borderColor: colors.border,
@@ -482,9 +532,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
   },
+  sessionActions: {
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  sessionCopy: {
+    flex: 1,
+    gap: 4,
+  },
   sessionHeader: {
-    alignItems: "center",
+    alignItems: "flex-start",
     flexDirection: "row",
+    gap: 12,
     justifyContent: "space-between",
   },
   sessionList: {

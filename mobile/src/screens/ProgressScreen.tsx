@@ -8,6 +8,7 @@ import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
 import {
+  deleteDailyLogByDate,
   loadDailyLogsDescending,
   loadRecentWorkoutSessions,
   loadUserSettings,
@@ -82,6 +83,34 @@ export function ProgressScreen() {
     Alert.alert("Past log updated", `${formatReadableDate(updatedLog.date)} was updated.`);
   }
 
+  function deleteSelectedLog() {
+    if (!selectedLog) {
+      return;
+    }
+
+    const logDate = selectedLog.date;
+
+    Alert.alert(
+      "Delete this log?",
+      `${formatReadableDate(logDate)} will be removed from your trends, averages, and charts.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const updatedLogs = await deleteDailyLogByDate(logDate);
+            setLogs(updatedLogs);
+            setSelectedLog(undefined);
+            setEditDraft(blankTodayDraft);
+            setLastEditedDate(null);
+            Alert.alert("Log deleted", `${formatReadableDate(logDate)} was removed.`);
+          },
+        },
+      ],
+    );
+  }
+
   useEffect(() => {
     refreshLogs();
   }, []);
@@ -142,6 +171,13 @@ export function ProgressScreen() {
               <Pressable accessibilityRole="button" onPress={cancelEdit} style={styles.cancelButton}>
                 <Text style={styles.cancelText}>Close Editor</Text>
               </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={deleteSelectedLog}
+                style={styles.deleteButton}
+              >
+                <Text style={styles.deleteText}>Delete This Log</Text>
+              </Pressable>
             </View>
           }
         />
@@ -173,6 +209,19 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: colors.text,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  deleteButton: {
+    alignItems: "center",
+    borderColor: colors.danger,
+    borderRadius: 14,
+    borderWidth: 1,
+    minHeight: 46,
+    justifyContent: "center",
+  },
+  deleteText: {
+    color: colors.danger,
     fontSize: 15,
     fontWeight: "800",
   },
