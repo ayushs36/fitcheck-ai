@@ -40,11 +40,20 @@ export type ProgressInsights = {
   summary: string;
   priority: string;
   nextAction: string;
+  coachReview: CoachReview;
   evidence: string[];
   weightTrend: WeightTrend;
   loggingQuality: LoggingQuality;
   averages: MetricAverage[];
   loggedDays: number;
+};
+
+export type CoachReview = {
+  mode: "Build baseline" | "Monitor" | "Adjust plan" | "Hold plan";
+  confidence: "Low" | "Medium" | "High";
+  reviewWindow: string;
+  rule: string;
+  reason: string;
 };
 
 const metricLabels: Record<MetricKey, { label: string; unit: string }> = {
@@ -401,6 +410,91 @@ function buildGoalAction(
   };
 }
 
+function isTrendAlignedWithGoal(goal: GoalType, trend: WeightTrend): boolean {
+  if (goal === "cut") {
+    return trend.direction === "down";
+  }
+
+  if (goal === "bulk") {
+    return trend.direction === "up";
+  }
+
+  return trend.direction === "flat";
+}
+
+function isTrendAgainstGoal(goal: GoalType, trend: WeightTrend): boolean {
+  if (goal === "cut") {
+    return trend.direction === "up";
+  }
+
+  if (goal === "bulk") {
+    return trend.direction === "down";
+  }
+
+  return trend.direction === "up" || trend.direction === "down";
+}
+
+function buildAdjustmentRule(goal: GoalType): string {
+  if (goal === "cut") {
+    return "Only adjust calories or steps after a full week of usable logs confirms the cut is off pace.";
+  }
+
+  if (goal === "bulk") {
+    return "Only raise calories after a full week of usable logs confirms weight and training are not moving up.";
+  }
+
+  return "Only adjust calories after a full week shows weight drifting outside your maintenance range.";
+}
+
+function buildCoachReview(
+  goal: GoalType,
+  trend: WeightTrend,
+  loggingQuality: LoggingQuality,
+  loggedDays: number,
+): CoachReview {
+  const hasUsableData =
+    loggingQuality.status === "usable" || loggingQuality.status === "strong";
+  const hasTrendData = trend.weighIns >= 3 && typeof trend.weeklyChange === "number";
+
+  if (!hasUsableData || !hasTrendData || loggedDays < 7) {
+    return {
+      mode: "Build baseline",
+      confidence: "Low",
+      reviewWindow: "Next 3 logged days",
+      rule: "Do not change the plan yet. Log enough weight, nutrition, and steps for a real read.",
+      reason: `${trend.weighIns} weigh-ins and ${loggingQuality.score}/100 logging quality are not enough for an aggressive adjustment.`,
+    };
+  }
+
+  if (isTrendAlignedWithGoal(goal, trend)) {
+    return {
+      mode: "Hold plan",
+      confidence: loggingQuality.status === "strong" ? "High" : "Medium",
+      reviewWindow: "Review again in 7 days",
+      rule: "Keep the current goal plan steady while the trend matches your goal.",
+      reason: `${trend.status} with ${loggingQuality.score}/100 logging quality.`,
+    };
+  }
+
+  if (isTrendAgainstGoal(goal, trend) && loggingQuality.status === "strong") {
+    return {
+      mode: "Adjust plan",
+      confidence: "High",
+      reviewWindow: "Use the next 7 days to test the adjustment",
+      rule: buildAdjustmentRule(goal),
+      reason: `${trend.status} despite strong recent logging.`,
+    };
+  }
+
+  return {
+    mode: "Monitor",
+    confidence: "Medium",
+    reviewWindow: "Review again after 3 to 4 more logs",
+    rule: buildAdjustmentRule(goal),
+    reason: `${trend.status}, but FitCheck should confirm the signal before changing the plan.`,
+  };
+}
+
 export function calculateProgressInsights(
   logs: DailyLog[],
   settings: UserSettings | null,
@@ -421,12 +515,19 @@ export function calculateProgressInsights(
     calculateMetricAverage(recentLogs, "steps", settings?.stepTarget),
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
+  const coachReview = buildCoachReview(
+    activeGoal,
+    weightTrend,
+    loggingQuality,
+    recentLogs.length,
+  );
 
   return {
     activeGoal,
     summary: buildSummary(activeGoal, weightTrend),
     priority: goalAction.priority,
     nextAction: goalAction.nextAction,
+    coachReview,
     evidence: buildEvidence(weightTrend, averages),
     weightTrend,
     loggingQuality,

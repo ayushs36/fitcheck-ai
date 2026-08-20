@@ -35,10 +35,33 @@ function formatQualityLabel(status: ProgressInsights["loggingQuality"]["status"]
   return "Build baseline";
 }
 
+function getReviewTone(mode: ProgressInsights["coachReview"]["mode"]) {
+  if (mode === "Adjust plan") {
+    return {
+      box: styles.reviewBoxWarning,
+      label: styles.reviewLabelWarning,
+    };
+  }
+
+  if (mode === "Hold plan") {
+    return {
+      box: styles.reviewBoxSuccess,
+      label: styles.reviewLabelSuccess,
+    };
+  }
+
+  return {
+    box: styles.reviewBoxNeutral,
+    label: styles.reviewLabelNeutral,
+  };
+}
+
 export function DailyCoachBriefCard({
   insights,
   unitSystem = "imperial",
 }: DailyCoachBriefCardProps) {
+  const reviewTone = getReviewTone(insights.coachReview.mode);
+
   return (
     <Card>
       <View style={styles.accentBar} />
@@ -70,6 +93,20 @@ export function DailyCoachBriefCard({
       <View style={styles.nextBox}>
         <Text style={styles.nextLabel}>Plan Guardrail</Text>
         <Text style={styles.nextText}>{insights.loggingQuality.nextAction}</Text>
+      </View>
+
+      <View style={[styles.reviewBox, reviewTone.box]}>
+        <View style={styles.reviewHeader}>
+          <Text style={[styles.reviewLabel, reviewTone.label]}>
+            {insights.coachReview.mode}
+          </Text>
+          <Text style={styles.reviewConfidence}>
+            {insights.coachReview.confidence} confidence
+          </Text>
+        </View>
+        <Text style={styles.reviewTitle}>{insights.coachReview.reviewWindow}</Text>
+        <Text style={styles.reviewBody}>{insights.coachReview.rule}</Text>
+        <Text style={styles.reviewReason}>{insights.coachReview.reason}</Text>
       </View>
     </Card>
   );
@@ -137,6 +174,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     lineHeight: 20,
+  },
+  reviewBody: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  reviewBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+    padding: 13,
+  },
+  reviewBoxNeutral: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+  },
+  reviewBoxSuccess: {
+    backgroundColor: "#EAF7F1",
+    borderColor: "#BFE8D5",
+  },
+  reviewBoxWarning: {
+    backgroundColor: "#FFF5E8",
+    borderColor: "#F4D3A6",
+  },
+  reviewConfidence: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  reviewHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  reviewLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  reviewLabelNeutral: {
+    color: colors.primary,
+  },
+  reviewLabelSuccess: {
+    color: colors.success,
+  },
+  reviewLabelWarning: {
+    color: colors.warning,
+  },
+  reviewReason: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  reviewTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "900",
   },
   signalBox: {
     backgroundColor: colors.surfaceMuted,
