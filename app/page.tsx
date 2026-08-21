@@ -686,6 +686,7 @@ const fourteenDayAverage =
   const avgCalories = loggedAverage(last7Logs.map((log) => log.calories));
   const avgProtein = loggedAverage(last7Logs.map((log) => log.protein));
   const avgSteps = loggedAverage(last7Logs.map((log) => log.steps));
+  const nutritionAverageWindowLabel = "weekly logged average";
 
   const plateauDifference = Math.abs(movingAverage - fourteenDayAverage);
 
@@ -1131,26 +1132,26 @@ const goalTrendStatus = getGoalTrendStatus({
       : "realistic maintenance drift range";
   const calorieQuestionGuidance =
     goal === "Cutting"
-      ? "If progress is too slow, improve calorie consistency first before making an aggressive cut."
+      ? "Judge this by the weekly average, not one high or low day. If progress is too slow, improve calorie consistency first before making an aggressive cut."
       : goal === "Bulking"
-      ? "If weight and training are not progressing after a consistent trend window, increase calories slightly instead of jumping to a large surplus."
-      : "If weight is drifting, confirm calorie logging, steps, and weigh-in consistency before making a small adjustment.";
+      ? "Judge this by the weekly average, not one high or low day. If weight and training are not progressing after a consistent trend window, increase calories slightly instead of jumping to a large surplus."
+      : "Judge this by the weekly average, not one high or low day. If weight is drifting, confirm calorie logging, steps, and weigh-in consistency before making a small adjustment.";
   const proteinQuestionGuidance =
     avgProtein >= proteinTarget.low
       ? goal === "Cutting"
-        ? "This is strong for preserving muscle during a cut."
+        ? "This is strong for preserving muscle during a cut. One lower-protein day is fine if the weekly average stays in range."
         : goal === "Bulking"
-        ? "This is strong for supporting muscle gain while bulking."
-        : "This is strong for maintaining muscle and training performance."
-      : `This may be low for your goal. Try to get closer to ${proteinTarget.range}.`;
+        ? "This is strong for supporting muscle gain while bulking. One lower-protein day is fine if the weekly average stays in range."
+        : "This is strong for maintaining muscle and training performance. One lower-protein day is fine if the weekly average stays in range."
+      : `The weekly average may be low for your goal. Try to get the weekly average closer to ${proteinTarget.range}; do not overreact to one imperfect day.`;
   const stepQuestionGuidance =
     avgSteps >= 10000
-      ? "Your activity level is solid. Keep steps consistent rather than forcing extreme days."
+      ? "Your weekly step average is solid. Keep steps consistent rather than forcing extreme days."
       : goal === "Cutting"
-      ? "Your steps could be higher. Increasing steps is often better than cutting calories harder."
+      ? "Your weekly step average could be higher. Increasing steps is often better than cutting calories harder."
       : goal === "Bulking"
-      ? "Your steps are below target, so keep activity consistent before deciding whether your surplus is too small."
-      : "Your steps are below target, which makes maintenance harder to interpret. Build a repeatable baseline first.";
+      ? "Your weekly step average is below target, so keep activity consistent before deciding whether your surplus is too small."
+      : "Your weekly step average is below target, which makes maintenance harder to interpret. Build a repeatable baseline first.";
 
   const projectedGoalDate =
     goal !== "Maintaining" && currentPace > 0 && poundsRemaining > 0
@@ -1474,11 +1475,11 @@ const strengthInsight = getStrengthInsightFromTrainingSignal(trainingSignal);
       trend: weeklyTrend,
       summary: `${goalMemory.summary} This week, your latest logged weight changed by ${weeklyWeightChange.toFixed(
         1
-      )} lbs, while your trend pace is ${trendPaceLabel}. For your ${goal.toLowerCase()} goal, FitCheck reads this as: ${goalTrendStatus}. You averaged ${avgCalories.toFixed(
+      )} lbs, while your trend pace is ${trendPaceLabel}. For your ${goal.toLowerCase()} goal, FitCheck reads this as: ${goalTrendStatus}. Your ${nutritionAverageWindowLabel}s are ${avgCalories.toFixed(
         0
       )} calories, ${avgProtein.toFixed(0)}g protein, and ${avgSteps.toFixed(
         0
-      )} steps. Your current goal status is ${goalStatus}.`,
+      )} steps, based on the last 7 logged days with blank fields skipped. Your current goal status is ${goalStatus}.`,
       mainAction,
     };
   }, [
@@ -1504,9 +1505,9 @@ Goal: ${goal}
 14-Day Average Weight: ${fourteenDayAverage.toFixed(1)} lbs
 Goal Weight: ${goalWeight.toFixed(1)} lbs
 ${progressAmountLabel}: ${poundsToGoal.toFixed(1)} lbs
-Average Calories: ${avgCalories.toFixed(0)}
-Average Protein: ${avgProtein.toFixed(0)}g
-Average Steps: ${avgSteps.toFixed(0)}
+Weekly Logged Average Calories: ${avgCalories.toFixed(0)}
+Weekly Logged Average Protein: ${avgProtein.toFixed(0)}g
+Weekly Logged Average Steps: ${avgSteps.toFixed(0)}
 Weekly Weight Change: ${weeklyWeightChange.toFixed(1)} lbs
 Trend Pace: ${trendPaceLabel}
 Goal Trend Status: ${goalTrendStatus}
@@ -2200,16 +2201,16 @@ function clearAgentHistory() {
       question.includes("lower calories")
     ) {
       setCoachAnswer(
-        `Your 7-day average calorie intake is ${avgCalories.toFixed(
+        `Your weekly logged average calorie intake is ${avgCalories.toFixed(
           0
-        )} calories. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. ${calorieQuestionGuidance}`
+        )} calories, based on the last 7 logged days with blank fields skipped. Your current trend pace is ${trendPaceLabel}, which FitCheck reads as: ${goalTrendStatus}. ${calorieQuestionGuidance}`
       );
       return;
     }
 
     if (question.includes("protein")) {
       setCoachAnswer(
-        `Your 7-day average protein intake is ${avgProtein.toFixed(0)}g. ${
+        `Your weekly logged average protein intake is ${avgProtein.toFixed(0)}g, based on the last 7 logged days with blank fields skipped. ${
           proteinQuestionGuidance
         }`
       );
@@ -2222,7 +2223,7 @@ function clearAgentHistory() {
       question.includes("walking")
     ) {
       setCoachAnswer(
-        `Your 7-day average steps are ${avgSteps.toFixed(0)}. ${
+        `Your weekly logged average steps are ${avgSteps.toFixed(0)}, based on the last 7 logged days with blank fields skipped. ${
           stepQuestionGuidance
         }`
       );
@@ -2568,7 +2569,7 @@ async function runFitCheckAgent() {
       headers: aiRequestHeaders,
       body: JSON.stringify({
         question:
-  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, active goal, goalMemory, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, weeklyPlan, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, weeklyCoachingReview, agentMemory, agentDecisionTrace, and the rule-based agentDecision context. Treat goalMemory as the user's current phase duration: if the same goal has been active for multiple weeks, judge the recommendation as part of an ongoing cut, bulk, or maintenance phase rather than a brand-new goal. Treat agentDecision as the baseline decision engine output, agentDecisionTrace as the audit trail explaining why the current rule-based action was chosen, dailyBrief as the current day control-center summary, weeklyPlan.adjustment as the next plan-adjustment rule, and weeklyCoachingReview as the last-7-days coaching review. Use agentDecisionTrace.topSignals, decisionPath, guardrails, suppressedActions, and nextDataNeeded to explain what mattered, what was blocked, and what data would raise confidence. Use weeklyPlan.adjustment to explain what change is allowed, what trigger would justify it, what guardrail prevents overreacting, and when to review again. Use weeklyCoachingReview to identify the week's status, biggest change, biggest blocker, priority, evidence, and next actions. Use agentMemory to call out repeated risks, repeated recommendations, the action tracker result, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, muscleGroupTrends, trainingBalanceInsight, and agentTrainingInsight to explain strength progress, muscle-group balance, and workout coverage like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Weekly Review, Goal Phase, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
+  "Act as FitCheck Agent, an autonomous fitness coaching agent. Analyze the user's logs, active goal, goalMemory, moving average weight trend, calories, protein, steps, strength performance, trainingSignal, goal timeline, plateau risk, maintenance estimate, goalForecast scenarios, dataFreshness, readinessScore, weeklyPlan, planAdherence, nutritionDiagnosis, loggingQuality, dailyBrief, weeklyCoachingReview, agentMemory, agentDecisionTrace, and the rule-based agentDecision context. Treat goalMemory as the user's current phase duration: if the same goal has been active for multiple weeks, judge the recommendation as part of an ongoing cut, bulk, or maintenance phase rather than a brand-new goal. Treat calories, protein, and steps as weekly logged averages from the last 7 logged days with blank fields skipped; do not penalize one low-protein, low-step, or high-calorie day if the weekly average and trend are still on target. Treat agentDecision as the baseline decision engine output, agentDecisionTrace as the audit trail explaining why the current rule-based action was chosen, dailyBrief as the current day control-center summary, weeklyPlan.adjustment as the next plan-adjustment rule, and weeklyCoachingReview as the last-7-days coaching review. Use agentDecisionTrace.topSignals, decisionPath, guardrails, suppressedActions, and nextDataNeeded to explain what mattered, what was blocked, and what data would raise confidence. Use weeklyPlan.adjustment to explain what change is allowed, what trigger would justify it, what guardrail prevents overreacting, and when to review again. Use weeklyCoachingReview to identify the week's status, biggest change, biggest blocker, priority, evidence, and next actions. Use agentMemory to call out repeated risks, repeated recommendations, the action tracker result, and whether the user appears to be following the previous advice. If dataFreshness is aging or stale, explicitly reduce confidence and recommend fresh logging before aggressive changes. Treat missing or zero fields in partial logs as unknown, not as failed adherence. Use loggingQuality to identify whether the next action should be better logging consistency before calorie or training changes. Use goalForecast to explain whether the current goal date is on track, at risk, or unrealistic. Use readinessScore and trainingSignal to decide whether to train hard, maintain the plan, adjust training stimulus, or prioritize recovery. Use trainingSignal.recentPrs, regressions, formFocusSignals, exerciseHistory, workoutTypeTrends, muscleGroupTrends, trainingBalanceInsight, and agentTrainingInsight to explain strength progress, muscle-group balance, and workout coverage like a coaching agent, not just a tracker. Treat movement quality, proper form, controlled reps, and mind-muscle connection as valid training goals. Do not call a one-week drop in load, reps, or workout output strength loss by itself; lighter weight with higher or maintained reps can be intentional form or technique work. Only frame it as strength/performance dropping when reps, load, and output fail to progress across matching workouts over the recent 2-3 week comparison window. Use nutritionDiagnosis calorie target execution, target hit rate, under-logging risk, volatile intake risk, nutritionNextAction, and agentNutritionInsight before recommending a calorie change. Use planAdherence to identify the user's biggest execution blocker before changing calories. If you disagree with the decision engine, explain why using the user's metrics. Return a structured plan with: Overall Status, Today's Brief, Weekly Review, Goal Phase, Agent Memory, Biggest Risk, Evidence, Decision Engine Action, Forecast Outlook, Logging Quality, Nutrition Diagnosis, Training Signal, Calorie Target, Protein Target, Step Target, Training Focus, Next 7-Day Action Plan, and Confidence Level. Be specific and practical.",
         context: agentContext,
       }),
     });

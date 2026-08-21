@@ -61,6 +61,7 @@ const metricLabels: Record<MetricKey, { label: string; unit: string }> = {
   proteinGrams: { label: "Protein", unit: "g/day" },
   steps: { label: "Steps", unit: "steps/day" },
 };
+const RECENT_METRIC_AVERAGE_DAYS = 7;
 
 function round(value: number, digits = 0): number {
   const multiplier = 10 ** digits;
@@ -501,18 +502,19 @@ export function calculateProgressInsights(
 ): ProgressInsights {
   const activeGoal = getActiveGoal(logs, settings);
   const recentLogs = logs.slice(0, 14);
+  const recentMetricLogs = logs.slice(0, RECENT_METRIC_AVERAGE_DAYS);
   const loggingQuality = buildLoggingQuality(logs);
   const proteinTarget = getProteinTarget(activeGoal, getLatestWeight(logs, settings));
   const weightTrend = calculateWeightTrend(recentLogs, activeGoal, settings?.weeklyGoalPaceLbs);
   const averages = [
-    calculateMetricAverage(recentLogs, "calories", settings?.calorieTarget),
+    calculateMetricAverage(recentMetricLogs, "calories", settings?.calorieTarget),
     calculateMetricAverage(
-      recentLogs,
+      recentMetricLogs,
       "proteinGrams",
       settings?.proteinTarget ?? proteinTarget.low,
       settings?.proteinTarget ? undefined : proteinTarget.range,
     ),
-    calculateMetricAverage(recentLogs, "steps", settings?.stepTarget),
+    calculateMetricAverage(recentMetricLogs, "steps", settings?.stepTarget),
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
   const coachReview = buildCoachReview(

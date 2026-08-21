@@ -176,11 +176,14 @@ export function ProgressDashboardCard({
           <View key={average.label} style={styles.metricBox}>
             <Text style={styles.metricLabel}>{average.label}</Text>
             <Text style={styles.metricValue}>{formatValue(average.value)}</Text>
+            <Text style={styles.metricMeta}>7-day logged average</Text>
             <Text style={styles.metricMeta}>
               {formatTarget(average.target, average.unit, average.targetLabel)}
             </Text>
             <Text style={styles.metricStatus}>{formatMetricStatus(average.status)}</Text>
-            <Text style={styles.metricMeta}>{average.loggedDays} logged days</Text>
+            <Text style={styles.metricMeta}>
+              {average.loggedDays}/7 days logged. Blank fields skipped.
+            </Text>
           </View>
         ))}
       </View>
