@@ -41,6 +41,7 @@ export type ProgressInsights = {
   priority: string;
   nextAction: string;
   coachReview: CoachReview;
+  weeklyExecution: WeeklyExecution;
   evidence: string[];
   weightTrend: WeightTrend;
   loggingQuality: LoggingQuality;
@@ -54,6 +55,13 @@ export type CoachReview = {
   reviewWindow: string;
   rule: string;
   reason: string;
+};
+
+export type WeeklyExecution = {
+  score: number;
+  status: "No targets" | "Needs data" | "Needs attention" | "Solid" | "Strong";
+  summary: string;
+  nextAction: string;
 };
 
 const metricLabels: Record<MetricKey, { label: string; unit: string }> = {
@@ -496,6 +504,88 @@ function buildCoachReview(
   };
 }
 
+function clampScore(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function scoreAverage(average: MetricAverage): number | undefined {
+  if (
+    typeof average.value !== "number" ||
+    typeof average.target !== "number" ||
+    average.target <= 0
+  ) {
+    return undefined;
+  }
+
+  if (average.label === "Calories") {
+    const percentOffTarget = Math.abs(average.value - average.target) / average.target;
+    return clampScore(100 - percentOffTarget * 250);
+  }
+
+  return clampScore((average.value / average.target) * 100);
+}
+
+function buildWeeklyExecution(averages: MetricAverage[]): WeeklyExecution {
+  const scoredAverages = averages
+    .map((average) => ({
+      average,
+      score: scoreAverage(average),
+    }))
+    .filter((item): item is { average: MetricAverage; score: number } =>
+      typeof item.score === "number",
+    );
+
+  if (scoredAverages.length === 0) {
+    return {
+      score: 0,
+      status: "No targets",
+      summary: "Set calorie, protein, or step targets before FitCheck can score execution.",
+      nextAction: "Add targets in the Goals tab.",
+    };
+  }
+
+  const score = clampScore(
+    scoredAverages.reduce((sum, item) => sum + item.score, 0) / scoredAverages.length,
+  );
+  const weakestMetric = scoredAverages
+    .slice()
+    .sort((a, b) => a.score - b.score)[0];
+
+  if (weakestMetric.average.loggedDays < 3) {
+    return {
+      score,
+      status: "Needs data",
+      summary: "Weekly execution has too few logged days for a confident read.",
+      nextAction: `Log ${weakestMetric.average.label.toLowerCase()} more often this week.`,
+    };
+  }
+
+  if (score >= 85) {
+    return {
+      score,
+      status: "Strong",
+      summary: "Your weekly averages are close enough to target for confident coaching.",
+      nextAction: "Hold the plan and watch the weight and training trend.",
+    };
+  }
+
+  if (score >= 70) {
+    return {
+      score,
+      status: "Solid",
+      summary: "Your weekly averages are usable, with one target needing attention.",
+      nextAction: `Tighten ${weakestMetric.average.label.toLowerCase()} before changing the whole plan.`,
+    };
+  }
+
+  return {
+    score,
+    status: "Needs attention",
+    summary: "Weekly averages are far enough from target that the coach should focus on execution first.",
+    nextAction: `Bring ${weakestMetric.average.label.toLowerCase()} closer to target over the next 7 days.`,
+  };
+}
+
 export function calculateProgressInsights(
   logs: DailyLog[],
   settings: UserSettings | null,
@@ -523,6 +613,7 @@ export function calculateProgressInsights(
     loggingQuality,
     recentLogs.length,
   );
+  const weeklyExecution = buildWeeklyExecution(averages);
 
   return {
     activeGoal,
@@ -530,6 +621,7 @@ export function calculateProgressInsights(
     priority: goalAction.priority,
     nextAction: goalAction.nextAction,
     coachReview,
+    weeklyExecution,
     evidence: buildEvidence(weightTrend, averages),
     weightTrend,
     loggingQuality,

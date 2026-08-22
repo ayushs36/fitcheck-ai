@@ -2,6 +2,14 @@ import type { Exercise, Goal, LogEntry } from "@/types/fitness";
 import { Input, NumberInput, Select } from "@/components/FormInputs";
 import type { LogCoverage } from "@/lib/logQuality";
 
+export type WorkoutPerformancePreview = {
+  date: string;
+  workout: string;
+  sessions: number;
+  totalOutput: number;
+  exercises: string[];
+};
+
 export function DailyLogCard({
   goal,
   setGoal,
@@ -15,6 +23,7 @@ export function DailyLogCard({
   setGoalDate,
   workoutTypes,
   suggestedExercises,
+  workoutPerformancePreview,
   currentLogCoverage,
   editingId,
   logSaveStatus,
@@ -36,6 +45,7 @@ export function DailyLogCard({
   setGoalDate: (value: string) => void;
   workoutTypes: string[];
   suggestedExercises: string[];
+  workoutPerformancePreview: WorkoutPerformancePreview | null;
   currentLogCoverage: LogCoverage;
   editingId: string | null;
   logSaveStatus: string;
@@ -169,6 +179,34 @@ export function DailyLogCard({
           onChange={(value) => setEntry({ ...entry, workout: value })}
           placeholder="Push, Pull, Legs, Rest..."
         />
+
+        {workoutPerformancePreview && (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                  Last {workoutPerformancePreview.workout} Performance
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-950">
+                  {workoutPerformancePreview.date} ·{" "}
+                  {workoutPerformancePreview.sessions} saved{" "}
+                  {workoutPerformancePreview.sessions === 1 ? "session" : "sessions"}
+                </p>
+              </div>
+              <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700">
+                Output {workoutPerformancePreview.totalOutput.toLocaleString()}
+              </span>
+            </div>
+
+            <ul className="mt-3 space-y-2 text-sm text-slate-700">
+              {workoutPerformancePreview.exercises.map((item) => (
+                <li key={item} className="rounded-xl bg-white p-3">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between gap-3">

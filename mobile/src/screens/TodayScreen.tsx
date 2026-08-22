@@ -8,11 +8,12 @@ import { Screen } from "../components/Screen";
 import {
   getDailyLogByDate,
   loadDailyLogsDescending,
+  loadRecentWorkoutSessions,
   loadUserSettings,
   upsertDailyLog,
 } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
-import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
+import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
@@ -23,6 +24,7 @@ export function TodayScreen() {
   const [existingLog, setExistingLog] = useState<DailyLog | undefined>();
   const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
   const [recentLogs, setRecentLogs] = useState<DailyLog[]>([]);
+  const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSession[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -33,10 +35,11 @@ export function TodayScreen() {
 
     async function loadSavedLog() {
       try {
-        const [savedTodayLog, savedLogs, savedSettings] = await Promise.all([
+        const [savedTodayLog, savedLogs, savedSettings, savedWorkouts] = await Promise.all([
           getDailyLogByDate(todayKey),
           loadDailyLogsDescending(),
           loadUserSettings(),
+          loadRecentWorkoutSessions(30),
         ]);
 
         if (!isMounted) {
@@ -46,6 +49,7 @@ export function TodayScreen() {
         setExistingLog(savedTodayLog);
         setAllLogs(savedLogs);
         setSettings(savedSettings);
+        setRecentWorkouts(savedWorkouts);
         const unitSystem = savedSettings?.unitSystem ?? "imperial";
         setDraft(
           savedTodayLog
@@ -99,6 +103,10 @@ export function TodayScreen() {
   const coachInsights = calculateProgressInsights(allLogs, coachSettings);
   const unitSystem = settings?.unitSystem ?? "imperial";
   const weightUnit = getWeightUnitLabel(unitSystem);
+  const workoutPerformancePreview = useMemo(
+    () => buildWorkoutPerformancePreview(draft.workoutType, recentWorkouts),
+    [draft.workoutType, recentWorkouts],
+  );
 
   return (
     <Screen
@@ -110,6 +118,7 @@ export function TodayScreen() {
       <LogEditorCard
         dateLabel={formatReadableDate(todayKey)}
         draft={draft}
+        workoutPerformancePreview={workoutPerformancePreview}
         onDraftChange={setDraft}
         onSubmit={saveLog}
         weightUnit={weightUnit}
@@ -135,6 +144,58 @@ export function TodayScreen() {
       </Card>
     </Screen>
   );
+}
+
+function buildWorkoutPerformancePreview(
+  workoutType: TodayLogDraft["workoutType"],
+  workouts: WorkoutSession[],
+) {
+  if (workoutType === "Rest") {
+    return null;
+  }
+
+  const matchingWorkouts = workouts.filter(
+    (workout) => workout.type === workoutType && workout.exercises.length > 0,
+  );
+  const latestWorkout = matchingWorkouts[0];
+
+  if (!latestWorkout) {
+    return null;
+  }
+
+  const totalOutput = latestWorkout.exercises.reduce(
+    (workoutTotal, exercise) =>
+      workoutTotal +
+      exercise.sets.reduce(
+        (exerciseTotal, set) =>
+          exerciseTotal + (set.reps ?? 0) * (set.isBodyweight ? 1 : set.weightLbs ?? 0),
+        0,
+      ),
+    0,
+  );
+
+  return {
+    dateLabel: formatReadableDate(latestWorkout.date),
+    workoutType,
+    sessions: matchingWorkouts.length,
+    totalOutput,
+    exercises: latestWorkout.exercises.map((exercise) => {
+      const setSummary = exercise.sets
+        .map((set) => {
+          const reps = set.reps ?? 0;
+          const load = set.isBodyweight
+            ? "bodyweight"
+            : typeof set.weightLbs === "number"
+              ? `${set.weightLbs} lb`
+              : "no load";
+
+          return `${reps} reps @ ${load}`;
+        })
+        .join(", ");
+
+      return `${exercise.name}: ${setSummary}`;
+    }),
+  };
 }
 
 const styles = StyleSheet.create({

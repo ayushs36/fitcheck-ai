@@ -654,6 +654,48 @@ useEffect(() => {
     return Array.from(savedExercises.values());
   }, [entry.workout, sortedLogs]);
 
+  const workoutPerformancePreview = useMemo(() => {
+    const selectedWorkout = entry.workout.trim().toLowerCase();
+
+    if (!selectedWorkout) {
+      return null;
+    }
+
+    const matchingWorkoutLogs = [...sortedLogs]
+      .reverse()
+      .filter(
+        (log) =>
+          log.workout.trim().toLowerCase() === selectedWorkout &&
+          log.exercises.length > 0
+      );
+    const latestMatchingWorkout = matchingWorkoutLogs[0];
+
+    if (!latestMatchingWorkout) {
+      return null;
+    }
+
+    return {
+      date: latestMatchingWorkout.date,
+      workout: latestMatchingWorkout.workout,
+      sessions: matchingWorkoutLogs.length,
+      totalOutput: latestMatchingWorkout.exercises.reduce(
+        (total, loggedExercise) =>
+          total + calculateExerciseTrainingOutput(loggedExercise),
+        0
+      ),
+      exercises: latestMatchingWorkout.exercises.map((loggedExercise) => {
+        const totalReps = loggedExercise.sets * loggedExercise.reps;
+        const output = calculateExerciseTrainingOutput(loggedExercise);
+
+        return `${loggedExercise.name}: ${loggedExercise.sets} x ${
+          loggedExercise.reps
+        } @ ${
+          loggedExercise.weight > 0 ? `${loggedExercise.weight} lbs` : "bodyweight"
+        } · ${totalReps} reps · ${output.toLocaleString()} output`;
+      }),
+    };
+  }, [entry.workout, sortedLogs]);
+
   const currentLogCoverage = useMemo(() => getLogCoverage(entry), [entry]);
   const loggingQuality = useMemo(
     () => getLoggingQuality(sortedLogs),
@@ -2812,6 +2854,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   setGoalDate={setGoalDate}
   workoutTypes={workoutTypes}
   suggestedExercises={suggestedExercises}
+  workoutPerformancePreview={workoutPerformancePreview}
   currentLogCoverage={currentLogCoverage}
   editingId={editingId}
   logSaveStatus={logSaveStatus}

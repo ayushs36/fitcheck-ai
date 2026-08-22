@@ -27,6 +27,7 @@ const workoutTypes: WorkoutType[] = [
 type LogEditorCardProps = {
   dateLabel: string;
   draft: TodayLogDraft;
+  workoutPerformancePreview?: WorkoutPerformancePreview | null;
   statusLabel: string;
   submitLabel: string;
   weightUnit: string;
@@ -35,9 +36,18 @@ type LogEditorCardProps = {
   onSubmit: () => void;
 };
 
+export type WorkoutPerformancePreview = {
+  dateLabel: string;
+  workoutType: WorkoutType;
+  sessions: number;
+  totalOutput: number;
+  exercises: string[];
+};
+
 export function LogEditorCard({
   dateLabel,
   draft,
+  workoutPerformancePreview,
   statusLabel,
   submitLabel,
   weightUnit,
@@ -140,6 +150,39 @@ export function LogEditorCard({
         </View>
       </View>
 
+      {workoutPerformancePreview ? (
+        <View style={styles.performanceBox}>
+          <View style={styles.performanceHeader}>
+            <View style={styles.performanceCopy}>
+              <Text style={styles.performanceEyebrow}>
+                Last {workoutPerformancePreview.workoutType} Performance
+              </Text>
+              <Text style={styles.performanceTitle}>
+                {workoutPerformancePreview.dateLabel}
+              </Text>
+              <Text style={styles.performanceMeta}>
+                {workoutPerformancePreview.sessions} saved{" "}
+                {workoutPerformancePreview.sessions === 1 ? "session" : "sessions"}
+              </Text>
+            </View>
+            <View style={styles.outputPill}>
+              <Text style={styles.outputValue}>
+                {workoutPerformancePreview.totalOutput.toLocaleString()}
+              </Text>
+              <Text style={styles.outputLabel}>output</Text>
+            </View>
+          </View>
+
+          <View style={styles.exerciseList}>
+            {workoutPerformancePreview.exercises.map((exercise) => (
+              <Text key={exercise} style={styles.exerciseItem}>
+                {exercise}
+              </Text>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       <TextField
         label="Notes"
         multiline
@@ -180,6 +223,18 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textTransform: "uppercase",
   },
+  exerciseItem: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
+    padding: 10,
+  },
+  exerciseList: {
+    gap: 8,
+  },
   grid: {
     gap: 12,
   },
@@ -199,6 +254,60 @@ const styles = StyleSheet.create({
     minHeight: 92,
     paddingTop: 14,
     textAlignVertical: "top",
+  },
+  outputLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  outputPill: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    justifyContent: "center",
+    minHeight: 58,
+    paddingHorizontal: 10,
+    width: 78,
+  },
+  outputValue: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  performanceBox: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    padding: 13,
+  },
+  performanceCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  performanceEyebrow: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  performanceHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  performanceMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  performanceTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "900",
   },
   saveButton: {
     alignItems: "center",

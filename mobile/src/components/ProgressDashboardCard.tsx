@@ -158,6 +158,25 @@ export function ProgressDashboardCard({
         </Text>
       </View>
 
+      <View style={styles.executionBox}>
+        <View style={styles.executionHeader}>
+          <View>
+            <Text style={styles.actionEyebrow}>Weekly Execution</Text>
+            <Text style={styles.executionTitle}>{insights.weeklyExecution.status}</Text>
+          </View>
+          <View style={styles.executionScoreWrap}>
+            <Text style={styles.executionScore}>{insights.weeklyExecution.score}</Text>
+            <Text style={styles.executionScoreMeta}>/100</Text>
+          </View>
+        </View>
+        <Text style={styles.executionBody}>{insights.weeklyExecution.summary}</Text>
+        <Text style={styles.executionAction}>{insights.weeklyExecution.nextAction}</Text>
+        <Text style={styles.executionMeta}>
+          Based on 7-day logged averages. One off day is okay if the weekly average
+          stays on target.
+        </Text>
+      </View>
+
       <View style={styles.actionBox}>
         <Text style={styles.actionEyebrow}>Current Priority</Text>
         <Text style={styles.actionTitle}>{insights.priority}</Text>
@@ -233,6 +252,61 @@ const styles = StyleSheet.create({
   },
   evidenceList: {
     gap: 4,
+  },
+  executionAction: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  executionBody: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  executionBox: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 7,
+    padding: 14,
+  },
+  executionHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  executionMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  executionScore: {
+    color: colors.primary,
+    fontSize: 22,
+    fontWeight: "900",
+  },
+  executionScoreMeta: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  executionScoreWrap: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    justifyContent: "center",
+    minHeight: 58,
+    width: 62,
+  },
+  executionTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "900",
   },
   header: {
     alignItems: "flex-start",
