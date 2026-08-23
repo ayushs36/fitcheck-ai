@@ -50,6 +50,21 @@ export async function addWorkoutSession(session: WorkoutSession): Promise<Workou
   return sortedSessions;
 }
 
+export async function upsertWorkoutSession(session: WorkoutSession): Promise<WorkoutSession[]> {
+  const sessions = await loadWorkoutSessions();
+  const existingIndex = sessions.findIndex((existingSession) => existingSession.id === session.id);
+  const nextSessions =
+    existingIndex >= 0
+      ? sessions.map((existingSession, index) =>
+          index === existingIndex ? session : existingSession,
+        )
+      : [...sessions, session];
+  const sortedSessions = nextSessions.sort((a, b) => b.date.localeCompare(a.date));
+
+  await saveWorkoutSessions(sortedSessions);
+  return sortedSessions;
+}
+
 export async function deleteWorkoutSessionById(id: string): Promise<WorkoutSession[]> {
   const sessions = await loadWorkoutSessions();
   const nextSessions = sessions.filter((session) => session.id !== id);

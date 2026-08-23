@@ -9,7 +9,7 @@ import {
 } from "../types/fitness";
 import { ExerciseTemplate } from "../data/exerciseTemplates";
 import { parseOptionalNumber } from "./logDraft";
-import { parseWeightToLbs, UnitSystem } from "./units";
+import { formatWeightFromLbs, parseWeightToLbs, UnitSystem } from "./units";
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -57,7 +57,10 @@ export function createBlankWorkoutDraft(type: WorkoutType = "Push"): WorkoutDraf
   };
 }
 
-export function createWorkoutDraftFromSession(session: WorkoutSession): WorkoutDraft {
+export function createWorkoutDraftFromSession(
+  session: WorkoutSession,
+  unitSystem: UnitSystem = "imperial",
+): WorkoutDraft {
   return {
     type: session.type,
     exercises: session.exercises.map((exercise) => ({
@@ -67,15 +70,15 @@ export function createWorkoutDraftFromSession(session: WorkoutSession): WorkoutD
       sets: exercise.sets.length
         ? exercise.sets.map((set) => ({
             id: createId("set"),
-            reps: "",
-            weightLbs: "",
+            reps: typeof set.reps === "number" ? String(set.reps) : "",
+            weightLbs: set.isBodyweight ? "" : formatWeightFromLbs(set.weightLbs, unitSystem),
             isBodyweight: Boolean(set.isBodyweight),
             formFocus: Boolean(set.formFocus),
-            notes: "",
+            notes: set.notes ?? "",
           }))
         : [createBlankSet()],
     })),
-    notes: "",
+    notes: session.notes ?? "",
   };
 }
 

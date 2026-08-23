@@ -10,6 +10,7 @@ import {
   deleteWorkoutSessionById,
   loadRecentWorkoutSessions,
   loadUserSettings,
+  upsertWorkoutSession,
 } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
@@ -41,6 +42,7 @@ export function TrainingScreen() {
   const [draft, setDraft] = useState<WorkoutDraft>(() => createBlankWorkoutDraft());
   const [recentSessions, setRecentSessions] = useState<WorkoutSession[]>([]);
   const [unitSystem, setUnitSystem] = useState<UnitSystem>("imperial");
+  const [editingSession, setEditingSession] = useState<WorkoutSession | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   async function refreshSessions() {
@@ -112,7 +114,21 @@ export function TrainingScreen() {
       return;
     }
 
-    setDraft(createWorkoutDraftFromSession(sourceWorkout));
+    setDraft(createWorkoutDraftFromSession(sourceWorkout, unitSystem));
+    setEditingSession(null);
+    setLastSavedAt(null);
+  }
+
+  function editWorkout(session: WorkoutSession) {
+    setEditingSession(session);
+    setDraft(createWorkoutDraftFromSession(session, unitSystem));
+    setLastSavedAt(null);
+  }
+
+  function cancelEditWorkout() {
+    setEditingSession(null);
+    setDraft(createBlankWorkoutDraft(draft.type));
+    setLastSavedAt(null);
   }
 
   function addSet(exerciseId: string) {
@@ -127,22 +143,39 @@ export function TrainingScreen() {
   }
 
   async function saveWorkout() {
-    const workoutSession = createWorkoutSessionFromDraft({
-      date: todayKey,
+    const draftedWorkoutSession = createWorkoutSessionFromDraft({
+      date: editingSession?.date ?? todayKey,
       draft,
       unitSystem,
     });
 
-    if (workoutSession.exercises.length === 0 && draft.type !== "Rest") {
+    if (draftedWorkoutSession.exercises.length === 0 && draft.type !== "Rest") {
       Alert.alert("Add an exercise", "Name at least one exercise before saving this workout.");
       return;
     }
 
-    const sessions = await addWorkoutSession(workoutSession);
+    const workoutSession = editingSession
+      ? {
+          ...draftedWorkoutSession,
+          id: editingSession.id,
+          date: editingSession.date,
+          createdAt: editingSession.createdAt,
+        }
+      : draftedWorkoutSession;
+    const sessions = editingSession
+      ? await upsertWorkoutSession(workoutSession)
+      : await addWorkoutSession(workoutSession);
+
     setRecentSessions(sessions.slice(0, 5));
+    setEditingSession(null);
     setDraft(createBlankWorkoutDraft(draft.type));
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    Alert.alert("Workout saved", "Your workout was saved on this device.");
+    Alert.alert(
+      editingSession ? "Workout updated" : "Workout saved",
+      editingSession
+        ? "Your saved workout was updated on this device."
+        : "Your workout was saved on this device.",
+    );
   }
 
   function deleteWorkout(session: WorkoutSession) {
@@ -157,6 +190,10 @@ export function TrainingScreen() {
           onPress: async () => {
             const sessions = await deleteWorkoutSessionById(session.id);
             setRecentSessions(sessions.slice(0, 5));
+            if (editingSession?.id === session.id) {
+              setEditingSession(null);
+              setDraft(createBlankWorkoutDraft(draft.type));
+            }
             Alert.alert("Workout deleted", "The workout was removed from this device.");
           },
         },
@@ -175,8 +212,14 @@ export function TrainingScreen() {
     >
       <Card>
         <View style={styles.header}>
-          <Text style={styles.title}>{formatReadableDate(todayKey)}</Text>
-          <Text style={styles.body}>Workout session</Text>
+          <Text style={styles.title}>
+            {editingSession ? formatReadableDate(editingSession.date) : formatReadableDate(todayKey)}
+          </Text>
+          <Text style={styles.body}>
+            {editingSession
+              ? `Editing saved ${editingSession.type} workout`
+              : "Workout session"}
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -369,8 +412,20 @@ export function TrainingScreen() {
         />
 
         <Pressable accessibilityRole="button" onPress={saveWorkout} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Workout</Text>
+          <Text style={styles.saveButtonText}>
+            {editingSession ? "Update Workout" : "Save Workout"}
+          </Text>
         </Pressable>
+
+        {editingSession ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={cancelEditWorkout}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryButtonText}>Cancel Edit</Text>
+          </Pressable>
+        ) : null}
 
         {lastSavedAt ? <Text style={styles.savedMeta}>Last saved at {lastSavedAt}</Text> : null}
       </Card>
@@ -393,6 +448,13 @@ export function TrainingScreen() {
                   </View>
                   <View style={styles.sessionActions}>
                     <Text style={styles.sessionType}>{session.type}</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => editWorkout(session)}
+                      style={styles.editSessionButton}
+                    >
+                      <Text style={styles.editSessionText}>Edit</Text>
+                    </Pressable>
                     <Pressable
                       accessibilityRole="button"
                       onPress={() => deleteWorkout(session)}
@@ -437,6 +499,20 @@ const styles = StyleSheet.create({
   },
   deleteSessionText: {
     color: colors.danger,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  editSessionButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 34,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  editSessionText: {
+    color: colors.text,
     fontSize: 12,
     fontWeight: "800",
   },
