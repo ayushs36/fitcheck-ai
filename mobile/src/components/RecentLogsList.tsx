@@ -11,20 +11,20 @@ type RecentLogsListProps = {
   onSelectLog?: (log: DailyLog) => void;
 };
 
-function formatMetric(label: string, value?: number, suffix = ""): string {
+function formatMetricValue(value?: number, suffix = ""): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return `${label}: blank`;
+    return "blank";
   }
 
-  return `${label}: ${value}${suffix}`;
+  return `${value.toLocaleString()}${suffix}`;
 }
 
 function formatWeight(value: number | undefined, unitSystem: UnitSystem): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "Weight: blank";
+    return "blank";
   }
 
-  return `Weight: ${formatWeightFromLbs(value, unitSystem)} ${getWeightUnitLabel(unitSystem)}`;
+  return `${formatWeightFromLbs(value, unitSystem)} ${getWeightUnitLabel(unitSystem)}`;
 }
 
 export function RecentLogsList({
@@ -49,6 +49,12 @@ export function RecentLogsList({
     <View style={styles.list}>
       {logs.map((log) => {
         const isSelected = log.date === selectedDate;
+        const metricItems = [
+          { label: "Weight", value: formatWeight(log.weightLbs, unitSystem) },
+          { label: "Calories", value: formatMetricValue(log.calories) },
+          { label: "Protein", value: formatMetricValue(log.proteinGrams, "g") },
+          { label: "Steps", value: formatMetricValue(log.steps) },
+        ];
 
         return (
           <Pressable
@@ -59,19 +65,22 @@ export function RecentLogsList({
             style={[styles.row, isSelected && styles.selectedRow]}
           >
             <View style={styles.rowHeader}>
-              <Text style={styles.date}>{formatReadableDate(log.date)}</Text>
+              <View style={styles.dateBlock}>
+                <Text style={styles.date}>{formatReadableDate(log.date)}</Text>
+                <Text style={styles.dateMeta}>{log.date}</Text>
+              </View>
               <View style={styles.goalPill}>
                 <Text style={styles.goal}>{log.goal}</Text>
               </View>
             </View>
-            <Text style={styles.metrics}>
-              {[
-                formatWeight(log.weightLbs, unitSystem),
-                formatMetric("Cals", log.calories),
-                formatMetric("Protein", log.proteinGrams, "g"),
-                formatMetric("Steps", log.steps),
-              ].join("   ")}
-            </Text>
+            <View style={styles.metricGrid}>
+              {metricItems.map((item) => (
+                <View key={item.label} style={styles.metricItem}>
+                  <Text style={styles.metricLabel}>{item.label}</Text>
+                  <Text style={styles.metricValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
             <View style={styles.footerRow}>
               <Text style={styles.workout}>{log.workoutType ?? "No workout selected"}</Text>
               {onSelectLog ? (
@@ -90,6 +99,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "800",
+  },
+  dateBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  dateMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
   },
   emptyBody: {
     color: colors.textMuted,
@@ -135,10 +153,31 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
   },
-  metrics: {
+  metricGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  metricItem: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    minWidth: "47%",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  metricLabel: {
     color: colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  metricValue: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900",
+    marginTop: 2,
   },
   row: {
     backgroundColor: colors.surface,

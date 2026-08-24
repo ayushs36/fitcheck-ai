@@ -3535,49 +3535,67 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
                       const coverage = getLogCoverage(log);
 
                       return (
-                        <tr key={log.id} className="border-b align-top">
-                          <td className="p-2">{log.date}</td>
+                        <tr key={log.id} className="border-b align-top last:border-b-0">
+                          <td className="min-w-36 p-2">
+                            <p className="font-semibold text-slate-950">
+                              {formatReadableLogDate(log.date)}
+                            </p>
+                            <p className="text-xs font-medium text-slate-400">
+                              {log.date}
+                            </p>
+                          </td>
                           <td className="p-2">
                             <LogCoverageBadge coverage={coverage} />
                           </td>
-                          <td className="p-2">
-                            {log.weight > 0 ? log.weight : "—"}
+                          <td className="p-2 font-semibold text-slate-800">
+                            {formatLoggedMetric(log.weight, "lbs")}
+                          </td>
+                          <td className="p-2 font-semibold text-slate-800">
+                            {formatLoggedMetric(log.calories, "cal")}
+                          </td>
+                          <td className="p-2 font-semibold text-slate-800">
+                            {formatLoggedMetric(log.protein, "g")}
+                          </td>
+                          <td className="p-2 font-semibold text-slate-800">
+                            {formatLoggedMetric(log.steps, "steps")}
                           </td>
                           <td className="p-2">
-                            {log.calories > 0 ? log.calories : "—"}
+                            {log.workout ? (
+                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                {log.workout}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </td>
-                          <td className="p-2">
-                            {log.protein > 0 ? `${log.protein}g` : "—"}
-                          </td>
-                          <td className="p-2">
-                            {log.steps > 0 ? log.steps : "—"}
-                          </td>
-                          <td className="p-2">{log.workout || "—"}</td>
                           <td className="p-2">
                             {log.exercises.length === 0 ? (
-                              "—"
+                              <span className="text-slate-400">—</span>
                             ) : (
                               <ul className="space-y-1">
                                 {log.exercises.map((item) => (
-                                  <li key={item.id}>
-                                    {item.name}: {item.sets}x{item.reps} @{" "}
-                                    {item.weight} lbs
+                                  <li
+                                    key={item.id}
+                                    className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                                  >
+                                    {item.name}: {item.sets} x {item.reps} @{" "}
+                                    {item.weight > 0 ? `${item.weight} lbs` : "bodyweight"}
                                   </li>
                                 ))}
                               </ul>
                             )}
                           </td>
-                          <td className="flex gap-2 p-2">
+                          <td className="flex min-w-32 gap-2 p-2">
                             <button
                               onClick={() => editLog(log)}
-                              className="rounded-lg bg-slate-200 px-3 py-1"
+                              className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
                             >
                               Edit
                             </button>
 
                             <button
                               onClick={() => deleteLog(log.id)}
-                              className="rounded-lg bg-red-100 px-3 py-1 text-red-700"
+                              className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
                             >
                               Delete
                             </button>
@@ -3916,6 +3934,25 @@ function truncateText(value: string, maxLength: number) {
   }
 
   return `${value.slice(0, maxLength).trim()}...`;
+}
+
+function formatReadableLogDate(dateKey: string) {
+  const date = new Date(`${dateKey}T12:00:00`);
+
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatLoggedMetric(value: number, suffix: string) {
+  if (value <= 0) {
+    return "—";
+  }
+
+  return `${value.toLocaleString()} ${suffix}`;
 }
 
 function cleanAIAnswer(value: string) {
