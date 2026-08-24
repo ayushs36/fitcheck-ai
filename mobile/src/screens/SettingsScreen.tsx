@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
+import { TextField } from "../components/TextField";
 import {
   clearMobileData,
   loadMobileDataBackup,
   MobileDataBackup,
+  restoreMobileDataBackup,
 } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { GoalType, UserSettings } from "../types/fitness";
@@ -56,6 +58,33 @@ function createSnapshot(backup: MobileDataBackup): DataSnapshot {
   };
 }
 
+function parseBackupText(value: string): MobileDataBackup | null {
+  try {
+    const parsedBackup = JSON.parse(value);
+
+    if (
+      !parsedBackup ||
+      !Array.isArray(parsedBackup.logs) ||
+      !Array.isArray(parsedBackup.workouts) ||
+      !("settings" in parsedBackup)
+    ) {
+      return null;
+    }
+
+    return {
+      exportedAt:
+        typeof parsedBackup.exportedAt === "string"
+          ? parsedBackup.exportedAt
+          : new Date().toISOString(),
+      logs: parsedBackup.logs,
+      workouts: parsedBackup.workouts,
+      settings: parsedBackup.settings ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
   const [snapshot, setSnapshot] = useState<DataSnapshot>({
     dailyLogCount: 0,
@@ -63,6 +92,8 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
     settings: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [restoreText, setRestoreText] = useState("");
+  const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
 
   async function refreshSnapshot() {
     const backup = await loadMobileDataBackup();
@@ -111,6 +142,37 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
             await clearMobileData();
             await refreshSnapshot();
             onDataReset?.();
+          },
+        },
+      ],
+    );
+  }
+
+  function confirmRestore() {
+    const parsedBackup = parseBackupText(restoreText);
+
+    if (!parsedBackup) {
+      setRestoreStatus("Paste a valid FitCheck AI Mobile backup JSON first.");
+      Alert.alert("Invalid backup", "This does not look like a FitCheck AI Mobile backup.");
+      return;
+    }
+
+    Alert.alert(
+      "Restore backup?",
+      `This will replace local mobile data with ${parsedBackup.logs.length} daily logs and ${parsedBackup.workouts.length} workouts from the pasted backup.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Restore",
+          onPress: async () => {
+            await restoreMobileDataBackup(parsedBackup);
+            await refreshSnapshot();
+            setRestoreText("");
+            setRestoreStatus("Backup restored on this device.");
+
+            if (!parsedBackup.settings?.hasCompletedOnboarding) {
+              onDataReset?.();
+            }
           },
         },
       ],
@@ -176,6 +238,35 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
       </Card>
 
       <Card>
+        <View style={styles.header}>
+          <Text style={styles.title}>Restore Backup</Text>
+          <Text style={styles.body}>
+            Paste a FitCheck AI Mobile backup JSON to restore logs, workouts, and settings on
+            this device.
+          </Text>
+        </View>
+
+        <TextField
+          label="Backup JSON"
+          multiline
+          onChangeText={setRestoreText}
+          placeholder="Paste exported backup here"
+          style={styles.restoreInput}
+          value={restoreText}
+        />
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={confirmRestore}
+          style={styles.secondaryButton}
+        >
+          <Text style={styles.secondaryButtonText}>Restore From Backup</Text>
+        </Pressable>
+
+        {restoreStatus ? <Text style={styles.restoreStatus}>{restoreStatus}</Text> : null}
+      </Card>
+
+      <Card>
         <Text style={styles.title}>Private By Default</Text>
         <Text style={styles.body}>
           The mobile app stores fitness logs on-device and does not include an OpenAI API key in
@@ -233,6 +324,30 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: colors.surface,
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  restoreInput: {
+    minHeight: 120,
+    paddingTop: 14,
+    textAlignVertical: "top",
+  },
+  restoreStatus: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  secondaryButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 15,
+    borderWidth: 1,
+    minHeight: 52,
+    justifyContent: "center",
+  },
+  secondaryButtonText: {
+    color: colors.text,
     fontSize: 15,
     fontWeight: "800",
   },

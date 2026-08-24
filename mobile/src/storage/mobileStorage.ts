@@ -157,6 +157,14 @@ export async function loadMobileDataBackup(): Promise<MobileDataBackup> {
   };
 }
 
+export async function restoreMobileDataBackup(backup: MobileDataBackup): Promise<void> {
+  await AsyncStorage.multiSet([
+    [MOBILE_STORAGE_KEYS.logs, JSON.stringify(backup.logs)],
+    [MOBILE_STORAGE_KEYS.workouts, JSON.stringify(backup.workouts)],
+    [MOBILE_STORAGE_KEYS.settings, JSON.stringify(backup.settings)],
+  ]);
+}
+
 export async function clearMobileData(): Promise<void> {
   await AsyncStorage.multiRemove([
     MOBILE_STORAGE_KEYS.logs,
