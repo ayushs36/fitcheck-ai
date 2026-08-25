@@ -85,7 +85,7 @@ export function getNutritionDiagnosis({
       label: "Calorie target execution",
       score: calorieTargetScore,
       target: nutritionTargets.calorieRange,
-      actual: `${Math.round(calorieAverage)} cal average (${formatDelta(
+      actual: `${Math.round(calorieAverage)} cal 14-log average (${formatDelta(
         calorieTargetDelta
       )} vs target)`,
       status: getMetricStatus(calorieTargetScore),
@@ -107,7 +107,7 @@ export function getNutritionDiagnosis({
     {
       label: "Nutrition logging",
       score: loggingScore,
-      target: "Calories logged daily",
+      target: "5+ calorie logs in the 14-log window",
       actual: `${validCalorieLogs.length}/${Math.min(14, recentLogs.length)} recent days`,
       status: getMetricStatus(loggingScore),
     },

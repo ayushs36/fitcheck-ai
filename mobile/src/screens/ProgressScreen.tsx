@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
-import { GoalInsightGuideCard } from "../components/GoalInsightGuideCard";
 import { ProgressChartsCard } from "../components/ProgressChartsCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
@@ -126,7 +125,6 @@ export function ProgressScreen() {
     >
       <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />
       <ProgressChartsCard logs={logs} workouts={workouts} unitSystem={unitSystem} />
-      <GoalInsightGuideCard goal={insights.activeGoal} />
 
       <Card>
         <View style={styles.headerRow}>

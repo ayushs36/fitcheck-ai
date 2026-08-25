@@ -11,8 +11,9 @@ export function NutritionDiagnosisCard({
         <div>
           <h2 className="text-2xl font-semibold">Agent Nutrition Diagnosis</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Evaluates whether nutrition execution is strong enough for the
-            agent to trust calorie and weight-trend decisions.
+            Uses your last 14 saved logs, while skipping blank calorie and
+            protein fields, to decide whether nutrition execution is reliable
+            enough for calorie changes.
           </p>
         </div>
 
@@ -31,7 +32,7 @@ export function NutritionDiagnosisCard({
           }
         />
         <DiagnosisStat
-          label="Calorie avg"
+          label="14-log calorie avg"
           value={
             nutritionDiagnosis.calorieAverage > 0
               ? `${nutritionDiagnosis.calorieAverage.toFixed(0)} cal`
@@ -51,7 +52,7 @@ export function NutritionDiagnosisCard({
           }
         />
         <DiagnosisStat
-          label="Protein avg"
+          label="14-log protein avg"
           value={
             nutritionDiagnosis.proteinAverage > 0
               ? `${nutritionDiagnosis.proteinAverage.toFixed(0)}g`
@@ -91,6 +92,8 @@ export function NutritionDiagnosisCard({
         </div>
       ) : (
         <p className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
+          FitCheck needs at least 7 recent logs and 5 calorie logs inside the
+          14-log window before this diagnosis becomes useful.{" "}
           {nutritionDiagnosis.recommendation}
         </p>
       )}
