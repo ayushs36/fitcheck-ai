@@ -81,6 +81,27 @@ export function TrainingScreen() {
     }));
   }
 
+  function addSavedExercise(savedExercise: Pick<ExerciseDraft, "name" | "muscleGroup">) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      exercises: [
+        ...currentDraft.exercises,
+        {
+          ...createBlankExercise(),
+          name: savedExercise.name,
+          muscleGroup: savedExercise.muscleGroup,
+        },
+      ],
+    }));
+  }
+
+  function removeExercise(exerciseId: string) {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      exercises: currentDraft.exercises.filter((exercise) => exercise.id !== exerciseId),
+    }));
+  }
+
   function selectWorkoutType(type: WorkoutType) {
     setDraft((currentDraft) => {
       if (type === "Rest") {
@@ -202,6 +223,32 @@ export function TrainingScreen() {
   }
 
   const suggestedExercises = exerciseTemplatesByWorkoutType[draft.type];
+  const savedExercisesForWorkout = useMemo(() => {
+    const savedExercises = new Map<string, Pick<ExerciseDraft, "name" | "muscleGroup">>();
+    const templateNames = new Set(
+      suggestedExercises.map((template) => template.name.trim().toLowerCase()),
+    );
+
+    recentSessions
+      .filter((session) => session.type === draft.type)
+      .forEach((session) => {
+        session.exercises.forEach((loggedExercise) => {
+          const exerciseName = loggedExercise.name.trim();
+          const normalizedName = exerciseName.toLowerCase();
+
+          if (!exerciseName || templateNames.has(normalizedName) || savedExercises.has(normalizedName)) {
+            return;
+          }
+
+          savedExercises.set(normalizedName, {
+            name: exerciseName,
+            muscleGroup: loggedExercise.muscleGroup || "Saved",
+          });
+        });
+      });
+
+    return Array.from(savedExercises.values()).slice(0, 8);
+  }, [draft.type, recentSessions, suggestedExercises]);
   const isRestDay = draft.type === "Rest";
   const weightUnit = getWeightUnitLabel(unitSystem);
 
@@ -270,7 +317,7 @@ export function TrainingScreen() {
 
             {suggestedExercises.length ? (
               <View style={styles.section}>
-                <Text style={styles.label}>Suggested exercises</Text>
+                <Text style={styles.label}>Exercise bank</Text>
                 <View style={styles.templateGrid}>
                   {suggestedExercises.map((template) => (
                     <Pressable
@@ -286,6 +333,25 @@ export function TrainingScreen() {
                 </View>
               </View>
             ) : null}
+
+            {savedExercisesForWorkout.length ? (
+              <View style={styles.section}>
+                <Text style={styles.label}>Saved from your {draft.type} workouts</Text>
+                <View style={styles.templateGrid}>
+                  {savedExercisesForWorkout.map((savedExercise) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      key={`${savedExercise.name}-${savedExercise.muscleGroup}`}
+                      onPress={() => addSavedExercise(savedExercise)}
+                      style={styles.savedExerciseChip}
+                    >
+                      <Text style={styles.templateName}>{savedExercise.name}</Text>
+                      <Text style={styles.templateMeta}>{savedExercise.muscleGroup || "Saved"}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </>
         )}
 
@@ -293,6 +359,13 @@ export function TrainingScreen() {
           <View key={exercise.id} style={styles.exerciseBlock}>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseTitle}>Exercise {exerciseIndex + 1}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => removeExercise(exercise.id)}
+                style={styles.removeExerciseButton}
+              >
+                <Text style={styles.removeExerciseText}>Delete</Text>
+              </Pressable>
             </View>
 
             <TextField
@@ -562,6 +635,19 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800",
   },
+  removeExerciseButton: {
+    alignItems: "center",
+    backgroundColor: "#FEE4E2",
+    borderRadius: 999,
+    minHeight: 32,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  removeExerciseText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: "800",
+  },
   saveButton: {
     alignItems: "center",
     backgroundColor: colors.primary,
@@ -579,6 +665,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     textAlign: "center",
+  },
+  savedExerciseChip: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   secondaryButton: {
     alignItems: "center",

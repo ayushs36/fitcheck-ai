@@ -23,10 +23,15 @@ export function DailyLogCard({
   setGoalDate,
   workoutTypes,
   suggestedExercises,
+  savedExerciseNames,
   workoutPerformancePreview,
   currentLogCoverage,
   editingId,
   logSaveStatus,
+  renameWorkoutType,
+  deleteWorkoutType,
+  renameExerciseName,
+  deleteExerciseName,
   addExercise,
   deleteExercise,
   saveLog,
@@ -45,10 +50,15 @@ export function DailyLogCard({
   setGoalDate: (value: string) => void;
   workoutTypes: string[];
   suggestedExercises: string[];
+  savedExerciseNames: string[];
   workoutPerformancePreview: WorkoutPerformancePreview | null;
   currentLogCoverage: LogCoverage;
   editingId: string | null;
   logSaveStatus: string;
+  renameWorkoutType: (workout: string) => void;
+  deleteWorkoutType: (workout: string) => void;
+  renameExerciseName: (exerciseName: string) => void;
+  deleteExerciseName: (exerciseName: string) => void;
   addExercise: () => void;
   deleteExercise: (id: string) => void;
   saveLog: () => void;
@@ -206,6 +216,52 @@ export function DailyLogCard({
               ))}
             </ul>
           </div>
+        )}
+
+        {(workoutTypes.length > 0 || savedExerciseNames.length > 0) && (
+          <details className="rounded-2xl border border-slate-200 bg-white">
+            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800">
+              Manage saved workout and exercise names
+            </summary>
+
+            <div className="space-y-4 border-t border-slate-200 p-4">
+              {workoutTypes.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Workout names
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {workoutTypes.map((type) => (
+                      <NameManagementRow
+                        key={type}
+                        label={type}
+                        onRename={() => renameWorkoutType(type)}
+                        onDelete={() => deleteWorkoutType(type)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {savedExerciseNames.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Exercises for {entry.workout || "selected workout"}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {savedExerciseNames.map((exerciseName) => (
+                      <NameManagementRow
+                        key={exerciseName}
+                        label={exerciseName}
+                        onRename={() => renameExerciseName(exerciseName)}
+                        onDelete={() => deleteExerciseName(exerciseName)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </details>
         )}
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
@@ -381,5 +437,35 @@ export function DailyLogCard({
         </details>
       </div>
     </section>
+  );
+}
+
+function NameManagementRow({
+  label,
+  onRename,
+  onDelete,
+}: {
+  label: string;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-sm font-semibold text-slate-800">{label}</span>
+      <div className="flex gap-2">
+        <button
+          onClick={onRename}
+          className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+        >
+          Rename
+        </button>
+        <button
+          onClick={onDelete}
+          className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
   );
 }

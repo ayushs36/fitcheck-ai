@@ -63,6 +63,7 @@ import { getAgentMemory } from "@/lib/agentMemory";
 import { getWeeklyCoachingReview } from "@/lib/weeklyCoachingReview";
 import { getAgentDecisionTrace } from "@/lib/agentDecisionTrace";
 import { getProteinTarget } from "@/lib/proteinTargets";
+import { getExerciseBankForWorkout } from "@/lib/exerciseBank";
 import {
   assertStorageKeysAreSeparated,
   DEMO_STORAGE_KEYS,
@@ -653,6 +654,20 @@ useEffect(() => {
 
     return Array.from(savedExercises.values());
   }, [entry.workout, sortedLogs]);
+
+  const exerciseBankSuggestions = useMemo(() => {
+    const suggestions = new Map<string, string>();
+
+    getExerciseBankForWorkout(entry.workout).forEach((bankExercise) => {
+      suggestions.set(bankExercise.name.toLowerCase(), bankExercise.name);
+    });
+
+    suggestedExercises.forEach((exerciseName) => {
+      suggestions.set(exerciseName.toLowerCase(), exerciseName);
+    });
+
+    return Array.from(suggestions.values());
+  }, [entry.workout, suggestedExercises]);
 
   const workoutPerformancePreview = useMemo(() => {
     const selectedWorkout = entry.workout.trim().toLowerCase();
@@ -1805,6 +1820,114 @@ AI Confidence Score: ${confidenceScore}%
     });
   }
 
+  function isSameSavedName(currentName: string, savedName: string) {
+    return currentName.trim().toLowerCase() === savedName.trim().toLowerCase();
+  }
+
+  function renameWorkoutType(workout: string) {
+    const nextWorkout = window.prompt("Rename workout type", workout)?.trim();
+
+    if (!nextWorkout || isSameSavedName(nextWorkout, workout)) {
+      return;
+    }
+
+    setLogs((currentLogs) =>
+      currentLogs.map((log) =>
+        isSameSavedName(log.workout, workout)
+          ? { ...log, workout: nextWorkout }
+          : log
+      )
+    );
+
+    if (isSameSavedName(entry.workout, workout)) {
+      setEntry({ ...entry, workout: nextWorkout });
+    }
+  }
+
+  function deleteWorkoutType(workout: string) {
+    const shouldDelete = window.confirm(
+      `Remove "${workout}" from saved workout suggestions? Existing metrics stay saved.`
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setLogs((currentLogs) =>
+      currentLogs.map((log) =>
+        isSameSavedName(log.workout, workout) ? { ...log, workout: "" } : log
+      )
+    );
+
+    if (isSameSavedName(entry.workout, workout)) {
+      setEntry({ ...entry, workout: "" });
+    }
+  }
+
+  function renameExerciseName(exerciseName: string) {
+    const nextExerciseName = window
+      .prompt("Rename exercise", exerciseName)
+      ?.trim();
+
+    if (!nextExerciseName || isSameSavedName(nextExerciseName, exerciseName)) {
+      return;
+    }
+
+    setLogs((currentLogs) =>
+      currentLogs.map((log) => ({
+        ...log,
+        exercises: log.exercises.map((loggedExercise) =>
+          isSameSavedName(loggedExercise.name, exerciseName)
+            ? { ...loggedExercise, name: nextExerciseName }
+            : loggedExercise
+        ),
+      }))
+    );
+
+    setEntry({
+      ...entry,
+      exercises: entry.exercises.map((loggedExercise) =>
+        isSameSavedName(loggedExercise.name, exerciseName)
+          ? { ...loggedExercise, name: nextExerciseName }
+          : loggedExercise
+      ),
+    });
+
+    if (isSameSavedName(exercise.name, exerciseName)) {
+      setExercise({ ...exercise, name: nextExerciseName });
+    }
+  }
+
+  function deleteExerciseName(exerciseName: string) {
+    const shouldDelete = window.confirm(
+      `Remove "${exerciseName}" from saved exercises? Matching saved exercise entries will be removed from workout logs.`
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    setLogs((currentLogs) =>
+      currentLogs.map((log) => ({
+        ...log,
+        exercises: log.exercises.filter(
+          (loggedExercise) => !isSameSavedName(loggedExercise.name, exerciseName)
+        ),
+      }))
+    );
+
+    setEntry({
+      ...entry,
+      exercises: entry.exercises.filter(
+        (loggedExercise) => !isSameSavedName(loggedExercise.name, exerciseName)
+      ),
+    });
+
+    if (isSameSavedName(exercise.name, exerciseName)) {
+      setExercise({ ...exercise, name: "" });
+    }
+  }
+
   function deleteExercise(id: string) {
     setEntry({
       ...entry,
@@ -2853,11 +2976,16 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   goalDate={goalDate}
   setGoalDate={setGoalDate}
   workoutTypes={workoutTypes}
-  suggestedExercises={suggestedExercises}
+  suggestedExercises={exerciseBankSuggestions}
+  savedExerciseNames={suggestedExercises}
   workoutPerformancePreview={workoutPerformancePreview}
   currentLogCoverage={currentLogCoverage}
   editingId={editingId}
   logSaveStatus={logSaveStatus}
+  renameWorkoutType={renameWorkoutType}
+  deleteWorkoutType={deleteWorkoutType}
+  renameExerciseName={renameExerciseName}
+  deleteExerciseName={deleteExerciseName}
   addExercise={addExercise}
   deleteExercise={deleteExercise}
   saveLog={saveLog}
