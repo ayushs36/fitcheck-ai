@@ -40,6 +40,7 @@ export type ProgressInsights = {
   summary: string;
   priority: string;
   nextAction: string;
+  goalTimeline: GoalTimeline;
   coachReview: CoachReview;
   weeklyExecution: WeeklyExecution;
   evidence: string[];
@@ -47,6 +48,17 @@ export type ProgressInsights = {
   loggingQuality: LoggingQuality;
   averages: MetricAverage[];
   loggedDays: number;
+};
+
+export type GoalTimeline = {
+  status: "maintaining" | "needsWeight" | "needsTarget" | "reached" | "onTrack" | "offTrack";
+  latestWeightLbs?: number;
+  targetWeightLbs?: number;
+  poundsRemaining?: number;
+  plannedDate?: string;
+  projectedDate?: string;
+  summary: string;
+  nextAction: string;
 };
 
 export type CoachReview = {
@@ -283,6 +295,13 @@ function getLatestWeight(logs: DailyLog[], settings: UserSettings | null): numbe
     .find((log) => typeof log.weightLbs === "number" && Number.isFinite(log.weightLbs));
 
   return latestWeightLog?.weightLbs ?? settings?.startingWeightLbs ?? 0;
+}
+
+function getLatestWeighIn(logs: DailyLog[]): DailyLog | undefined {
+  return logs
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .find((log) => typeof log.weightLbs === "number" && Number.isFinite(log.weightLbs));
 }
 
 function buildSummary(goal: GoalType, trend: WeightTrend): string {
@@ -586,6 +605,100 @@ function buildWeeklyExecution(averages: MetricAverage[]): WeeklyExecution {
   };
 }
 
+function buildGoalTimeline(
+  goal: GoalType,
+  logs: DailyLog[],
+  settings: UserSettings | null,
+  trend: WeightTrend,
+): GoalTimeline {
+  const latestWeighIn = getLatestWeighIn(logs);
+  const latestWeightLbs = latestWeighIn?.weightLbs ?? settings?.startingWeightLbs;
+
+  if (goal === "maintain") {
+    return {
+      status: "maintaining",
+      latestWeightLbs,
+      targetWeightLbs: settings?.targetWeightLbs,
+      summary: "Maintenance does not need a finish date. The goal is a stable weight trend.",
+      nextAction: "Keep weekly calories, protein, steps, and training consistent.",
+    };
+  }
+
+  if (typeof latestWeightLbs !== "number" || !Number.isFinite(latestWeightLbs)) {
+    return {
+      status: "needsWeight",
+      summary: "FitCheck needs a current weigh-in before estimating the goal timeline.",
+      nextAction: "Log morning weight, then FitCheck can calculate distance to goal.",
+    };
+  }
+
+  if (
+    typeof settings?.targetWeightLbs !== "number" ||
+    !Number.isFinite(settings.targetWeightLbs) ||
+    settings.targetWeightLbs <= 0
+  ) {
+    return {
+      status: "needsTarget",
+      latestWeightLbs,
+      summary: "Set a target weight to estimate days to goal.",
+      nextAction: "Add target weight in the Goals tab.",
+    };
+  }
+
+  const targetWeightLbs = settings.targetWeightLbs;
+  const poundsRemaining =
+    goal === "cut"
+      ? Math.max(0, latestWeightLbs - targetWeightLbs)
+      : Math.max(0, targetWeightLbs - latestWeightLbs);
+
+  if (poundsRemaining === 0) {
+    return {
+      status: "reached",
+      latestWeightLbs,
+      targetWeightLbs,
+      poundsRemaining,
+      summary: "Your latest weigh-in is at or beyond the target.",
+      nextAction: "Decide whether to maintain, set a new target, or start the next phase.",
+    };
+  }
+
+  const plannedWeeklyPace =
+    typeof settings.weeklyGoalPaceLbs === "number" && settings.weeklyGoalPaceLbs > 0
+      ? settings.weeklyGoalPaceLbs
+      : goal === "cut"
+        ? 1
+        : 0.5;
+  const plannedDays = Math.ceil((poundsRemaining / plannedWeeklyPace) * 7);
+  const plannedDate = formatDateKey(addDays(new Date(), plannedDays));
+  const trendMatchesGoal =
+    typeof trend.weeklyChange === "number" &&
+    ((goal === "cut" && trend.weeklyChange < -0.1) ||
+      (goal === "bulk" && trend.weeklyChange > 0.1));
+  const actualWeeklyPace =
+    trendMatchesGoal && typeof trend.weeklyChange === "number"
+      ? Math.abs(trend.weeklyChange)
+      : undefined;
+  const projectedDate =
+    typeof actualWeeklyPace === "number"
+      ? formatDateKey(addDays(new Date(), Math.ceil((poundsRemaining / actualWeeklyPace) * 7)))
+      : undefined;
+
+  return {
+    status: projectedDate ? "onTrack" : "offTrack",
+    latestWeightLbs,
+    targetWeightLbs,
+    poundsRemaining: round(poundsRemaining, 1),
+    plannedDate,
+    projectedDate,
+    summary: projectedDate
+      ? "Current trend is moving toward the selected goal."
+      : "Current trend is not moving toward the selected goal yet.",
+    nextAction: projectedDate
+      ? "Hold the plan and compare again after the next 7 logged days."
+      : "Focus on consistent logging and execution before changing the target timeline.",
+  };
+}
+
 export function calculateProgressInsights(
   logs: DailyLog[],
   settings: UserSettings | null,
@@ -607,6 +720,7 @@ export function calculateProgressInsights(
     calculateMetricAverage(recentMetricLogs, "steps", settings?.stepTarget),
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
+  const goalTimeline = buildGoalTimeline(activeGoal, logs, settings, weightTrend);
   const coachReview = buildCoachReview(
     activeGoal,
     weightTrend,
@@ -620,6 +734,7 @@ export function calculateProgressInsights(
     summary: buildSummary(activeGoal, weightTrend),
     priority: goalAction.priority,
     nextAction: goalAction.nextAction,
+    goalTimeline,
     coachReview,
     weeklyExecution,
     evidence: buildEvidence(weightTrend, averages),

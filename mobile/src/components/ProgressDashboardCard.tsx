@@ -90,6 +90,27 @@ function formatWeeklyChange(value: number, unitSystem: UnitSystem): string {
   return `${convertedValue} ${getWeightUnitLabel(unitSystem)}/week`;
 }
 
+function formatWeight(value: number | undefined, unitSystem: UnitSystem): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "No data";
+  }
+
+  const convertedValue = Math.round(convertWeightFromLbs(value, unitSystem) * 10) / 10;
+  return `${convertedValue} ${getWeightUnitLabel(unitSystem)}`;
+}
+
+function formatDateLabel(dateKey?: string): string {
+  if (!dateKey) {
+    return "No projection";
+  }
+
+  return new Date(`${dateKey}T12:00:00`).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function ProgressDashboardCard({
   insights,
   unitSystem = "imperial",
@@ -128,6 +149,46 @@ export function ProgressDashboardCard({
       </View>
 
       <Text style={styles.summary}>{insights.summary}</Text>
+
+      <View style={styles.timelineBox}>
+        <View style={styles.timelineHeader}>
+          <View>
+            <Text style={styles.actionEyebrow}>Goal Timeline</Text>
+            <Text style={styles.timelineTitle}>
+              {insights.goalTimeline.projectedDate
+                ? formatDateLabel(insights.goalTimeline.projectedDate)
+                : formatDateLabel(insights.goalTimeline.plannedDate)}
+            </Text>
+          </View>
+          <View style={styles.timelinePill}>
+            <Text style={styles.timelinePillText}>{insights.goalTimeline.status}</Text>
+          </View>
+        </View>
+
+        <View style={styles.timelineGrid}>
+          <View style={styles.timelineMetric}>
+            <Text style={styles.metricLabel}>Current</Text>
+            <Text style={styles.timelineValue}>
+              {formatWeight(insights.goalTimeline.latestWeightLbs, unitSystem)}
+            </Text>
+          </View>
+          <View style={styles.timelineMetric}>
+            <Text style={styles.metricLabel}>Target</Text>
+            <Text style={styles.timelineValue}>
+              {formatWeight(insights.goalTimeline.targetWeightLbs, unitSystem)}
+            </Text>
+          </View>
+          <View style={styles.timelineMetric}>
+            <Text style={styles.metricLabel}>Remaining</Text>
+            <Text style={styles.timelineValue}>
+              {formatWeight(insights.goalTimeline.poundsRemaining, unitSystem)}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.executionBody}>{insights.goalTimeline.summary}</Text>
+        <Text style={styles.executionAction}>{insights.goalTimeline.nextAction}</Text>
+      </View>
 
       <View style={styles.qualityBox}>
         <View style={styles.qualityHeader}>
@@ -428,6 +489,52 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     lineHeight: 22,
+  },
+  timelineBox: {
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    padding: 14,
+  },
+  timelineGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  timelineHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  timelineMetric: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 14,
+    flex: 1,
+    gap: 4,
+    padding: 10,
+  },
+  timelinePill: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  timelinePillText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  timelineTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  timelineValue: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900",
   },
   title: {
     color: colors.text,
