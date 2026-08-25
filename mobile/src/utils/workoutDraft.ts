@@ -7,7 +7,6 @@ import {
   WorkoutDraft,
   WorkoutType,
 } from "../types/fitness";
-import { ExerciseTemplate } from "../data/exerciseTemplates";
 import { parseOptionalNumber } from "./logDraft";
 import { formatWeightFromLbs, parseWeightToLbs, UnitSystem } from "./units";
 
@@ -32,20 +31,6 @@ export function createBlankExercise(): ExerciseDraft {
     name: "",
     muscleGroup: "",
     sets: [createBlankSet()],
-  };
-}
-
-export function createExerciseFromTemplate(template: ExerciseTemplate): ExerciseDraft {
-  return {
-    id: createId("exercise"),
-    name: template.name,
-    muscleGroup: template.muscleGroup,
-    sets: [
-      {
-        ...createBlankSet(),
-        isBodyweight: Boolean(template.isBodyweight),
-      },
-    ],
   };
 }
 

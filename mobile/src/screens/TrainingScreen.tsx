@@ -4,7 +4,6 @@ import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
-import { exerciseTemplatesByWorkoutType, ExerciseTemplate } from "../data/exerciseTemplates";
 import {
   addWorkoutSession,
   deleteWorkoutSessionById,
@@ -20,7 +19,6 @@ import {
   createBlankExercise,
   createBlankSet,
   createBlankWorkoutDraft,
-  createExerciseFromTemplate,
   createWorkoutDraftFromSession,
   createWorkoutSessionFromDraft,
 } from "../utils/workoutDraft";
@@ -71,13 +69,6 @@ export function TrainingScreen() {
     setDraft((currentDraft) => ({
       ...currentDraft,
       exercises: [...currentDraft.exercises, createBlankExercise()],
-    }));
-  }
-
-  function addTemplateExercise(template: ExerciseTemplate) {
-    setDraft((currentDraft) => ({
-      ...currentDraft,
-      exercises: [...currentDraft.exercises, createExerciseFromTemplate(template)],
     }));
   }
 
@@ -222,12 +213,8 @@ export function TrainingScreen() {
     );
   }
 
-  const suggestedExercises = exerciseTemplatesByWorkoutType[draft.type];
   const savedExercisesForWorkout = useMemo(() => {
     const savedExercises = new Map<string, Pick<ExerciseDraft, "name" | "muscleGroup">>();
-    const templateNames = new Set(
-      suggestedExercises.map((template) => template.name.trim().toLowerCase()),
-    );
 
     recentSessions
       .filter((session) => session.type === draft.type)
@@ -236,7 +223,7 @@ export function TrainingScreen() {
           const exerciseName = loggedExercise.name.trim();
           const normalizedName = exerciseName.toLowerCase();
 
-          if (!exerciseName || templateNames.has(normalizedName) || savedExercises.has(normalizedName)) {
+          if (!exerciseName || savedExercises.has(normalizedName)) {
             return;
           }
 
@@ -248,7 +235,7 @@ export function TrainingScreen() {
       });
 
     return Array.from(savedExercises.values()).slice(0, 8);
-  }, [draft.type, recentSessions, suggestedExercises]);
+  }, [draft.type, recentSessions]);
   const isRestDay = draft.type === "Rest";
   const weightUnit = getWeightUnitLabel(unitSystem);
 
@@ -315,28 +302,9 @@ export function TrainingScreen() {
               </Pressable>
             </View>
 
-            {suggestedExercises.length ? (
-              <View style={styles.section}>
-                <Text style={styles.label}>Exercise bank</Text>
-                <View style={styles.templateGrid}>
-                  {suggestedExercises.map((template) => (
-                    <Pressable
-                      accessibilityRole="button"
-                      key={`${template.name}-${template.muscleGroup}`}
-                      onPress={() => addTemplateExercise(template)}
-                      style={styles.templateChip}
-                    >
-                      <Text style={styles.templateName}>{template.name}</Text>
-                      <Text style={styles.templateMeta}>{template.muscleGroup || "Custom"}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
             {savedExercisesForWorkout.length ? (
               <View style={styles.section}>
-                <Text style={styles.label}>Saved from your {draft.type} workouts</Text>
+                <Text style={styles.label}>Previously logged for {draft.type}</Text>
                 <View style={styles.templateGrid}>
                   {savedExercisesForWorkout.map((savedExercise) => (
                     <Pressable
@@ -746,14 +714,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: "800",
-  },
-  templateChip: {
-    borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 3,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
   },
   templateGrid: {
     gap: 8,

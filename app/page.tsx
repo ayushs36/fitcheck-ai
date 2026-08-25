@@ -63,7 +63,6 @@ import { getAgentMemory } from "@/lib/agentMemory";
 import { getWeeklyCoachingReview } from "@/lib/weeklyCoachingReview";
 import { getAgentDecisionTrace } from "@/lib/agentDecisionTrace";
 import { getProteinTarget } from "@/lib/proteinTargets";
-import { getExerciseBankForWorkout } from "@/lib/exerciseBank";
 import {
   assertStorageKeysAreSeparated,
   DEMO_STORAGE_KEYS,
@@ -654,20 +653,6 @@ useEffect(() => {
 
     return Array.from(savedExercises.values());
   }, [entry.workout, sortedLogs]);
-
-  const exerciseBankSuggestions = useMemo(() => {
-    const suggestions = new Map<string, string>();
-
-    getExerciseBankForWorkout(entry.workout).forEach((bankExercise) => {
-      suggestions.set(bankExercise.name.toLowerCase(), bankExercise.name);
-    });
-
-    suggestedExercises.forEach((exerciseName) => {
-      suggestions.set(exerciseName.toLowerCase(), exerciseName);
-    });
-
-    return Array.from(suggestions.values());
-  }, [entry.workout, suggestedExercises]);
 
   const workoutPerformancePreview = useMemo(() => {
     const selectedWorkout = entry.workout.trim().toLowerCase();
@@ -2976,7 +2961,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   goalDate={goalDate}
   setGoalDate={setGoalDate}
   workoutTypes={workoutTypes}
-  suggestedExercises={exerciseBankSuggestions}
+  suggestedExercises={suggestedExercises}
   savedExerciseNames={suggestedExercises}
   workoutPerformancePreview={workoutPerformancePreview}
   currentLogCoverage={currentLogCoverage}
