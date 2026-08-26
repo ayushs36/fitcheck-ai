@@ -30,6 +30,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 15: Made mobile unit support real across daily weigh-ins, past-log editing, recent logs, trend displays, charts, and workout set weights.
 - Day 16: Added guarded delete controls for accidental daily logs and workout sessions so users can correct data without resetting the app.
 - Day 22: Added a compact goal timeline to Progress with current weight, target weight, remaining change, planned date, projected date, and goal-aware next action.
+- Day 23: Added weekly target checks to the Today coach brief so calories, protein, and steps are evaluated before logging without adding another card.
 
 ## Product Direction
 

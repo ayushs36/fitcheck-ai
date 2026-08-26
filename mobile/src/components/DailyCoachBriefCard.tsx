@@ -56,6 +56,66 @@ function getReviewTone(mode: ProgressInsights["coachReview"]["mode"]) {
   };
 }
 
+function formatAverageValue(
+  average: ProgressInsights["averages"][number],
+): string {
+  if (typeof average.value !== "number") {
+    return "No data";
+  }
+
+  return `${average.value.toLocaleString()} ${average.unit}`;
+}
+
+function formatAverageTarget(
+  average: ProgressInsights["averages"][number],
+): string {
+  if (average.targetLabel) {
+    return average.targetLabel;
+  }
+
+  if (typeof average.target !== "number") {
+    return "No target";
+  }
+
+  return `${average.target.toLocaleString()} ${average.unit}`;
+}
+
+function getAverageStatusLabel(status: ProgressInsights["averages"][number]["status"]) {
+  if (status === "onTarget") {
+    return "On target";
+  }
+
+  if (status === "above") {
+    return "Above target";
+  }
+
+  if (status === "below") {
+    return "Below target";
+  }
+
+  if (status === "noData") {
+    return "No data";
+  }
+
+  return "No target";
+}
+
+function getAverageStatusStyle(average: ProgressInsights["averages"][number]) {
+  if (average.status === "onTarget") {
+    return styles.targetStatusGood;
+  }
+
+  if (average.status === "above" && average.label !== "Calories") {
+    return styles.targetStatusGood;
+  }
+
+  if (average.status === "above" || average.status === "below") {
+    return styles.targetStatusWarning;
+  }
+
+  return styles.targetStatusNeutral;
+}
+
 export function DailyCoachBriefCard({
   insights,
   unitSystem = "imperial",
@@ -87,6 +147,25 @@ export function DailyCoachBriefCard({
           <Text style={styles.signalLabel}>Quality</Text>
           <Text style={styles.signalValue}>{insights.loggingQuality.score}/100</Text>
           <Text style={styles.signalMeta}>{formatQualityLabel(insights.loggingQuality.status)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.targetBox}>
+        <View style={styles.targetHeader}>
+          <Text style={styles.nextLabel}>Weekly Targets</Text>
+          <Text style={styles.targetMeta}>7-day logged average</Text>
+        </View>
+        <View style={styles.targetGrid}>
+          {insights.averages.map((average) => (
+            <View key={average.label} style={styles.targetItem}>
+              <Text style={styles.targetLabel}>{average.label}</Text>
+              <Text style={styles.targetValue}>{formatAverageValue(average)}</Text>
+              <Text style={styles.targetMeta}>Target {formatAverageTarget(average)}</Text>
+              <Text style={[styles.targetStatus, getAverageStatusStyle(average)]}>
+                {getAverageStatusLabel(average.status)} - {average.loggedDays}/7 logged
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -262,6 +341,57 @@ const styles = StyleSheet.create({
   signalValue: {
     color: colors.text,
     fontSize: 18,
+    fontWeight: "900",
+  },
+  targetBox: {
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+    padding: 12,
+  },
+  targetGrid: {
+    gap: 8,
+  },
+  targetHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  targetItem: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 14,
+    gap: 3,
+    padding: 11,
+  },
+  targetLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  targetMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  targetStatus: {
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  targetStatusGood: {
+    color: colors.success,
+  },
+  targetStatusNeutral: {
+    color: colors.textMuted,
+  },
+  targetStatusWarning: {
+    color: colors.warning,
+  },
+  targetValue: {
+    color: colors.text,
+    fontSize: 16,
     fontWeight: "900",
   },
   title: {
