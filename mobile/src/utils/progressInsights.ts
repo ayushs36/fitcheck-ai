@@ -41,6 +41,7 @@ export type ProgressInsights = {
   priority: string;
   nextAction: string;
   goalTimeline: GoalTimeline;
+  nutritionDiagnosis: NutritionDiagnosis;
   coachReview: CoachReview;
   weeklyExecution: WeeklyExecution;
   evidence: string[];
@@ -57,6 +58,22 @@ export type GoalTimeline = {
   poundsRemaining?: number;
   plannedDate?: string;
   projectedDate?: string;
+  summary: string;
+  nextAction: string;
+};
+
+export type NutritionDiagnosis = {
+  score: number;
+  status: "Insufficient data" | "Needs attention" | "Usable" | "Strong";
+  calorieAverage?: number;
+  proteinAverage?: number;
+  calorieLoggedDays: number;
+  proteinLoggedDays: number;
+  windowDays: number;
+  calorieTarget?: number;
+  calorieTargetHitRate: number;
+  calorieVariance?: number;
+  biggestBlocker: string;
   summary: string;
   nextAction: string;
 };
@@ -92,6 +109,31 @@ function getNumericValues(logs: DailyLog[], key: MetricKey): number[] {
   return logs
     .map((log) => log[key])
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+}
+
+function averageNumbers(values: number[]): number | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function standardDeviation(values: number[]) {
+  if (values.length <= 1) {
+    return undefined;
+  }
+
+  const mean = averageNumbers(values);
+
+  if (typeof mean !== "number") {
+    return undefined;
+  }
+
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+
+  return Math.sqrt(variance);
 }
 
 function calculateMetricAverage(
@@ -605,6 +647,134 @@ function buildWeeklyExecution(averages: MetricAverage[]): WeeklyExecution {
   };
 }
 
+function getCalorieTargetHitRate(logs: DailyLog[], calorieTarget?: number) {
+  if (!calorieTarget || calorieTarget <= 0 || logs.length === 0) {
+    return 0;
+  }
+
+  return logs.filter((log) => Math.abs((log.calories ?? 0) - calorieTarget) <= 200).length / logs.length;
+}
+
+function scoreCalorieVariance(variance?: number) {
+  if (typeof variance !== "number") {
+    return 0;
+  }
+
+  if (variance <= 150) {
+    return 100;
+  }
+
+  if (variance <= 250) {
+    return 80;
+  }
+
+  if (variance <= 400) {
+    return 60;
+  }
+
+  if (variance <= 600) {
+    return 40;
+  }
+
+  return 20;
+}
+
+function scoreCalorieTargetExecution(calorieAverage?: number, calorieTarget?: number) {
+  if (
+    typeof calorieAverage !== "number" ||
+    typeof calorieTarget !== "number" ||
+    calorieTarget <= 0
+  ) {
+    return 0;
+  }
+
+  return clampScore(100 - (Math.abs(calorieAverage - calorieTarget) / calorieTarget) * 250);
+}
+
+function buildNutritionDiagnosis(
+  logs: DailyLog[],
+  settings: UserSettings | null,
+  fallbackProteinTarget: number,
+): NutritionDiagnosis {
+  const recentLogs = logs.slice(0, 14);
+  const validCalorieLogs = recentLogs.filter((log) => hasValue(log.calories));
+  const validProteinLogs = recentLogs.filter((log) => hasValue(log.proteinGrams));
+  const calorieValues = validCalorieLogs.map((log) => log.calories ?? 0);
+  const proteinValues = validProteinLogs.map((log) => log.proteinGrams ?? 0);
+  const calorieAverage = averageNumbers(calorieValues);
+  const proteinAverage = averageNumbers(proteinValues);
+  const calorieVariance = standardDeviation(calorieValues);
+  const calorieTargetHitRate = getCalorieTargetHitRate(validCalorieLogs, settings?.calorieTarget);
+  const proteinTarget = settings?.proteinTarget ?? fallbackProteinTarget;
+  const proteinHitRate =
+    proteinTarget > 0 && validProteinLogs.length > 0
+      ? validProteinLogs.filter((log) => (log.proteinGrams ?? 0) >= proteinTarget).length /
+        validProteinLogs.length
+      : 0;
+  const loggingCompleteness = validCalorieLogs.length / Math.min(14, Math.max(recentLogs.length, 1));
+
+  if (recentLogs.length < 7 || validCalorieLogs.length < 5) {
+    return {
+      score: 0,
+      status: "Insufficient data",
+      calorieAverage: typeof calorieAverage === "number" ? round(calorieAverage) : undefined,
+      proteinAverage: typeof proteinAverage === "number" ? round(proteinAverage) : undefined,
+      calorieLoggedDays: validCalorieLogs.length,
+      proteinLoggedDays: validProteinLogs.length,
+      windowDays: recentLogs.length,
+      calorieTarget: settings?.calorieTarget,
+      calorieTargetHitRate,
+      calorieVariance: typeof calorieVariance === "number" ? round(calorieVariance) : undefined,
+      biggestBlocker: "Need more calorie logs",
+      summary: "FitCheck needs a stronger 14-log nutrition window before judging calorie execution.",
+      nextAction: "Log calories on at least 5 recent days before changing nutrition targets.",
+    };
+  }
+
+  const calorieTargetScore = scoreCalorieTargetExecution(calorieAverage, settings?.calorieTarget);
+  const calorieVarianceScore = scoreCalorieVariance(calorieVariance);
+  const proteinScore = clampScore(proteinHitRate * 100);
+  const loggingScore = clampScore(loggingCompleteness * 100);
+  const score = clampScore(
+    calorieTargetScore * 0.35 +
+      calorieVarianceScore * 0.25 +
+      proteinScore * 0.25 +
+      loggingScore * 0.15,
+  );
+  const blockers = [
+    { label: "Calorie target execution", score: calorieTargetScore },
+    { label: "Calorie consistency", score: calorieVarianceScore },
+    { label: "Protein execution", score: proteinScore },
+    { label: "Nutrition logging", score: loggingScore },
+  ].sort((a, b) => a.score - b.score);
+
+  return {
+    score,
+    status: score >= 85 ? "Strong" : score >= 70 ? "Usable" : "Needs attention",
+    calorieAverage: typeof calorieAverage === "number" ? round(calorieAverage) : undefined,
+    proteinAverage: typeof proteinAverage === "number" ? round(proteinAverage) : undefined,
+    calorieLoggedDays: validCalorieLogs.length,
+    proteinLoggedDays: validProteinLogs.length,
+    windowDays: recentLogs.length,
+    calorieTarget: settings?.calorieTarget,
+    calorieTargetHitRate,
+    calorieVariance: typeof calorieVariance === "number" ? round(calorieVariance) : undefined,
+    biggestBlocker: blockers[0].label,
+    summary:
+      score >= 70
+        ? "Nutrition is reliable enough to compare against the weight trend."
+        : "Nutrition execution should be cleaned up before changing calories.",
+    nextAction:
+      blockers[0].label === "Protein execution"
+        ? "Bring protein closer to target across the next week before changing calories."
+        : blockers[0].label === "Calorie consistency"
+          ? "Keep calories in a tighter range for the next 7 days."
+          : blockers[0].label === "Nutrition logging"
+            ? "Log calories and protein more consistently this week."
+            : "Land closer to the calorie target before adjusting the plan.",
+  };
+}
+
 function buildGoalTimeline(
   goal: GoalType,
   logs: DailyLog[],
@@ -721,6 +891,7 @@ export function calculateProgressInsights(
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
   const goalTimeline = buildGoalTimeline(activeGoal, logs, settings, weightTrend);
+  const nutritionDiagnosis = buildNutritionDiagnosis(logs, settings, proteinTarget.low);
   const coachReview = buildCoachReview(
     activeGoal,
     weightTrend,
@@ -735,6 +906,7 @@ export function calculateProgressInsights(
     priority: goalAction.priority,
     nextAction: goalAction.nextAction,
     goalTimeline,
+    nutritionDiagnosis,
     coachReview,
     weeklyExecution,
     evidence: buildEvidence(weightTrend, averages),

@@ -111,6 +111,18 @@ function formatDateLabel(dateKey?: string): string {
   });
 }
 
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatCalorieHitRate(insights: ProgressInsights): string {
+  if (typeof insights.nutritionDiagnosis.calorieTarget !== "number") {
+    return "No calorie target";
+  }
+
+  return `Hit rate ${formatPercent(insights.nutritionDiagnosis.calorieTargetHitRate)}`;
+}
+
 export function ProgressDashboardCard({
   insights,
   unitSystem = "imperial",
@@ -235,6 +247,47 @@ export function ProgressDashboardCard({
         <Text style={styles.executionMeta}>
           Based on 7-day logged averages. One off day is okay if the weekly average
           stays on target.
+        </Text>
+      </View>
+
+      <View style={styles.nutritionBox}>
+        <View style={styles.executionHeader}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.actionEyebrow}>Nutrition Diagnosis</Text>
+            <Text style={styles.executionTitle}>{insights.nutritionDiagnosis.status}</Text>
+          </View>
+          <View style={styles.executionScoreWrap}>
+            <Text style={styles.executionScore}>{insights.nutritionDiagnosis.score}</Text>
+            <Text style={styles.executionScoreMeta}>/100</Text>
+          </View>
+        </View>
+
+        <View style={styles.nutritionGrid}>
+          <View style={styles.nutritionMetric}>
+            <Text style={styles.metricLabel}>Calories</Text>
+            <Text style={styles.timelineValue}>
+              {formatValue(insights.nutritionDiagnosis.calorieAverage, "cal/day")}
+            </Text>
+            <Text style={styles.metricMeta}>
+              {insights.nutritionDiagnosis.calorieLoggedDays}/14 logged
+            </Text>
+          </View>
+          <View style={styles.nutritionMetric}>
+            <Text style={styles.metricLabel}>Protein</Text>
+            <Text style={styles.timelineValue}>
+              {formatValue(insights.nutritionDiagnosis.proteinAverage, "g/day")}
+            </Text>
+            <Text style={styles.metricMeta}>
+              {insights.nutritionDiagnosis.proteinLoggedDays}/14 logged
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.executionBody}>{insights.nutritionDiagnosis.summary}</Text>
+        <Text style={styles.executionAction}>{insights.nutritionDiagnosis.nextAction}</Text>
+        <Text style={styles.executionMeta}>
+          {formatCalorieHitRate(insights)}. Biggest blocker:{" "}
+          {insights.nutritionDiagnosis.biggestBlocker}.
         </Text>
       </View>
 
@@ -407,6 +460,24 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 20,
     fontWeight: "900",
+  },
+  nutritionBox: {
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    padding: 14,
+  },
+  nutritionGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  nutritionMetric: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 14,
+    flex: 1,
+    gap: 4,
+    padding: 10,
   },
   coverageGrid: {
     flexDirection: "row",
