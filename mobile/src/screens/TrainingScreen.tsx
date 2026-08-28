@@ -14,7 +14,7 @@ import {
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
-import { getWeightUnitLabel, UnitSystem } from "../utils/units";
+import { formatWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import {
   createBlankExercise,
   createBlankSet,
@@ -35,6 +35,64 @@ const workoutTypes: WorkoutType[] = [
   "Other",
 ];
 
+function normalizeExerciseName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function formatSetPreview(
+  set: WorkoutSession["exercises"][number]["sets"][number],
+  unitSystem: UnitSystem,
+) {
+  const reps = typeof set.reps === "number" ? `${set.reps} reps` : "reps blank";
+  const load = set.isBodyweight
+    ? "bodyweight"
+    : typeof set.weightLbs === "number"
+      ? `${formatWeightFromLbs(set.weightLbs, unitSystem)} ${getWeightUnitLabel(unitSystem)}`
+      : "load blank";
+
+  return `${reps} @ ${load}${set.formFocus ? " - form focus" : ""}`;
+}
+
+function getLastExercisePerformance(
+  exerciseName: string,
+  workoutType: WorkoutType,
+  sessions: WorkoutSession[],
+  unitSystem: UnitSystem,
+) {
+  const normalizedExerciseName = normalizeExerciseName(exerciseName);
+
+  if (!normalizedExerciseName || workoutType === "Rest") {
+    return null;
+  }
+
+  for (const session of sessions) {
+    if (session.type !== workoutType) {
+      continue;
+    }
+
+    const matchedExercise = session.exercises.find(
+      (exercise) => normalizeExerciseName(exercise.name) === normalizedExerciseName,
+    );
+
+    if (!matchedExercise) {
+      continue;
+    }
+
+    const setSummary = matchedExercise.sets
+      .slice(0, 4)
+      .map((set) => formatSetPreview(set, unitSystem))
+      .join(", ");
+
+    return {
+      dateLabel: formatReadableDate(session.date),
+      muscleGroup: matchedExercise.muscleGroup || "Saved exercise",
+      setSummary: setSummary || "No sets saved",
+    };
+  }
+
+  return null;
+}
+
 export function TrainingScreen() {
   const todayKey = useMemo(() => getTodayKey(), []);
   const [draft, setDraft] = useState<WorkoutDraft>(() => createBlankWorkoutDraft());
@@ -45,7 +103,7 @@ export function TrainingScreen() {
 
   async function refreshSessions() {
     const [sessions, settings] = await Promise.all([
-      loadRecentWorkoutSessions(5),
+      loadRecentWorkoutSessions(20),
       loadUserSettings(),
     ]);
     setRecentSessions(sessions);
@@ -178,7 +236,7 @@ export function TrainingScreen() {
       ? await upsertWorkoutSession(workoutSession)
       : await addWorkoutSession(workoutSession);
 
-    setRecentSessions(sessions.slice(0, 5));
+    setRecentSessions(sessions.slice(0, 20));
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft(draft.type));
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
@@ -201,7 +259,7 @@ export function TrainingScreen() {
           style: "destructive",
           onPress: async () => {
             const sessions = await deleteWorkoutSessionById(session.id);
-            setRecentSessions(sessions.slice(0, 5));
+            setRecentSessions(sessions.slice(0, 20));
             if (editingSession?.id === session.id) {
               setEditingSession(null);
               setDraft(createBlankWorkoutDraft(draft.type));
@@ -238,6 +296,7 @@ export function TrainingScreen() {
   }, [draft.type, recentSessions]);
   const isRestDay = draft.type === "Rest";
   const weightUnit = getWeightUnitLabel(unitSystem);
+  const visibleRecentSessions = recentSessions.slice(0, 5);
 
   return (
     <Screen
@@ -323,7 +382,15 @@ export function TrainingScreen() {
           </>
         )}
 
-        {!isRestDay && draft.exercises.map((exercise, exerciseIndex) => (
+        {!isRestDay && draft.exercises.map((exercise, exerciseIndex) => {
+          const exercisePreview = getLastExercisePerformance(
+            exercise.name,
+            draft.type,
+            recentSessions,
+            unitSystem,
+          );
+
+          return (
           <View key={exercise.id} style={styles.exerciseBlock}>
             <View style={styles.exerciseHeader}>
               <Text style={styles.exerciseTitle}>Exercise {exerciseIndex + 1}</Text>
@@ -350,6 +417,17 @@ export function TrainingScreen() {
               placeholder="Chest, back, legs"
               value={exercise.muscleGroup}
             />
+
+            {exercisePreview ? (
+              <View style={styles.exercisePreview}>
+                <View style={styles.exercisePreviewHeader}>
+                  <Text style={styles.exercisePreviewLabel}>Last performance</Text>
+                  <Text style={styles.exercisePreviewDate}>{exercisePreview.dateLabel}</Text>
+                </View>
+                <Text style={styles.exercisePreviewTitle}>{exercisePreview.muscleGroup}</Text>
+                <Text style={styles.exercisePreviewBody}>{exercisePreview.setSummary}</Text>
+              </View>
+            ) : null}
 
             {exercise.sets.map((set, setIndex) => (
               <View key={set.id} style={styles.setBlock}>
@@ -441,7 +519,8 @@ export function TrainingScreen() {
               <Text style={styles.secondaryButtonText}>Add Set</Text>
             </Pressable>
           </View>
-        ))}
+          );
+        })}
 
         <TextField
           label="Workout notes"
@@ -473,11 +552,11 @@ export function TrainingScreen() {
 
       <Card>
         <Text style={styles.title}>Recent Workouts</Text>
-        {recentSessions.length === 0 ? (
+        {visibleRecentSessions.length === 0 ? (
           <Text style={styles.body}>No workouts saved yet.</Text>
         ) : (
           <View style={styles.sessionList}>
-            {recentSessions.map((session) => (
+            {visibleRecentSessions.map((session) => (
               <View key={session.id} style={styles.sessionRow}>
                 <View style={styles.sessionHeader}>
                   <View style={styles.sessionCopy}>
@@ -568,6 +647,42 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
+  },
+  exercisePreview: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+    padding: 12,
+  },
+  exercisePreviewBody: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
+  },
+  exercisePreviewDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  exercisePreviewHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  exercisePreviewLabel: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  exercisePreviewTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900",
   },
   exerciseTitle: {
     color: colors.text,
