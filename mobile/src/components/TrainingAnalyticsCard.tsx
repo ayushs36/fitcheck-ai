@@ -8,6 +8,14 @@ type TrainingAnalyticsCardProps = {
   sessions: WorkoutSession[];
 };
 
+function formatTrendChange(change: number | undefined, latestScore: number) {
+  if (typeof change !== "number") {
+    return String(latestScore);
+  }
+
+  return `${change > 0 ? "+" : ""}${change}`;
+}
+
 export function TrainingAnalyticsCard({ sessions }: TrainingAnalyticsCardProps) {
   const preview = buildStrengthPreview(sessions);
 
@@ -36,6 +44,33 @@ export function TrainingAnalyticsCard({ sessions }: TrainingAnalyticsCardProps) 
           <Text style={styles.metricLabel}>form-focus sets</Text>
         </View>
       </View>
+
+      {preview.exerciseTrends.length ? (
+        <View style={styles.trendList}>
+          <View style={styles.trendHeader}>
+            <Text style={styles.trendTitle}>Repeat Exercise Trends</Text>
+            <Text style={styles.trendMeta}>Latest vs previous match</Text>
+          </View>
+          {preview.exerciseTrends.map((trend) => (
+            <View key={trend.name} style={styles.trendRow}>
+              <View style={styles.trendCopy}>
+                <Text style={styles.trendName}>{trend.name}</Text>
+                <Text style={styles.body}>{trend.summary}</Text>
+                <Text style={styles.trendMeta}>
+                  {trend.latestDate}
+                  {trend.previousDate ? ` vs ${trend.previousDate}` : ""}
+                </Text>
+              </View>
+              <View style={styles.trendBadge}>
+                <Text style={styles.trendBadgeText}>{trend.status}</Text>
+                <Text style={styles.trendScoreText}>
+                  {formatTrendChange(trend.change, trend.latestScore)}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -78,6 +113,59 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
     textTransform: "uppercase",
+  },
+  trendBadge: {
+    alignItems: "flex-end",
+    backgroundColor: colors.primarySoft,
+    borderRadius: 14,
+    gap: 3,
+    minWidth: 92,
+    padding: 10,
+  },
+  trendBadgeText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  trendCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  trendHeader: {
+    gap: 2,
+  },
+  trendList: {
+    borderColor: colors.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+    padding: 12,
+  },
+  trendMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  trendName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  trendRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 10,
+  },
+  trendScoreText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  trendTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "900",
   },
   title: {
     color: colors.text,
