@@ -252,14 +252,21 @@ function getExerciseSignal(
     latestExercise.weight <= 0 && previousExercise.weight <= 0;
   const status =
     isBodyweightExercise
-      ? getBodyweightExerciseStatus(latestReps, previousReps)
+      ? getBodyweightExerciseStatus({
+          latestTotalReps: latestReps,
+          previousTotalReps: previousReps,
+          latestRepsPerSet: latestExercise.reps,
+          previousRepsPerSet: previousExercise.reps,
+        })
       : getWeightedExerciseStatus({
           latestVolume,
           previousVolume,
           latestWeight: latestExercise.weight,
           previousWeight: previousExercise.weight,
-          latestReps,
-          previousReps,
+          latestTotalReps: latestReps,
+          previousTotalReps: previousReps,
+          latestRepsPerSet: latestExercise.reps,
+          previousRepsPerSet: previousExercise.reps,
         });
 
   return {
@@ -278,19 +285,30 @@ function getExerciseSignal(
   };
 }
 
-function getBodyweightExerciseStatus(
-  latestReps: number,
-  previousReps: number
-): ExerciseSignal["status"] {
-  if (latestReps > previousReps) {
+function getBodyweightExerciseStatus({
+  latestTotalReps,
+  previousTotalReps,
+  latestRepsPerSet,
+  previousRepsPerSet,
+}: {
+  latestTotalReps: number;
+  previousTotalReps: number;
+  latestRepsPerSet: number;
+  previousRepsPerSet: number;
+}): ExerciseSignal["status"] {
+  if (latestTotalReps > previousTotalReps || latestRepsPerSet > previousRepsPerSet) {
     return "Improving";
   }
 
-  if (latestReps < previousReps) {
+  if (latestTotalReps < previousTotalReps && latestRepsPerSet < previousRepsPerSet) {
     return "Declining";
   }
 
-  return "Stalled";
+  if (latestTotalReps === previousTotalReps) {
+    return "Stalled";
+  }
+
+  return "Stable";
 }
 
 function getWeightedExerciseStatus({
@@ -298,30 +316,41 @@ function getWeightedExerciseStatus({
   previousVolume,
   latestWeight,
   previousWeight,
-  latestReps,
-  previousReps,
+  latestTotalReps,
+  previousTotalReps,
+  latestRepsPerSet,
+  previousRepsPerSet,
 }: {
   latestVolume: number;
   previousVolume: number;
   latestWeight: number;
   previousWeight: number;
-  latestReps: number;
-  previousReps: number;
+  latestTotalReps: number;
+  previousTotalReps: number;
+  latestRepsPerSet: number;
+  previousRepsPerSet: number;
 }): ExerciseSignal["status"] {
   if (
     latestWeight < previousWeight &&
-    (latestReps >= previousReps || latestVolume >= previousVolume)
+    (latestTotalReps >= previousTotalReps ||
+      latestRepsPerSet >= previousRepsPerSet ||
+      latestVolume >= previousVolume)
   ) {
     return "Form focus";
   }
 
-  if (latestVolume > previousVolume || latestWeight > previousWeight) {
+  if (
+    latestVolume > previousVolume ||
+    latestWeight > previousWeight ||
+    latestRepsPerSet > previousRepsPerSet
+  ) {
     return "Improving";
   }
 
   if (
     latestVolume < previousVolume &&
-    latestReps < previousReps &&
+    latestTotalReps < previousTotalReps &&
+    latestRepsPerSet < previousRepsPerSet &&
     latestWeight <= previousWeight
   ) {
     return "Declining";

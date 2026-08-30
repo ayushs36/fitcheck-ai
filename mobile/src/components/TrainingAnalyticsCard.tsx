@@ -1,11 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { WorkoutSession } from "../types/fitness";
-import { buildStrengthPreview } from "../utils/trendSeries";
+import { buildStrengthPreview, ExerciseTrend } from "../utils/trendSeries";
+import { formatWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
 
 type TrainingAnalyticsCardProps = {
   sessions: WorkoutSession[];
+  unitSystem?: UnitSystem;
 };
 
 function formatTrendChange(change: number | undefined, latestScore: number) {
@@ -16,13 +18,34 @@ function formatTrendChange(change: number | undefined, latestScore: number) {
   return `${change > 0 ? "+" : ""}${change}`;
 }
 
-export function TrainingAnalyticsCard({ sessions }: TrainingAnalyticsCardProps) {
+function formatExerciseDetail(trend: ExerciseTrend, unitSystem: UnitSystem) {
+  const unit = getWeightUnitLabel(unitSystem);
+  const latestLoad =
+    typeof trend.latestTopWeightLbs === "number"
+      ? `, top ${formatWeightFromLbs(trend.latestTopWeightLbs, unitSystem)} ${unit}`
+      : "";
+  const previousLoad =
+    typeof trend.previousTopWeightLbs === "number"
+      ? `, top ${formatWeightFromLbs(trend.previousTopWeightLbs, unitSystem)} ${unit}`
+      : "";
+  const previous =
+    typeof trend.previousSets === "number" && typeof trend.previousReps === "number"
+      ? `Previous: ${trend.previousSets} sets, ${trend.previousReps} reps, ${trend.previousRepsPerSet ?? 0} reps/set${previousLoad}`
+      : "Previous: need another matching session";
+
+  return `Latest ${trend.latestSets} sets, ${trend.latestReps} reps, ${trend.latestRepsPerSet} reps/set${latestLoad}. ${previous}.`;
+}
+
+export function TrainingAnalyticsCard({
+  sessions,
+  unitSystem = "imperial",
+}: TrainingAnalyticsCardProps) {
   const preview = buildStrengthPreview(sessions);
 
   return (
     <Card>
       <View style={styles.header}>
-        <Text style={styles.title}>Training Analytics</Text>
+        <Text style={styles.title}>Training Coach</Text>
         <Text style={styles.status}>{preview.status}</Text>
       </View>
       <Text style={styles.body}>{preview.detail}</Text>
@@ -48,14 +71,17 @@ export function TrainingAnalyticsCard({ sessions }: TrainingAnalyticsCardProps) 
       {preview.exerciseTrends.length ? (
         <View style={styles.trendList}>
           <View style={styles.trendHeader}>
-            <Text style={styles.trendTitle}>Repeat Exercise Trends</Text>
-            <Text style={styles.trendMeta}>Latest vs previous match</Text>
+            <Text style={styles.trendTitle}>Repeat Exercises</Text>
+            <Text style={styles.trendMeta}>Latest vs previous workout</Text>
           </View>
           {preview.exerciseTrends.map((trend) => (
             <View key={trend.name} style={styles.trendRow}>
               <View style={styles.trendCopy}>
                 <Text style={styles.trendName}>{trend.name}</Text>
                 <Text style={styles.body}>{trend.summary}</Text>
+                <Text style={styles.trendDetail}>
+                  {formatExerciseDetail(trend, unitSystem)}
+                </Text>
                 <Text style={styles.trendMeta}>
                   {trend.latestDate}
                   {trend.previousDate ? ` vs ${trend.previousDate}` : ""}
@@ -131,6 +157,12 @@ const styles = StyleSheet.create({
   trendCopy: {
     flex: 1,
     gap: 3,
+  },
+  trendDetail: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 18,
   },
   trendHeader: {
     gap: 2,

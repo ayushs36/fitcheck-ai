@@ -590,7 +590,7 @@ export function TrainingScreen() {
         )}
       </Card>
 
-      <TrainingAnalyticsCard sessions={recentSessions} />
+      <TrainingAnalyticsCard sessions={recentSessions} unitSystem={unitSystem} />
     </Screen>
   );
 }

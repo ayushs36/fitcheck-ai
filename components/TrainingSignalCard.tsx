@@ -18,7 +18,8 @@ export function TrainingSignalCard({
           <h2 className="text-2xl font-semibold">Agent Training Signal</h2>
           <p className="mt-2 text-sm text-slate-500">
             Compares repeat exercises using load/volume for weighted lifts and
-            total reps for bodyweight work.
+            total reps for bodyweight work. Set count alone is treated as
+            context, not automatic strength loss.
           </p>
         </div>
 
@@ -44,14 +45,6 @@ export function TrainingSignalCard({
         <TrainingStat
           label="2-3 week comparisons"
           value={`${trainingSignal.weeklyComparisonCount}`}
-        />
-        <TrainingStat
-          label="Muscle groups"
-          value={`${trainingSignal.muscleGroupTrends.length}`}
-        />
-        <TrainingStat
-          label="Decline rate"
-          value={`${Math.round(trainingSignal.weeklyDeclineRate * 100)}%`}
         />
       </div>
 
@@ -80,24 +73,30 @@ export function TrainingSignalCard({
           items={trainingSignal.formFocusSignals}
         />
         <SignalList
-          title="Watch List"
-          emptyText="No repeated regressions to watch."
+          title="Output Watch"
+          emptyText="No repeated output drops to watch."
           items={trainingSignal.regressions}
         />
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-2">
-        <WorkoutTypeTrendList trends={trainingSignal.workoutTypeTrends} />
-        <MuscleGroupTrendList trends={trainingSignal.muscleGroupTrends} />
-      </div>
+      <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+          More training detail
+        </summary>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-3">
-        <LiftList title="Improving" lifts={trainingSignal.improvingLifts} />
-        <LiftList title="Stalled / Stable" lifts={trainingSignal.stalledLifts} />
-        <LiftList title="Declining" lifts={trainingSignal.decliningLifts} />
-      </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <WorkoutTypeTrendList trends={trainingSignal.workoutTypeTrends} />
+          <MuscleGroupTrendList trends={trainingSignal.muscleGroupTrends} />
+        </div>
 
-      <ExerciseHistoryList exerciseHistory={trainingSignal.exerciseHistory} />
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <LiftList title="Improving" lifts={trainingSignal.improvingLifts} />
+          <LiftList title="Stable" lifts={trainingSignal.stalledLifts} />
+          <LiftList title="Lower Output" lifts={trainingSignal.decliningLifts} />
+        </div>
+
+        <ExerciseHistoryList exerciseHistory={trainingSignal.exerciseHistory} />
+      </details>
     </section>
   );
 }
@@ -250,7 +249,7 @@ function ExerciseHistoryList({
   exerciseHistory: ExerciseHistorySummary[];
 }) {
   return (
-    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="font-semibold text-slate-950">Lift History</p>

@@ -13,6 +13,9 @@ export function AgentDashboardCard({
   goalMemory,
   latestAgentCheck,
   previousAgentCheck,
+  runFitCheckAgent,
+  isAgentLoading,
+  isDemoMode,
 }: {
   agentDecision: AgentDecision;
   agentDecisionTrace: AgentDecisionTrace;
@@ -20,6 +23,9 @@ export function AgentDashboardCard({
   goalMemory: GoalMemory;
   latestAgentCheck?: AgentCheck;
   previousAgentCheck?: AgentCheck;
+  runFitCheckAgent: () => void;
+  isAgentLoading: boolean;
+  isDemoMode: boolean;
 }) {
   const latestDecision = latestAgentCheck?.decision ?? agentDecision.action;
   const previousDecision = previousAgentCheck?.decision;
@@ -46,9 +52,27 @@ export function AgentDashboardCard({
           </p>
         </div>
 
-        <span className="w-fit rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
-          {latestAgentCheck?.confidence ?? agentDecision.confidence} confidence
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+              isDemoMode
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
+            }`}
+          >
+            {isDemoMode ? "Protected demo" : "Live LLM"}
+          </span>
+          <span className="w-fit rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+            {latestAgentCheck?.confidence ?? agentDecision.confidence} confidence
+          </span>
+          <button
+            onClick={runFitCheckAgent}
+            disabled={isAgentLoading}
+            className="w-fit rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-500 disabled:opacity-50"
+          >
+            {isAgentLoading ? "Running..." : "Run AI Agent"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">

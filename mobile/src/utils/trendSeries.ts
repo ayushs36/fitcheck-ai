@@ -31,6 +31,14 @@ export type ExerciseTrend = {
   previousDate?: string;
   latestScore: number;
   previousScore?: number;
+  latestSets: number;
+  previousSets?: number;
+  latestReps: number;
+  previousReps?: number;
+  latestRepsPerSet: number;
+  previousRepsPerSet?: number;
+  latestTopWeightLbs?: number;
+  previousTopWeightLbs?: number;
   change?: number;
   summary: string;
 };
@@ -90,6 +98,10 @@ function normalizeExerciseName(name: string) {
 function getExerciseScore(exercise: WorkoutSession["exercises"][number]): {
   basis: ExerciseTrend["basis"];
   score: number;
+  sets: number;
+  reps: number;
+  repsPerSet: number;
+  topWeightLbs?: number;
   formFocusRatio: number;
 } {
   const totals = exercise.sets.reduce(
@@ -100,17 +112,25 @@ function getExerciseScore(exercise: WorkoutSession["exercises"][number]): {
       return {
         reps: total.reps + reps,
         weightedVolume: total.weightedVolume + weightedVolume,
+        topWeightLbs:
+          !set.isBodyweight && set.weightLbs
+            ? Math.max(total.topWeightLbs ?? 0, set.weightLbs)
+            : total.topWeightLbs,
         formFocusSets: total.formFocusSets + (set.formFocus ? 1 : 0),
         sets: total.sets + 1,
       };
     },
-    { reps: 0, weightedVolume: 0, formFocusSets: 0, sets: 0 },
+    { reps: 0, weightedVolume: 0, topWeightLbs: undefined as number | undefined, formFocusSets: 0, sets: 0 },
   );
   const basis: ExerciseTrend["basis"] = totals.weightedVolume > 0 ? "load-volume" : "reps";
 
   return {
     basis,
     score: basis === "load-volume" ? totals.weightedVolume : totals.reps,
+    sets: totals.sets,
+    reps: totals.reps,
+    repsPerSet: totals.sets ? totals.reps / totals.sets : 0,
+    topWeightLbs: totals.topWeightLbs,
     formFocusRatio: totals.sets ? totals.formFocusSets / totals.sets : 0,
   };
 }
@@ -152,6 +172,10 @@ export function buildExerciseTrends(sessions: WorkoutSession[]): ExerciseTrend[]
           basis: latestScore.basis,
           latestDate: formatReadableDate(latest.date),
           latestScore: Math.round(latestScore.score),
+          latestSets: latestScore.sets,
+          latestReps: latestScore.reps,
+          latestRepsPerSet: Math.round(latestScore.repsPerSet * 10) / 10,
+          latestTopWeightLbs: latestScore.topWeightLbs,
           summary: "Log this exercise again to compare progress.",
         };
       }
@@ -160,12 +184,19 @@ export function buildExerciseTrends(sessions: WorkoutSession[]): ExerciseTrend[]
       const change = latestScore.score - previousScore.score;
       const changePercent =
         previousScore.score > 0 ? Math.abs(change) / previousScore.score : 0;
+      const maintainedIntensity =
+        latestScore.repsPerSet >= previousScore.repsPerSet ||
+        (typeof latestScore.topWeightLbs === "number" &&
+          typeof previousScore.topWeightLbs === "number" &&
+          latestScore.topWeightLbs >= previousScore.topWeightLbs);
+      const reducedSetContext =
+        latestScore.sets < previousScore.sets && maintainedIntensity;
       const status =
         latestScore.formFocusRatio >= 0.4
           ? "Form focus"
-          : changePercent <= 0.05
+          : reducedSetContext || changePercent <= 0.05
             ? "Stable"
-            : change > 0
+            : change > 0 || latestScore.repsPerSet > previousScore.repsPerSet
               ? "Improving"
               : "Lower output";
 
@@ -177,22 +208,32 @@ export function buildExerciseTrends(sessions: WorkoutSession[]): ExerciseTrend[]
         previousDate: formatReadableDate(previous.date),
         latestScore: Math.round(latestScore.score),
         previousScore: Math.round(previousScore.score),
+        latestSets: latestScore.sets,
+        previousSets: previousScore.sets,
+        latestReps: latestScore.reps,
+        previousReps: previousScore.reps,
+        latestRepsPerSet: Math.round(latestScore.repsPerSet * 10) / 10,
+        previousRepsPerSet: Math.round(previousScore.repsPerSet * 10) / 10,
+        latestTopWeightLbs: latestScore.topWeightLbs,
+        previousTopWeightLbs: previousScore.topWeightLbs,
         change: Math.round(change),
         summary:
           status === "Form focus"
             ? "Lighter output may be intentional technique work."
             : status === "Lower output"
-              ? "Compare across 2-3 weeks before calling this strength loss."
+              ? "Lower total work is a watch item, not strength loss by itself."
               : status === "Improving"
                 ? "Latest logged output is higher than the prior matching session."
-                : "Latest output is close to the prior matching session.",
+                : reducedSetContext
+                  ? "Set count changed, but reps-per-set or load stayed stable."
+                  : "Latest output is close to the prior matching session.",
       };
     })
     .sort((a, b) => {
       const statusWeight = { Improving: 0, "Form focus": 1, "Lower output": 2, Stable: 3, "Need more data": 4 };
       return statusWeight[a.status] - statusWeight[b.status];
     })
-    .slice(0, 4);
+    .slice(0, 3);
 }
 
 export function buildStrengthPreview(sessions: WorkoutSession[]): StrengthPreview {

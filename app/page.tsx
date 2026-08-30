@@ -2998,6 +2998,9 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   goalMemory={goalMemory}
   latestAgentCheck={latestAgentCheck}
   previousAgentCheck={previousAgentCheck}
+  runFitCheckAgent={runFitCheckAgent}
+  isAgentLoading={isAgentLoading}
+  isDemoMode={isDemoMode}
 />
 )}
 
@@ -3010,6 +3013,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
   isAgentLoading={isAgentLoading}
   runFitCheckAgent={runFitCheckAgent}
   agentDecision={agentDecision}
+  isDemoMode={isDemoMode}
 />
 </>
 )}

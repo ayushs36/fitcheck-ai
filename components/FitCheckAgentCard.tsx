@@ -6,11 +6,13 @@ export function FitCheckAgentCard({
   isAgentLoading,
   runFitCheckAgent,
   agentDecision,
+  isDemoMode,
 }: {
   agentReport: string;
   isAgentLoading: boolean;
   runFitCheckAgent: () => void;
   agentDecision: AgentDecision;
+  isDemoMode: boolean;
 }) {
   const cleanAgentReport = removeVisibleAsterisks(agentReport);
   const status = getAgentReportValue(cleanAgentReport, "Overall Status");
@@ -33,12 +35,22 @@ export function FitCheckAgentCard({
           </h2>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Runs an autonomous coaching check using your logs, moving average
-            trend, nutrition, activity, strength data, and goal timeline.
+            Runs the full AI coaching pass using your logs, moving average
+            trend, nutrition, activity, strength data, goal phase, and timeline.
           </p>
         </div>
 
         <div className="flex flex-col gap-2 lg:items-end">
+          <span
+            className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+              isDemoMode
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
+            }`}
+          >
+            {isDemoMode ? "Demo-safe AI response" : "Live OpenAI enabled"}
+          </span>
+
           <button
             onClick={runFitCheckAgent}
             disabled={isAgentLoading}
@@ -49,7 +61,7 @@ export function FitCheckAgentCard({
 
           {protectedMode && (
             <span className="w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-              Protected demo response
+              No API credits used
             </span>
           )}
         </div>
