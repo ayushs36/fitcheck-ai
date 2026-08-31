@@ -4,20 +4,34 @@
     "slug": "fitcheck-ai-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "fitcheckai",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F7F9FC"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ayushs36.fitcheckai"
+      "bundleIdentifier": "com.ayushs36.fitcheckai",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.ayushs36.fitcheckai",
+      "versionCode": 1,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F7F9FC"
       }
     },
     "extra": {
-      "productTrack": "mobile-app-store"
+      "productTrack": "mobile-app-store",
+      "privacyModel": "local-device-storage",
+      "usesOpenAI": false
     }
   }
 }
