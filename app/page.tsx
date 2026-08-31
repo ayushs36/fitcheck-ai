@@ -2484,6 +2484,7 @@ const savedConversation = activeAIConversationContext
   : saveAIConversation("Ask AI", cleanCoachQuestion, aiAnswer);
 setCoachAnswer(savedConversation.answer);
 setActiveAIConversationContext(savedConversation);
+setCoachQuestion("");
   } catch (error) {
   console.error(error);
 
