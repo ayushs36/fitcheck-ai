@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { BottomTabs, MobileTab } from "./src/components/BottomTabs";
+import { AccountScreen } from "./src/screens/AccountScreen";
 import { GoalsScreen } from "./src/screens/GoalsScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { ProgressScreen } from "./src/screens/ProgressScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 import { TodayScreen } from "./src/screens/TodayScreen";
 import { TrainingScreen } from "./src/screens/TrainingScreen";
-import { loadUserSettings } from "./src/storage/mobileStorage";
+import { loadMobileAccount, loadUserSettings } from "./src/storage/mobileStorage";
 import { colors } from "./src/theme/colors";
-import { UserSettings } from "./src/types/fitness";
+import { MobileAccount, UserSettings } from "./src/types/fitness";
 
 function renderScreen(activeTab: MobileTab, onDataReset: () => void) {
   switch (activeTab) {
@@ -30,6 +31,7 @@ function renderScreen(activeTab: MobileTab, onDataReset: () => void) {
 export default function App() {
   const [activeTab, setActiveTab] = useState<MobileTab>("today");
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [hasAccount, setHasAccount] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
@@ -37,8 +39,12 @@ export default function App() {
 
     async function loadSettings() {
       try {
-        const settings = await loadUserSettings();
+        const [account, settings] = await Promise.all([
+          loadMobileAccount(),
+          loadUserSettings(),
+        ]);
         if (isMounted) {
+          setHasAccount(Boolean(account));
           setHasCompletedOnboarding(Boolean(settings?.hasCompletedOnboarding || settings));
         }
       } finally {
@@ -60,7 +66,12 @@ export default function App() {
     setActiveTab("today");
   }
 
+  function completeAccount(_account: MobileAccount) {
+    setHasAccount(true);
+  }
+
   function handleDataReset() {
+    setHasAccount(false);
     setHasCompletedOnboarding(false);
     setActiveTab("today");
   }
@@ -74,6 +85,8 @@ export default function App() {
             <Text style={styles.loadingTitle}>FitCheck AI</Text>
             <Text style={styles.loadingBody}>Loading your mobile workspace</Text>
           </View>
+        ) : !hasAccount ? (
+          <AccountScreen onComplete={completeAccount} />
         ) : hasCompletedOnboarding ? (
           <>
             {renderScreen(activeTab, handleDataReset)}

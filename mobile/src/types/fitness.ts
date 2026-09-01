@@ -64,6 +64,16 @@ export type UserSettings = {
   updatedAt?: string;
 };
 
+export type MobileAccount = {
+  id: string;
+  displayName: string;
+  email: string;
+  authProvider: "local";
+  privateAIAccess: "backend-required";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TodayLogDraft = {
   goal: GoalType;
   weightLbs: string;

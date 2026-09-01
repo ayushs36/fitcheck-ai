@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DailyLog, UserSettings, WorkoutSession } from "../types/fitness";
+import { DailyLog, MobileAccount, UserSettings, WorkoutSession } from "../types/fitness";
 
 export const MOBILE_STORAGE_KEYS = {
   logs: "fitcheck-mobile:daily-logs:v1",
   workouts: "fitcheck-mobile:workout-sessions:v1",
   settings: "fitcheck-mobile:user-settings:v1",
+  account: "fitcheck-mobile:account:v1",
 } as const;
 
 export async function loadDailyLogs(): Promise<DailyLog[]> {
@@ -135,18 +136,37 @@ export async function saveUserSettings(settings: UserSettings): Promise<void> {
   await AsyncStorage.setItem(MOBILE_STORAGE_KEYS.settings, JSON.stringify(settings));
 }
 
+export async function loadMobileAccount(): Promise<MobileAccount | null> {
+  const rawAccount = await AsyncStorage.getItem(MOBILE_STORAGE_KEYS.account);
+  if (!rawAccount) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawAccount) as MobileAccount;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveMobileAccount(account: MobileAccount): Promise<void> {
+  await AsyncStorage.setItem(MOBILE_STORAGE_KEYS.account, JSON.stringify(account));
+}
+
 export type MobileDataBackup = {
   exportedAt: string;
   logs: DailyLog[];
   workouts: WorkoutSession[];
   settings: UserSettings | null;
+  account: MobileAccount | null;
 };
 
 export async function loadMobileDataBackup(): Promise<MobileDataBackup> {
-  const [logs, workouts, settings] = await Promise.all([
+  const [logs, workouts, settings, account] = await Promise.all([
     loadDailyLogs(),
     loadWorkoutSessions(),
     loadUserSettings(),
+    loadMobileAccount(),
   ]);
 
   return {
@@ -154,6 +174,7 @@ export async function loadMobileDataBackup(): Promise<MobileDataBackup> {
     logs,
     workouts,
     settings,
+    account,
   };
 }
 
@@ -162,6 +183,7 @@ export async function restoreMobileDataBackup(backup: MobileDataBackup): Promise
     [MOBILE_STORAGE_KEYS.logs, JSON.stringify(backup.logs)],
     [MOBILE_STORAGE_KEYS.workouts, JSON.stringify(backup.workouts)],
     [MOBILE_STORAGE_KEYS.settings, JSON.stringify(backup.settings)],
+    [MOBILE_STORAGE_KEYS.account, JSON.stringify(backup.account)],
   ]);
 }
 
@@ -170,5 +192,6 @@ export async function clearMobileData(): Promise<void> {
     MOBILE_STORAGE_KEYS.logs,
     MOBILE_STORAGE_KEYS.workouts,
     MOBILE_STORAGE_KEYS.settings,
+    MOBILE_STORAGE_KEYS.account,
   ]);
 }

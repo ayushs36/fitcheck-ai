@@ -4,6 +4,8 @@
 
 - Core logging is local-only: weight, calories, protein, steps, workout type, exercises, sets, reps, load, form-focus, and notes.
 - Mobile does not include an OpenAI API key and does not call the web app's OpenAI routes.
+- Account setup exists before onboarding. Production Sign in with Apple/Google should replace the local account provider before enabling cloud sync or public server accounts.
+- Private OpenAI access must go through a protected backend allowlist. Never ship an OpenAI API key inside the mobile client.
 - Missing fields stay blank and are skipped in averages.
 - Cutting, maintaining, and bulking goals drive the coaching summaries.
 - App identity is configured with bundle ID `com.ayushs36.fitcheckai`.
@@ -18,6 +20,7 @@
 - Prepare privacy labels: fitness logs are stored on-device, no third-party tracking, no OpenAI API in mobile.
 - Build with EAS production profile.
 - Install the TestFlight build on a real iPhone and test onboarding, saving, editing, deleting, backup, restore, and reset.
+- Test account creation, backup export/restore with account metadata, and reset returning to the account screen.
 
 ## Submission Rule
 

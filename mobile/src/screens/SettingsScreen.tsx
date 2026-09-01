@@ -10,13 +10,14 @@ import {
   restoreMobileDataBackup,
 } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
-import { GoalType, UserSettings } from "../types/fitness";
+import { GoalType, MobileAccount, UserSettings } from "../types/fitness";
 import { getWeightUnitLabel } from "../utils/units";
 
 type DataSnapshot = {
   dailyLogCount: number;
   workoutCount: number;
   settings: UserSettings | null;
+  account: MobileAccount | null;
   latestLogDate?: string;
   latestWorkoutDate?: string;
 };
@@ -53,6 +54,7 @@ function createSnapshot(backup: MobileDataBackup): DataSnapshot {
     dailyLogCount: backup.logs.length,
     workoutCount: backup.workouts.length,
     settings: backup.settings,
+    account: backup.account,
     latestLogDate,
     latestWorkoutDate,
   };
@@ -79,6 +81,7 @@ function parseBackupText(value: string): MobileDataBackup | null {
       logs: parsedBackup.logs,
       workouts: parsedBackup.workouts,
       settings: parsedBackup.settings ?? null,
+      account: parsedBackup.account ?? null,
     };
   } catch {
     return null;
@@ -90,6 +93,7 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
     dailyLogCount: 0,
     workoutCount: 0,
     settings: null,
+    account: null,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [restoreText, setRestoreText] = useState("");
@@ -180,6 +184,7 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
   }
 
   const settings = snapshot.settings;
+  const account = snapshot.account;
   const unitLabel = settings ? getWeightUnitLabel(settings.unitSystem) : "Not set";
 
   return (
@@ -207,6 +212,32 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
         </View>
 
         <Text style={styles.helperText}>Change goal details from the Goals tab.</Text>
+      </Card>
+
+      <Card>
+        <View style={styles.header}>
+          <Text style={styles.title}>Account</Text>
+          <Text style={styles.body}>
+            {account
+              ? `${account.displayName} is signed in on this device.`
+              : "No account is saved on this device."}
+          </Text>
+        </View>
+
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Email</Text>
+            <Text style={styles.summaryValueSmall}>{account?.email ?? "Not set"}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>AI Access</Text>
+            <Text style={styles.summaryValueSmall}>Backend only</Text>
+          </View>
+        </View>
+
+        <Text style={styles.helperText}>
+          OpenAI access will require a protected backend account check.
+        </Text>
       </Card>
 
       <Card>
@@ -378,6 +409,11 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.text,
     fontSize: 20,
+    fontWeight: "800",
+  },
+  summaryValueSmall: {
+    color: colors.text,
+    fontSize: 14,
     fontWeight: "800",
   },
   title: {
