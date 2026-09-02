@@ -880,7 +880,7 @@ const goalTrendStatus = getGoalTrendStatus({
 	      confidence: "Low",
 	      confidenceReason:
 	        "Fewer than 14 valid logs are available, so the trend window is too small.",
-	      calculationMethod: "Lag-adjusted calories",
+	      calculationMethod: "14-log calories",
 	      adjustmentGuidance:
 	        "Keep logging before changing calories based on maintenance.",
 	      explanation:
@@ -890,22 +890,7 @@ const goalTrendStatus = getGoalTrendStatus({
 	
 	  const recentLogs = validLogs.slice(-14);
 	
-	  const caloriesByDate = new Map(
-	    validLogs.map((log) => [log.date, log.calories])
-	  );
-	  const laggedCalories = recentLogs
-	    .map((log) => {
-	      const previousDate = new Date(`${log.date}T00:00:00`);
-	      previousDate.setDate(previousDate.getDate() - 1);
-
-	      return caloriesByDate.get(previousDate.toISOString().slice(0, 10)) ?? 0;
-	    })
-	    .filter((calories) => calories > 0);
-	  const useLagAdjustedCalories = laggedCalories.length >= 10;
-	
-	  const averageCalories = useLagAdjustedCalories
-	    ? average(laggedCalories)
-	    : average(recentLogs.map((log) => log.calories));
+	  const averageCalories = average(recentLogs.map((log) => log.calories));
 
   const first7Logs = recentLogs.slice(0, 7);
   const last7LogsForMaintenance = recentLogs.slice(7);
@@ -963,15 +948,9 @@ const goalTrendStatus = getGoalTrendStatus({
     confidenceReasons.push("Only 14-20 valid logs are available.");
   }
 
-  if (useLagAdjustedCalories) {
-    confidenceReasons.push(
-      "Morning weigh-ins are matched to previous-day calories."
-    );
-  } else {
-    confidenceReasons.push(
-      "Not enough previous-day calorie pairs were available, so same-day calories are used."
-    );
-  }
+  confidenceReasons.push(
+    "Calories use the same last-14-valid-log average shown in Nutrition Diagnosis."
+  );
 
   if (trendMovingAgainstGoal) {
     confidenceReasons.push("The weight trend is moving against your goal.");
@@ -1015,18 +994,12 @@ const goalTrendStatus = getGoalTrendStatus({
 	    fatLossCaloriesTwoPounds: estimatedMaintenance - 1000,
 	    confidence,
 	    confidenceReason,
-	    calculationMethod: useLagAdjustedCalories
-	      ? "Lag-adjusted calories"
-	      : "Same-day calories",
+	    calculationMethod: "14-log calories",
 	    trendWarning,
 	    adjustmentGuidance,
 	    explanation: `Based on your last 14 valid logs, your average intake is ${averageCalories.toFixed(
 	      0
-	    )} calories/day using ${
-	      useLagAdjustedCalories
-	        ? "previous-day calories matched to next-morning weigh-ins"
-	        : "same-day calories because there were not enough previous-day calorie pairs"
-	    }. Your first 7-day average weight was ${first7Average.toFixed(
+	    )} calories/day. This matches the 14-log calorie average shown in Nutrition Diagnosis so the app does not show two different calorie averages. Your first 7-day average weight was ${first7Average.toFixed(
 	      1
     )} lbs and your most recent 7-day average weight is ${last7Average.toFixed(
       1
