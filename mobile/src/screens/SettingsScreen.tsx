@@ -4,10 +4,12 @@ import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import {
+  clearMobileAccount,
   clearMobileData,
   loadMobileDataBackup,
   MobileDataBackup,
   restoreMobileDataBackup,
+  saveMobileAccount,
 } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { GoalType, MobileAccount, UserSettings } from "../types/fitness";
@@ -23,6 +25,7 @@ type DataSnapshot = {
 };
 
 type SettingsScreenProps = {
+  onAccountSignedOut?: () => void;
   onDataReset?: () => void;
 };
 
@@ -88,7 +91,14 @@ function parseBackupText(value: string): MobileDataBackup | null {
   }
 }
 
-export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+export function SettingsScreen({
+  onAccountSignedOut,
+  onDataReset,
+}: SettingsScreenProps) {
   const [snapshot, setSnapshot] = useState<DataSnapshot>({
     dailyLogCount: 0,
     workoutCount: 0,
@@ -98,10 +108,16 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [restoreText, setRestoreText] = useState("");
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
+  const [accountNameDraft, setAccountNameDraft] = useState("");
+  const [accountEmailDraft, setAccountEmailDraft] = useState("");
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
 
   async function refreshSnapshot() {
     const backup = await loadMobileDataBackup();
-    setSnapshot(createSnapshot(backup));
+    const nextSnapshot = createSnapshot(backup);
+    setSnapshot(nextSnapshot);
+    setAccountNameDraft(nextSnapshot.account?.displayName ?? "");
+    setAccountEmailDraft(nextSnapshot.account?.email ?? "");
     setIsLoading(false);
   }
 
@@ -111,7 +127,10 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
     async function loadSnapshot() {
       const backup = await loadMobileDataBackup();
       if (isMounted) {
-        setSnapshot(createSnapshot(backup));
+        const nextSnapshot = createSnapshot(backup);
+        setSnapshot(nextSnapshot);
+        setAccountNameDraft(nextSnapshot.account?.displayName ?? "");
+        setAccountEmailDraft(nextSnapshot.account?.email ?? "");
         setIsLoading(false);
       }
     }
@@ -183,6 +202,52 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
     );
   }
 
+  async function saveAccountProfile() {
+    const cleanName = accountNameDraft.trim();
+    const cleanEmail = accountEmailDraft.trim().toLowerCase();
+
+    if (!snapshot.account) {
+      setAccountStatus("Create an account again to edit profile details.");
+      return;
+    }
+
+    if (!cleanName) {
+      Alert.alert("Name required", "Add a name before saving your account.");
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      Alert.alert("Email required", "Add a valid email before saving your account.");
+      return;
+    }
+
+    await saveMobileAccount({
+      ...snapshot.account,
+      displayName: cleanName,
+      email: cleanEmail,
+      updatedAt: new Date().toISOString(),
+    });
+    await refreshSnapshot();
+    setAccountStatus("Account updated on this device.");
+  }
+
+  function confirmSignOut() {
+    Alert.alert(
+      "Sign out?",
+      "This removes the local account from this device but keeps your logs and workouts saved.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          onPress: async () => {
+            await clearMobileAccount();
+            onAccountSignedOut?.();
+          },
+        },
+      ],
+    );
+  }
+
   const settings = snapshot.settings;
   const account = snapshot.account;
   const unitLabel = settings ? getWeightUnitLabel(settings.unitSystem) : "Not set";
@@ -224,19 +289,45 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
           </Text>
         </View>
 
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Email</Text>
-            <Text style={styles.summaryValueSmall}>{account?.email ?? "Not set"}</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>AI Access</Text>
-            <Text style={styles.summaryValueSmall}>Backend only</Text>
-          </View>
+        <TextField
+          autoCapitalize="words"
+          label="Name"
+          onChangeText={setAccountNameDraft}
+          placeholder="Your name"
+          value={accountNameDraft}
+        />
+
+        <TextField
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          label="Email"
+          onChangeText={setAccountEmailDraft}
+          placeholder="you@example.com"
+          value={accountEmailDraft}
+        />
+
+        <View style={styles.accountButtonRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={saveAccountProfile}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryButtonText}>Save Account</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={confirmSignOut}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryButtonText}>Sign Out</Text>
+          </Pressable>
         </View>
 
+        {accountStatus ? <Text style={styles.restoreStatus}>{accountStatus}</Text> : null}
+
         <Text style={styles.helperText}>
-          OpenAI access will require a protected backend account check.
+          Mobile has no OpenAI key. Future AI access must use a protected backend.
         </Text>
       </Card>
 
@@ -320,6 +411,9 @@ export function SettingsScreen({ onDataReset }: SettingsScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  accountButtonRow: {
+    gap: 10,
+  },
   body: {
     color: colors.textMuted,
     fontSize: 15,

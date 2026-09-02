@@ -12,7 +12,11 @@ import { loadMobileAccount, loadUserSettings } from "./src/storage/mobileStorage
 import { colors } from "./src/theme/colors";
 import { MobileAccount, UserSettings } from "./src/types/fitness";
 
-function renderScreen(activeTab: MobileTab, onDataReset: () => void) {
+function renderScreen(
+  activeTab: MobileTab,
+  onDataReset: () => void,
+  onAccountSignedOut: () => void,
+) {
   switch (activeTab) {
     case "training":
       return <TrainingScreen />;
@@ -21,7 +25,12 @@ function renderScreen(activeTab: MobileTab, onDataReset: () => void) {
     case "goals":
       return <GoalsScreen />;
     case "settings":
-      return <SettingsScreen onDataReset={onDataReset} />;
+      return (
+        <SettingsScreen
+          onAccountSignedOut={onAccountSignedOut}
+          onDataReset={onDataReset}
+        />
+      );
     case "today":
     default:
       return <TodayScreen />;
@@ -76,6 +85,11 @@ export default function App() {
     setActiveTab("today");
   }
 
+  function handleAccountSignedOut() {
+    setHasAccount(false);
+    setActiveTab("today");
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
@@ -89,7 +103,7 @@ export default function App() {
           <AccountScreen onComplete={completeAccount} />
         ) : hasCompletedOnboarding ? (
           <>
-            {renderScreen(activeTab, handleDataReset)}
+            {renderScreen(activeTab, handleDataReset, handleAccountSignedOut)}
             <BottomTabs activeTab={activeTab} onChange={setActiveTab} />
           </>
         ) : (

@@ -153,6 +153,10 @@ export async function saveMobileAccount(account: MobileAccount): Promise<void> {
   await AsyncStorage.setItem(MOBILE_STORAGE_KEYS.account, JSON.stringify(account));
 }
 
+export async function clearMobileAccount(): Promise<void> {
+  await AsyncStorage.removeItem(MOBILE_STORAGE_KEYS.account);
+}
+
 export type MobileDataBackup = {
   exportedAt: string;
   logs: DailyLog[];

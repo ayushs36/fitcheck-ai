@@ -37,6 +37,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 27: Simplified the Today coach brief with a compact weekly execution check so mobile users get clear goal-aware guidance without an overloaded screen.
 - Day 28: Started release freeze work with App Store/TestFlight configuration, branded launch assets, build numbers, privacy flags, and a focused submission checklist.
 - Day 29: Added an account setup gate, account storage, backup-aware account metadata, and private-AI guardrails that keep OpenAI access backend-only instead of embedding a key in the app.
+- Day 30: Added Settings account management so users can edit their local profile or sign out without deleting logs, keeping mobile public-app ready while remaining API-key free.
 
 ## Product Direction
 
