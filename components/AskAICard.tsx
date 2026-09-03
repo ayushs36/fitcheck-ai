@@ -1,4 +1,5 @@
 import { removeVisibleAsterisks } from "@/lib/textSanitizers";
+import type { AIConversationMessage } from "@/types/fitness";
 
 export function AskAICard({
   coachQuestion,
@@ -8,6 +9,7 @@ export function AskAICard({
   askFitCheckAILLM,
   activeConversationLabel,
   activeConversationQuestion,
+  activeConversationMessages,
   clearActiveConversation,
 }: {
   coachQuestion: string;
@@ -17,12 +19,14 @@ export function AskAICard({
   askFitCheckAILLM: () => void;
   activeConversationLabel?: string | null;
   activeConversationQuestion?: string | null;
+  activeConversationMessages?: AIConversationMessage[] | null;
   clearActiveConversation: () => void;
 }) {
   const isReopenedChat = Boolean(activeConversationLabel);
   const chatMessages = buildChatMessages({
     question: activeConversationQuestion,
     answer: coachAnswer,
+    messages: activeConversationMessages,
   });
 
   return (
@@ -149,10 +153,19 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 function buildChatMessages({
   question,
   answer,
+  messages: savedMessages,
 }: {
   question?: string | null;
   answer: string;
-}) {
+  messages?: AIConversationMessage[] | null;
+}): ChatMessage[] {
+  if (savedMessages?.length) {
+    return savedMessages.map((message) => ({
+      role: message.role === "user" ? ("You" as const) : ("FitCheck AI" as const),
+      content: removeVisibleAsterisks(message.content),
+    }));
+  }
+
   const messages: ChatMessage[] = [];
 
   if (question?.trim()) {

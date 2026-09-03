@@ -54,6 +54,11 @@ export type FitCheckAIContext = {
     question?: string;
     answer?: string;
     createdAt?: string;
+    messages?: Array<{
+      role?: string;
+      content?: string;
+      createdAt?: string;
+    }>;
   } | null;
   goalMemory?: {
     currentGoal?: string;

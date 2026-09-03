@@ -165,6 +165,13 @@ export type AIConversation = {
   title?: string;
   question: string;
   answer: string;
+  messages?: AIConversationMessage[];
+  createdAt: string;
+};
+
+export type AIConversationMessage = {
+  role: "user" | "assistant";
+  content: string;
   createdAt: string;
 };
 

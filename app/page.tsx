@@ -2079,12 +2079,19 @@ function saveAIConversation(
   question: string,
   answer: string
 ) {
+  const now = new Date().toLocaleString();
+  const cleanQuestion = removeVisibleAsterisks(question);
+  const cleanAnswer = cleanAIAnswer(answer);
   const newConversation: AIConversation = {
     id: crypto.randomUUID(),
     type,
-    question: removeVisibleAsterisks(question),
-    answer: cleanAIAnswer(answer),
-    createdAt: new Date().toLocaleString(),
+    question: cleanQuestion,
+    answer: cleanAnswer,
+    messages: [
+      { role: "user", content: cleanQuestion, createdAt: now },
+      { role: "assistant", content: cleanAnswer, createdAt: now },
+    ],
+    createdAt: now,
   };
 
   setAiHistory((current) => [newConversation, ...current]);
@@ -2096,19 +2103,21 @@ function updateAIConversation(
   followUpQuestion: string,
   followUpAnswer: string
 ) {
+  const now = new Date().toLocaleString();
   const cleanQuestion = removeVisibleAsterisks(followUpQuestion);
   const cleanAnswer = cleanAIAnswer(followUpAnswer);
+  const messages: NonNullable<AIConversation["messages"]> = [
+    ...getConversationMessages(conversation),
+    { role: "user", content: cleanQuestion, createdAt: now },
+    { role: "assistant", content: cleanAnswer, createdAt: now },
+  ];
 
   const updatedConversation: AIConversation = {
     ...conversation,
     question: removeVisibleAsterisks(conversation.question),
-    answer: [
-      cleanAIAnswer(conversation.answer),
-      "",
-      `You: ${cleanQuestion}`,
-      `FitCheck AI: ${cleanAnswer}`,
-    ].join("\n"),
-    createdAt: new Date().toLocaleString(),
+    answer: formatConversationAnswer(messages),
+    messages,
+    createdAt: now,
   };
 
   setAiHistory((current) =>
@@ -2399,6 +2408,7 @@ async function askFitCheckAILLM() {
           question: activeAIConversationContext.question,
           answer: activeAIConversationContext.answer,
           createdAt: activeAIConversationContext.createdAt,
+          messages: getConversationMessages(activeAIConversationContext),
         }
       : null,
     goalMemory,
@@ -2428,6 +2438,17 @@ async function askFitCheckAILLM() {
     volumeChange,
     weeklyAIReview,
     goalFeasibility,
+    agentDecision,
+    agentDecisionTrace,
+    agentMemory,
+    dailyBrief,
+    weeklyPlan,
+    planAdherence,
+    nutritionDiagnosis,
+    loggingQuality,
+    weeklyCoachingReview,
+    goalForecast,
+    trainingSignal,
     recommendation,
     logsCount: logs.length,
   };
@@ -3312,6 +3333,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
       : null
   }
   activeConversationQuestion={activeAIConversationContext?.question ?? null}
+  activeConversationMessages={activeAIConversationContext?.messages ?? null}
   clearActiveConversation={() => {
     localStorage.removeItem(storageKeys.activeAIConversationId);
     sessionStorage.removeItem(storageKeys.activeAIConversationId);
@@ -4051,14 +4073,117 @@ function cleanAIAnswer(value: string) {
 }
 
 function sanitizeAIConversation(conversation: AIConversation): AIConversation {
+  const messages = getConversationMessages(conversation);
+
   return {
     ...conversation,
     title: conversation.title
       ? removeVisibleAsterisks(conversation.title)
       : conversation.title,
     question: removeVisibleAsterisks(conversation.question),
-    answer: cleanAIAnswer(conversation.answer),
+    answer: formatConversationAnswer(messages),
+    messages,
   };
+}
+
+function getConversationMessages(
+  conversation: AIConversation
+): NonNullable<AIConversation["messages"]> {
+  if (conversation.messages?.length) {
+    return conversation.messages
+      .map((message) => ({
+        role: message.role,
+        content: removeVisibleAsterisks(message.content),
+        createdAt: message.createdAt,
+      }))
+      .filter(
+        (message) =>
+          (message.role === "user" || message.role === "assistant") &&
+          message.content.trim().length > 0
+      );
+  }
+
+  const parsedMessages = parseConversationAnswer(conversation.answer);
+
+  if (parsedMessages.length > 1) {
+    return parsedMessages.map((message) => ({
+      ...message,
+      createdAt: message.createdAt || conversation.createdAt,
+    }));
+  }
+
+  const fallbackMessages: NonNullable<AIConversation["messages"]> = [
+    {
+      role: "user",
+      content: removeVisibleAsterisks(conversation.question),
+      createdAt: conversation.createdAt,
+    },
+    {
+      role: "assistant",
+      content: cleanAIAnswer(conversation.answer),
+      createdAt: conversation.createdAt,
+    },
+  ];
+
+  return fallbackMessages.filter((message) => message.content.trim().length > 0);
+}
+
+function parseConversationAnswer(
+  answer: string
+): NonNullable<AIConversation["messages"]> {
+  const messages: NonNullable<AIConversation["messages"]> = [];
+  const lines = cleanAIAnswer(answer).split("\n");
+  let currentRole: "user" | "assistant" = "assistant";
+  let currentLines: string[] = [];
+
+  const flushMessage = () => {
+    const content = currentLines.join("\n").trim();
+
+    if (content) {
+      messages.push({
+        role: currentRole,
+        content,
+        createdAt: "",
+      });
+    }
+
+    currentLines = [];
+  };
+
+  for (const line of lines) {
+    const userMatch = line.match(/^You:\s*(.*)$/i);
+    const aiMatch = line.match(/^FitCheck AI:\s*(.*)$/i);
+
+    if (userMatch) {
+      flushMessage();
+      currentRole = "user";
+      currentLines = [userMatch[1]];
+      continue;
+    }
+
+    if (aiMatch) {
+      flushMessage();
+      currentRole = "assistant";
+      currentLines = [aiMatch[1]];
+      continue;
+    }
+
+    currentLines.push(line);
+  }
+
+  flushMessage();
+
+  return messages;
+}
+
+function formatConversationAnswer(messages: NonNullable<AIConversation["messages"]>) {
+  return messages
+    .map((message) => {
+      const label = message.role === "user" ? "You" : "FitCheck AI";
+
+      return `${label}: ${removeVisibleAsterisks(message.content)}`;
+    })
+    .join("\n\n");
 }
 
 function getAIConversationTitle(conversation: AIConversation) {
