@@ -3,6 +3,7 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
+import { productConfig } from "../config/product";
 import {
   clearMobileAccount,
   clearMobileData,
@@ -277,6 +278,38 @@ export function SettingsScreen({
         </View>
 
         <Text style={styles.helperText}>Change goal details from the Goals tab.</Text>
+      </Card>
+
+      <Card>
+        <View style={styles.header}>
+          <Text style={styles.title}>Release Readiness</Text>
+          <Text style={styles.body}>
+            FitCheck AI Mobile is configured for public logging with local storage and no public
+            OpenAI API access.
+          </Text>
+        </View>
+
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Version</Text>
+            <Text style={styles.summaryValueSmall}>{productConfig.version}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Build</Text>
+            <Text style={styles.summaryValueSmall}>{productConfig.buildNumber}</Text>
+          </View>
+        </View>
+
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Storage</Text>
+            <Text style={styles.summaryValueSmall}>This Device</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>OpenAI API</Text>
+            <Text style={styles.summaryValueSmall}>Not Included</Text>
+          </View>
+        </View>
       </Card>
 
       <Card>

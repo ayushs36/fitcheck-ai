@@ -14,6 +14,7 @@
 
 ## Before TestFlight
 
+- Day 31 QA pass completed: mobile version is set to `1.0.0`, Settings surfaces release/privacy status, and the client still has no OpenAI API key or OpenAI route calls.
 - Create or confirm the App Store Connect app record.
 - Confirm the public app name, subtitle, category, and age rating.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.
