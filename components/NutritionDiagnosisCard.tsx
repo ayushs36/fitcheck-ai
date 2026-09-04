@@ -22,15 +22,7 @@ export function NutritionDiagnosisCard({
         </span>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-3">
-        <DiagnosisStat
-          label="Calorie target"
-          value={
-            nutritionDiagnosis.calorieTarget > 0
-              ? `${nutritionDiagnosis.calorieTarget.toFixed(0)} cal`
-              : "Need data"
-          }
-        />
+      <div className="mt-5 grid gap-4 md:grid-cols-4">
         <DiagnosisStat
           label="7-log calorie avg"
           value={
@@ -44,18 +36,6 @@ export function NutritionDiagnosisCard({
           value={
             nutritionDiagnosis.calorieAverage > 0
               ? `${nutritionDiagnosis.calorieAverage.toFixed(0)} cal`
-              : "Need data"
-          }
-        />
-        <DiagnosisStat
-          label="Target hit rate"
-          value={`${Math.round(nutritionDiagnosis.calorieTargetHitRate * 100)}%`}
-        />
-        <DiagnosisStat
-          label="Calorie consistency"
-          value={
-            nutritionDiagnosis.calorieVariance > 0
-              ? `${nutritionDiagnosis.calorieVariance.toFixed(0)} cal swing`
               : "Need data"
           }
         />
@@ -75,14 +55,24 @@ export function NutritionDiagnosisCard({
               : "Need data"
           }
         />
-        <DiagnosisStat
-          label="Under-logging risk"
-          value={nutritionDiagnosis.underLoggingRisk}
-        />
-        <DiagnosisStat
-          label="Volatility risk"
-          value={nutritionDiagnosis.volatileIntakeRisk}
-        />
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-600">
+        <span>
+          Target:{" "}
+          {nutritionDiagnosis.calorieTarget > 0
+            ? `${nutritionDiagnosis.calorieTarget.toFixed(0)} cal`
+            : "Need data"}
+        </span>
+        <span>Hit rate: {Math.round(nutritionDiagnosis.calorieTargetHitRate * 100)}%</span>
+        <span>
+          Consistency:{" "}
+          {nutritionDiagnosis.calorieVariance > 0
+            ? `${nutritionDiagnosis.calorieVariance.toFixed(0)} cal swing`
+            : "Need data"}
+        </span>
+        <span>Under-logging: {nutritionDiagnosis.underLoggingRisk}</span>
+        <span>Volatility: {nutritionDiagnosis.volatileIntakeRisk}</span>
       </div>
 
       {nutritionDiagnosis.metrics.length > 0 ? (

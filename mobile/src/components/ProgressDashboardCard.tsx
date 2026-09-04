@@ -123,6 +123,16 @@ function formatCalorieHitRate(insights: ProgressInsights): string {
   return `Hit rate ${formatPercent(insights.nutritionDiagnosis.calorieTargetHitRate)}`;
 }
 
+function formatAverageSummary(averages: ProgressInsights["averages"]): string {
+  return averages
+    .map((average) => {
+      const value = formatValue(average.value, average.unit);
+      const status = formatMetricStatus(average.status).toLowerCase();
+      return `${average.label}: ${value}, ${status}, ${average.loggedDays}/7 logged`;
+    })
+    .join(" | ");
+}
+
 export function ProgressDashboardCard({
   insights,
   unitSystem = "imperial",
@@ -248,6 +258,7 @@ export function ProgressDashboardCard({
           Based on 7-day logged averages. One off day is okay if the weekly average
           stays on target.
         </Text>
+        <Text style={styles.executionMeta}>{formatAverageSummary(insights.averages)}</Text>
       </View>
 
       <View style={styles.nutritionBox}>
@@ -309,35 +320,6 @@ export function ProgressDashboardCard({
         </Text>
       </View>
 
-      <View style={styles.actionBox}>
-        <Text style={styles.actionEyebrow}>Current Priority</Text>
-        <Text style={styles.actionTitle}>{insights.priority}</Text>
-        <Text style={styles.actionBody}>{insights.nextAction}</Text>
-        <View style={styles.evidenceList}>
-          {insights.evidence.map((item) => (
-            <Text key={item} style={styles.evidenceItem}>
-              {item}
-            </Text>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.metricGrid}>
-        {insights.averages.map((average) => (
-          <View key={average.label} style={styles.metricBox}>
-            <Text style={styles.metricLabel}>{average.label}</Text>
-            <Text style={styles.metricValue}>{formatValue(average.value)}</Text>
-            <Text style={styles.metricMeta}>7-day logged average</Text>
-            <Text style={styles.metricMeta}>
-              {formatTarget(average.target, average.unit, average.targetLabel)}
-            </Text>
-            <Text style={styles.metricStatus}>{formatMetricStatus(average.status)}</Text>
-            <Text style={styles.metricMeta}>
-              {average.loggedDays}/7 days logged. Blank fields skipped.
-            </Text>
-          </View>
-        ))}
-      </View>
     </Card>
   );
 }
