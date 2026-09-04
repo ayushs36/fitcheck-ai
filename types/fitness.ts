@@ -322,12 +322,16 @@ export type NutritionDiagnosis = {
   agentNutritionInsight: string;
   calorieTarget: number;
   calorieAverage: number;
+  calorieAverage7: number;
+  calorieLoggedDays7: number;
   calorieTargetDelta: number;
   calorieTargetHitRate: number;
   calorieVariance: number;
   underLoggingRisk: "Low" | "Moderate" | "High" | "Unknown";
   volatileIntakeRisk: "Low" | "Moderate" | "High" | "Unknown";
   proteinAverage: number;
+  proteinAverage7: number;
+  proteinLoggedDays7: number;
   proteinHitRate: number;
   loggingCompleteness: number;
   metrics: NutritionDiagnosisMetric[];

@@ -16,9 +16,14 @@ export function getNutritionDiagnosis({
   nutritionTargets,
 }: NutritionDiagnosisInput): NutritionDiagnosis {
   const recentLogs = logs.slice(-14);
+  const recent7Logs = recentLogs.slice(-7);
   const validCalorieLogs = recentLogs.filter((log) => log.calories > 0);
+  const validCalorieLogs7 = recent7Logs.filter((log) => log.calories > 0);
   const validProteinLogs = recentLogs.filter((log) => log.protein > 0);
+  const validProteinLogs7 = recent7Logs.filter((log) => log.protein > 0);
   const calorieTarget = nutritionTargets.calorieTarget;
+  const calorieAverage7 = average(validCalorieLogs7.map((log) => log.calories));
+  const proteinAverage7 = average(validProteinLogs7.map((log) => log.protein));
 
   if (recentLogs.length < 7 || validCalorieLogs.length < 5) {
     return {
@@ -32,12 +37,16 @@ export function getNutritionDiagnosis({
         "FitCheck needs more recent nutrition logs before it can separate adherence from missing data.",
       calorieTarget,
       calorieAverage: 0,
+      calorieAverage7,
+      calorieLoggedDays7: validCalorieLogs7.length,
       calorieTargetDelta: 0,
       calorieTargetHitRate: 0,
       calorieVariance: 0,
       underLoggingRisk: "Unknown",
       volatileIntakeRisk: "Unknown",
       proteinAverage: 0,
+      proteinAverage7,
+      proteinLoggedDays7: validProteinLogs7.length,
       proteinHitRate: 0,
       loggingCompleteness: recentLogs.length > 0 ? recentLogs.length / 14 : 0,
       metrics: [],
@@ -134,12 +143,16 @@ export function getNutritionDiagnosis({
     }),
     calorieTarget,
     calorieAverage,
+    calorieAverage7,
+    calorieLoggedDays7: validCalorieLogs7.length,
     calorieTargetDelta,
     calorieTargetHitRate,
     calorieVariance,
     underLoggingRisk,
     volatileIntakeRisk,
     proteinAverage,
+    proteinAverage7,
+    proteinLoggedDays7: validProteinLogs7.length,
     proteinHitRate,
     loggingCompleteness,
     metrics,

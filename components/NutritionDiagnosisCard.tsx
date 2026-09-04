@@ -11,9 +11,9 @@ export function NutritionDiagnosisCard({
         <div>
           <h2 className="text-2xl font-semibold">Agent Nutrition Diagnosis</h2>
           <p className="mt-2 text-sm text-slate-500">
-            Uses your last 14 saved logs, while skipping blank calorie and
-            protein fields, to decide whether nutrition execution is reliable
-            enough for calorie changes.
+            Compares your last 7 and 14 saved logs, while skipping blank calorie
+            and protein fields, so short-term behavior and reliable trends stay
+            separate.
           </p>
         </div>
 
@@ -28,6 +28,14 @@ export function NutritionDiagnosisCard({
           value={
             nutritionDiagnosis.calorieTarget > 0
               ? `${nutritionDiagnosis.calorieTarget.toFixed(0)} cal`
+              : "Need data"
+          }
+        />
+        <DiagnosisStat
+          label="7-log calorie avg"
+          value={
+            nutritionDiagnosis.calorieAverage7 > 0
+              ? `${nutritionDiagnosis.calorieAverage7.toFixed(0)} cal`
               : "Need data"
           }
         />
@@ -48,6 +56,14 @@ export function NutritionDiagnosisCard({
           value={
             nutritionDiagnosis.calorieVariance > 0
               ? `${nutritionDiagnosis.calorieVariance.toFixed(0)} cal swing`
+              : "Need data"
+          }
+        />
+        <DiagnosisStat
+          label="7-log protein avg"
+          value={
+            nutritionDiagnosis.proteinAverage7 > 0
+              ? `${nutritionDiagnosis.proteinAverage7.toFixed(0)}g`
               : "Need data"
           }
         />
@@ -93,7 +109,7 @@ export function NutritionDiagnosisCard({
       ) : (
         <p className="mt-5 rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
           FitCheck needs at least 7 recent logs and 5 calorie logs inside the
-          14-log window before this diagnosis becomes useful.{" "}
+          14-log window before the reliable diagnosis becomes useful.{" "}
           {nutritionDiagnosis.recommendation}
         </p>
       )}

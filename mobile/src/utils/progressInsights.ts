@@ -66,9 +66,13 @@ export type NutritionDiagnosis = {
   score: number;
   status: "Insufficient data" | "Needs attention" | "Usable" | "Strong";
   calorieAverage?: number;
+  calorieAverage7?: number;
   proteinAverage?: number;
+  proteinAverage7?: number;
   calorieLoggedDays: number;
+  calorieLoggedDays7: number;
   proteinLoggedDays: number;
+  proteinLoggedDays7: number;
   windowDays: number;
   calorieTarget?: number;
   calorieTargetHitRate: number;
@@ -697,12 +701,19 @@ function buildNutritionDiagnosis(
   fallbackProteinTarget: number,
 ): NutritionDiagnosis {
   const recentLogs = logs.slice(0, 14);
+  const recent7Logs = recentLogs.slice(0, 7);
   const validCalorieLogs = recentLogs.filter((log) => hasValue(log.calories));
+  const validCalorieLogs7 = recent7Logs.filter((log) => hasValue(log.calories));
   const validProteinLogs = recentLogs.filter((log) => hasValue(log.proteinGrams));
+  const validProteinLogs7 = recent7Logs.filter((log) => hasValue(log.proteinGrams));
   const calorieValues = validCalorieLogs.map((log) => log.calories ?? 0);
+  const calorieValues7 = validCalorieLogs7.map((log) => log.calories ?? 0);
   const proteinValues = validProteinLogs.map((log) => log.proteinGrams ?? 0);
+  const proteinValues7 = validProteinLogs7.map((log) => log.proteinGrams ?? 0);
   const calorieAverage = averageNumbers(calorieValues);
+  const calorieAverage7 = averageNumbers(calorieValues7);
   const proteinAverage = averageNumbers(proteinValues);
+  const proteinAverage7 = averageNumbers(proteinValues7);
   const calorieVariance = standardDeviation(calorieValues);
   const calorieTargetHitRate = getCalorieTargetHitRate(validCalorieLogs, settings?.calorieTarget);
   const proteinTarget = settings?.proteinTarget ?? fallbackProteinTarget;
@@ -718,9 +729,13 @@ function buildNutritionDiagnosis(
       score: 0,
       status: "Insufficient data",
       calorieAverage: typeof calorieAverage === "number" ? round(calorieAverage) : undefined,
+      calorieAverage7: typeof calorieAverage7 === "number" ? round(calorieAverage7) : undefined,
       proteinAverage: typeof proteinAverage === "number" ? round(proteinAverage) : undefined,
+      proteinAverage7: typeof proteinAverage7 === "number" ? round(proteinAverage7) : undefined,
       calorieLoggedDays: validCalorieLogs.length,
+      calorieLoggedDays7: validCalorieLogs7.length,
       proteinLoggedDays: validProteinLogs.length,
+      proteinLoggedDays7: validProteinLogs7.length,
       windowDays: recentLogs.length,
       calorieTarget: settings?.calorieTarget,
       calorieTargetHitRate,
@@ -752,9 +767,13 @@ function buildNutritionDiagnosis(
     score,
     status: score >= 85 ? "Strong" : score >= 70 ? "Usable" : "Needs attention",
     calorieAverage: typeof calorieAverage === "number" ? round(calorieAverage) : undefined,
+    calorieAverage7: typeof calorieAverage7 === "number" ? round(calorieAverage7) : undefined,
     proteinAverage: typeof proteinAverage === "number" ? round(proteinAverage) : undefined,
+    proteinAverage7: typeof proteinAverage7 === "number" ? round(proteinAverage7) : undefined,
     calorieLoggedDays: validCalorieLogs.length,
+    calorieLoggedDays7: validCalorieLogs7.length,
     proteinLoggedDays: validProteinLogs.length,
+    proteinLoggedDays7: validProteinLogs7.length,
     windowDays: recentLogs.length,
     calorieTarget: settings?.calorieTarget,
     calorieTargetHitRate,

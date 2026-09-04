@@ -264,7 +264,16 @@ export function ProgressDashboardCard({
 
         <View style={styles.nutritionGrid}>
           <View style={styles.nutritionMetric}>
-            <Text style={styles.metricLabel}>Calories</Text>
+            <Text style={styles.metricLabel}>7-log calories</Text>
+            <Text style={styles.timelineValue}>
+              {formatValue(insights.nutritionDiagnosis.calorieAverage7, "cal/day")}
+            </Text>
+            <Text style={styles.metricMeta}>
+              {insights.nutritionDiagnosis.calorieLoggedDays7}/7 logged
+            </Text>
+          </View>
+          <View style={styles.nutritionMetric}>
+            <Text style={styles.metricLabel}>14-log calories</Text>
             <Text style={styles.timelineValue}>
               {formatValue(insights.nutritionDiagnosis.calorieAverage, "cal/day")}
             </Text>
@@ -273,7 +282,16 @@ export function ProgressDashboardCard({
             </Text>
           </View>
           <View style={styles.nutritionMetric}>
-            <Text style={styles.metricLabel}>Protein</Text>
+            <Text style={styles.metricLabel}>7-log protein</Text>
+            <Text style={styles.timelineValue}>
+              {formatValue(insights.nutritionDiagnosis.proteinAverage7, "g/day")}
+            </Text>
+            <Text style={styles.metricMeta}>
+              {insights.nutritionDiagnosis.proteinLoggedDays7}/7 logged
+            </Text>
+          </View>
+          <View style={styles.nutritionMetric}>
+            <Text style={styles.metricLabel}>14-log protein</Text>
             <Text style={styles.timelineValue}>
               {formatValue(insights.nutritionDiagnosis.proteinAverage, "g/day")}
             </Text>
@@ -470,12 +488,14 @@ const styles = StyleSheet.create({
   },
   nutritionGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   nutritionMetric: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: 14,
     flex: 1,
+    flexBasis: "47%",
     gap: 4,
     padding: 10,
   },
