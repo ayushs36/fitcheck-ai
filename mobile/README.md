@@ -40,6 +40,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 30: Added Settings account management so users can edit their local profile or sign out without deleting logs, keeping mobile public-app ready while remaining API-key free.
 - Day 31: Completed a release-readiness pass with version `1.0.0`, a compact Settings readiness summary, and QA checklist confirmation that the mobile client remains API-key free.
 - Day 32: Drafted App Store Connect metadata, privacy labels, keywords, age-rating assumptions, and review notes so the mobile app is ready for listing setup before TestFlight.
+- Day 33: Added the TestFlight build path with EAS build/submit scripts and a first-build guide covering credentials, QA checks, and API-key guardrails.
 
 ## Product Direction
 

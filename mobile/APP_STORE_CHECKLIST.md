@@ -16,12 +16,14 @@
 
 - Day 31 QA pass completed: mobile version is set to `1.0.0`, Settings surfaces release/privacy status, and the client still has no OpenAI API key or OpenAI route calls.
 - Day 32 App Store Connect prep completed: listing copy, category, age-rating assumptions, keywords, privacy labels, and review notes are drafted in `APP_STORE_METADATA.md`.
+- Day 33 TestFlight build path completed: EAS build and submit scripts are in `package.json`, and the exact first-build flow is documented in `TESTFLIGHT_BUILD_GUIDE.md`.
 - Create or confirm the App Store Connect app record.
 - Copy the prepared name, subtitle, category, age-rating answers, keywords, privacy labels, and review notes into App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.
 - Use only original launch assets. The current icon is generated specifically for this project, uses an abstract check/progress mark, and avoids copied logos, text, brand marks, people, and third-party imagery.
 - Prepare privacy labels: fitness logs are stored on-device, no third-party tracking, no OpenAI API in mobile.
-- Build with EAS production profile.
+- Build with the EAS production profile using `npm run build:ios:testflight`.
+- Submit to TestFlight using `npm run submit:ios:testflight`.
 - Install the TestFlight build on a real iPhone and test onboarding, saving, editing, deleting, backup, restore, and reset.
 - Test account creation, backup export/restore with account metadata, and reset returning to the account screen.
 - Test sign out returning to the account screen while preserving local logs.
