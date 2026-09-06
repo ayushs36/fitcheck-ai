@@ -17,6 +17,7 @@
 - Day 31 QA pass completed: mobile version is set to `1.0.0`, Settings surfaces release/privacy status, and the client still has no OpenAI API key or OpenAI route calls.
 - Day 32 App Store Connect prep completed: listing copy, category, age-rating assumptions, keywords, privacy labels, and review notes are drafted in `APP_STORE_METADATA.md`.
 - Day 33 TestFlight build path completed: EAS build and submit scripts are in `package.json`, and the exact first-build flow is documented in `TESTFLIGHT_BUILD_GUIDE.md`.
+- Day 34 EAS preflight completed: EAS CLI is reachable, but this Mac is not logged into Expo yet. Run `npx eas-cli login`, then run `npm run build:ios:testflight`.
 - Create or confirm the App Store Connect app record.
 - Copy the prepared name, subtitle, category, age-rating answers, keywords, privacy labels, and review notes into App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.

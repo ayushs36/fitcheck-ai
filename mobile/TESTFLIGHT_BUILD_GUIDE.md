@@ -31,6 +31,12 @@ Log in to Expo:
 npx eas-cli login
 ```
 
+Confirm the login:
+
+```bash
+npx eas-cli whoami
+```
+
 Create or refresh native credentials if EAS asks for them:
 
 ```bash
