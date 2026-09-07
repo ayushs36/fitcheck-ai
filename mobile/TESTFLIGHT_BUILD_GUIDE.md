@@ -14,8 +14,13 @@ Run these from the mobile app folder:
 ```bash
 cd mobile
 npm install
-npm run typecheck
+npm run preflight:release
 ```
+
+If `npm audit` reports the current Expo transitive `uuid` advisory, do not run
+`npm audit fix --force` during release freeze. The forced fix can downgrade Expo
+packages and break the SDK 57 dependency set. Prefer Expo SDK updates or
+official patches.
 
 Confirm the app still opens in Expo Go before creating the TestFlight build:
 

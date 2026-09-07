@@ -42,6 +42,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 32: Drafted App Store Connect metadata, privacy labels, keywords, age-rating assumptions, and review notes so the mobile app is ready for listing setup before TestFlight.
 - Day 33: Added the TestFlight build path with EAS build/submit scripts and a first-build guide covering credentials, QA checks, and API-key guardrails.
 - Day 34: Ran EAS preflight, made the build scripts self-contained through `npx eas-cli`, and confirmed the remaining blocker is Expo login before the first TestFlight build.
+- Day 35: Fixed release preflight blockers by aligning Expo SDK packages, moving splash config to the SDK 57 plugin format, and adding a one-command release preflight check.
 
 ## Product Direction
 

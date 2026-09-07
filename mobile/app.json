@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "fitcheckai",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F7F9FC"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ayushs36.fitcheckai",
@@ -32,6 +27,17 @@
       "productTrack": "mobile-app-store",
       "privacyModel": "local-device-storage",
       "usesOpenAI": false
-    }
+    },
+    "plugins": [
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F9FC"
+        }
+      ]
+    ]
   }
 }
