@@ -42,9 +42,9 @@ Initial mobile release with goal-aware logging, progress trends, workout trackin
 
 ## URLs To Prepare Before Submission
 
-- Privacy policy URL
-- Support URL
-- Marketing URL, optional
+- Privacy policy URL: https://fitcheck-ai-psi.vercel.app/mobile-privacy
+- Support URL: https://fitcheck-ai-psi.vercel.app/mobile-support
+- Marketing URL, optional: https://fitcheck-ai-psi.vercel.app/demo
 
 ## App Review Notes
 

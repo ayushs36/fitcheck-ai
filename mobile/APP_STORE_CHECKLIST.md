@@ -19,11 +19,13 @@
 - Day 33 TestFlight build path completed: EAS build and submit scripts are in `package.json`, and the exact first-build flow is documented in `TESTFLIGHT_BUILD_GUIDE.md`.
 - Day 34 EAS preflight completed: EAS CLI is reachable, but this Mac is not logged into Expo yet. Run `npx eas-cli login`, then run `npm run build:ios:testflight`.
 - Day 35 release QA completed: Expo SDK dependencies were aligned, splash config was moved to the SDK 57 plugin format, and `npm run preflight:release` passes with Expo Doctor at 21/21 checks.
+- Day 36 listing infrastructure completed: public privacy/support pages were added, App Store metadata now includes those URLs, and screenshot guidance is drafted in `APP_STORE_SCREENSHOTS.md`.
 - Create or confirm the App Store Connect app record.
 - Copy the prepared name, subtitle, category, age-rating answers, keywords, privacy labels, and review notes into App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.
 - Use only original launch assets. The current icon is generated specifically for this project, uses an abstract check/progress mark, and avoids copied logos, text, brand marks, people, and third-party imagery.
 - Prepare privacy labels: fitness logs are stored on-device, no third-party tracking, no OpenAI API in mobile.
+- Capture App Store screenshots using fictional data only.
 - Run `npm run preflight:release`, then build with the EAS production profile using `npm run build:ios:testflight`.
 - Submit to TestFlight using `npm run submit:ios:testflight`.
 - Install the TestFlight build on a real iPhone and test onboarding, saving, editing, deleting, backup, restore, and reset.
