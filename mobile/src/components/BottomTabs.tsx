@@ -3,12 +3,12 @@ import { colors } from "../theme/colors";
 
 export type MobileTab = "today" | "training" | "progress" | "goals" | "settings";
 
-const tabItems: { label: string; value: MobileTab }[] = [
-  { label: "Today", value: "today" },
-  { label: "Train", value: "training" },
-  { label: "Progress", value: "progress" },
-  { label: "Goals", value: "goals" },
-  { label: "Settings", value: "settings" },
+const tabItems: { icon: string; label: string; value: MobileTab }[] = [
+  { icon: "+", label: "Today", value: "today" },
+  { icon: "kg", label: "Train", value: "training" },
+  { icon: "~", label: "Progress", value: "progress" },
+  { icon: ">", label: "Goals", value: "goals" },
+  { icon: "=", label: "Settings", value: "settings" },
 ];
 
 type BottomTabsProps = {
@@ -28,6 +28,7 @@ export function BottomTabs({ activeTab, onChange }: BottomTabsProps) {
             onPress={() => onChange(item.value)}
             style={[styles.tab, isActive && styles.activeTab]}
           >
+            <Text style={[styles.icon, isActive && styles.activeLabel]}>{item.icon}</Text>
             <Text style={[styles.label, isActive && styles.activeLabel]}>{item.label}</Text>
           </Pressable>
         );
@@ -50,13 +51,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 16,
     shadowColor: "#0B1220",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
   },
   tab: {
     alignItems: "center",
-    borderRadius: 18,
+    borderRadius: 16,
     flex: 1,
     minHeight: 46,
     justifyContent: "center",
@@ -66,8 +67,14 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
+  },
+  icon: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "900",
+    lineHeight: 13,
   },
   activeLabel: {
     color: colors.primary,

@@ -23,12 +23,12 @@ export function Screen({ title, subtitle, children }: ScreenProps) {
 
 const styles = StyleSheet.create({
   content: {
-    gap: 16,
+    gap: 14,
     padding: 20,
     paddingBottom: 112,
   },
   header: {
-    gap: 6,
+    gap: 5,
     paddingTop: 8,
   },
   eyebrow: {
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "800",
     letterSpacing: 0,
   },

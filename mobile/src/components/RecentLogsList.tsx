@@ -13,7 +13,7 @@ type RecentLogsListProps = {
 
 function formatMetricValue(value?: number, suffix = ""): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "blank";
+    return "Not logged";
   }
 
   return `${value.toLocaleString()}${suffix}`;
@@ -21,7 +21,7 @@ function formatMetricValue(value?: number, suffix = ""): string {
 
 function formatWeight(value: number | undefined, unitSystem: UnitSystem): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    return "blank";
+    return "Not logged";
   }
 
   return `${formatWeightFromLbs(value, unitSystem)} ${getWeightUnitLabel(unitSystem)}`;
@@ -84,7 +84,11 @@ export function RecentLogsList({
             <View style={styles.footerRow}>
               <Text style={styles.workout}>{log.workoutType ?? "No workout selected"}</Text>
               {onSelectLog ? (
-                <Text style={styles.editHint}>{isSelected ? "Editing" : "Tap to edit"}</Text>
+                <View style={[styles.editPill, isSelected && styles.editPillActive]}>
+                  <Text style={[styles.editHint, isSelected && styles.editHintActive]}>
+                    {isSelected ? "Editing" : "Edit"}
+                  </Text>
+                </View>
               ) : null}
             </View>
           </Pressable>
@@ -130,7 +134,19 @@ const styles = StyleSheet.create({
   editHint: {
     color: colors.primary,
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+  },
+  editHintActive: {
+    color: colors.surface,
+  },
+  editPill: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  editPillActive: {
+    backgroundColor: colors.primary,
   },
   footerRow: {
     alignItems: "center",
@@ -146,6 +162,8 @@ const styles = StyleSheet.create({
   },
   goalPill: {
     backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 5,
@@ -161,7 +179,7 @@ const styles = StyleSheet.create({
   metricItem: {
     backgroundColor: colors.surfaceMuted,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     minWidth: "47%",
     paddingHorizontal: 10,
@@ -182,9 +200,9 @@ const styles = StyleSheet.create({
   row: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: 6,
+    gap: 10,
     padding: 14,
   },
   rowHeader: {

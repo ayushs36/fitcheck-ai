@@ -179,14 +179,7 @@ export function ProgressScreen() {
             </View>
           }
         />
-      ) : (
-        <Card>
-          <Text style={styles.title}>Edit a Past Day</Text>
-          <Text style={styles.body}>
-            Select a saved log above to adjust weight, nutrition, steps, workout type, or notes.
-          </Text>
-        </Card>
-      )}
+      ) : null}
     </Screen>
   );
 }
