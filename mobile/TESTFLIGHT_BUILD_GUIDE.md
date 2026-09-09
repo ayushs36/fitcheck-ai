@@ -4,7 +4,8 @@
 
 - Apple Developer Program membership is active.
 - App Store Connect app record exists for bundle ID `com.ayushs36.fitcheckai`.
-- Expo account is available on the Mac that runs the build.
+- Expo account `ayushs36` is available on the Mac that runs the build.
+- EAS project `@ayushs36/fitcheck-ai-mobile` is linked in `app.json`.
 - No OpenAI API key is stored in the mobile app, `app.json`, EAS secrets, or client source.
 
 ## Local Preflight
@@ -30,17 +31,15 @@ npm start
 
 ## First iOS Build
 
-Log in to Expo:
-
-```bash
-npx eas-cli login
-```
+Current status is tracked in `RELEASE_STATUS.md`.
 
 Confirm the login:
 
 ```bash
 npx eas-cli whoami
 ```
+
+If Apple Developer Program enrollment is still pending, stop here and wait for approval before starting the iOS build.
 
 Create or refresh native credentials if EAS asks for them:
 
@@ -54,7 +53,7 @@ Create the iOS production build:
 npm run build:ios:testflight
 ```
 
-EAS should handle the signing certificate and provisioning profile flow. Use the Apple Developer account only through EAS/App Store Connect, not through committed config files.
+EAS should handle the signing certificate, provisioning profile, and remote build-number flow. Use the Apple Developer account only through EAS/App Store Connect, not through committed config files.
 
 ## Submit To TestFlight
 

@@ -44,6 +44,8 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Day 34: Ran EAS preflight, made the build scripts self-contained through `npx eas-cli`, and confirmed the remaining blocker is Expo login before the first TestFlight build.
 - Day 35: Fixed release preflight blockers by aligning Expo SDK packages, moving splash config to the SDK 57 plugin format, and adding a one-command release preflight check.
 - Day 36: Added public mobile privacy/support pages, App Store URL metadata, and screenshot guidance for fictional-data App Store listing assets.
+- Day 37: Re-ran release execution checks, confirmed mobile preflight and Expo Doctor are clean, and documented the remaining Expo/EAS login blocker before the first TestFlight build.
+- Day 38: Finalized the release-freeze state by linking the EAS project, documenting Apple Developer enrollment as the only release blocker, and keeping the mobile client API-key free.
 
 ## Product Direction
 

@@ -10,16 +10,18 @@
 - Missing fields stay blank and are skipped in averages.
 - Cutting, maintaining, and bulking goals drive the coaching summaries.
 - App identity is configured with bundle ID `com.ayushs36.fitcheckai`.
-- App icon, adaptive icon, splash image, iOS build number, Android version code, and encryption declaration are configured.
+- App icon, adaptive icon, splash image, Android version code, remote EAS build numbering, and encryption declaration are configured.
 
 ## Before TestFlight
 
 - Day 31 QA pass completed: mobile version is set to `1.0.0`, Settings surfaces release/privacy status, and the client still has no OpenAI API key or OpenAI route calls.
 - Day 32 App Store Connect prep completed: listing copy, category, age-rating assumptions, keywords, privacy labels, and review notes are drafted in `APP_STORE_METADATA.md`.
 - Day 33 TestFlight build path completed: EAS build and submit scripts are in `package.json`, and the exact first-build flow is documented in `TESTFLIGHT_BUILD_GUIDE.md`.
-- Day 34 EAS preflight completed: EAS CLI is reachable, but this Mac is not logged into Expo yet. Run `npx eas-cli login`, then run `npm run build:ios:testflight`.
+- Day 34 EAS preflight completed: EAS CLI is reachable and build scripts call it through `npx eas-cli`.
 - Day 35 release QA completed: Expo SDK dependencies were aligned, splash config was moved to the SDK 57 plugin format, and `npm run preflight:release` passes with Expo Doctor at 21/21 checks.
 - Day 36 listing infrastructure completed: public privacy/support pages were added, App Store metadata now includes those URLs, and screenshot guidance is drafted in `APP_STORE_SCREENSHOTS.md`.
+- Day 37 release execution check completed: `npm run preflight:release` passes, this Mac is logged into Expo as `ayushs36`, and the app is linked to EAS project `@ayushs36/fitcheck-ai-mobile`.
+- Day 38 release freeze completed: EAS remote versioning is configured, local iOS build-number noise was removed, and the only current release blocker is Apple Developer Program approval before iOS signing/TestFlight submission.
 - Create or confirm the App Store Connect app record.
 - Copy the prepared name, subtitle, category, age-rating answers, keywords, privacy labels, and review notes into App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.

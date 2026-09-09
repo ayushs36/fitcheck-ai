@@ -10,7 +10,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ayushs36.fitcheckai",
-      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -26,7 +25,10 @@
     "extra": {
       "productTrack": "mobile-app-store",
       "privacyModel": "local-device-storage",
-      "usesOpenAI": false
+      "usesOpenAI": false,
+      "eas": {
+        "projectId": "52e56b43-3cc7-4099-81d2-8635b55fcacd"
+      }
     },
     "plugins": [
       "expo-status-bar",
