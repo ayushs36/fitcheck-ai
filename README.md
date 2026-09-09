@@ -46,6 +46,13 @@ The public demo uses fictional fitness data so visitors can explore the app
 without accessing personal logs. OpenAI calls are handled through server-side
 Next.js API routes, keeping API keys out of the browser and source code.
 
+## Mobile App
+
+The repository also includes a separate Expo React Native app in `mobile/`.
+The mobile app is the public consumer version for App Store release: it focuses
+on logging, trends, goals, workouts, local backups, and on-device privacy. It
+does not include OpenAI API calls or a public API key.
+
 ## Tech Stack
 
 - Next.js
