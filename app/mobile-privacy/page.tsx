@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "FitCheck Coach Privacy Policy",
@@ -64,8 +65,10 @@ export default function MobilePrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-950">Contact</h2>
             <p className="mt-2">
-              For support or privacy questions, use the support page linked from the App Store
-              listing.
+              For support or privacy questions, visit the{" "}
+              <Link href="/mobile-support" className="font-medium text-blue-700 underline underline-offset-4">
+                FitCheck Coach support page
+              </Link>.
             </p>
           </section>
         </div>

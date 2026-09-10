@@ -22,8 +22,10 @@
 - Day 36 listing infrastructure completed: public privacy/support pages were added, App Store metadata now includes those URLs, and screenshot guidance is drafted in `APP_STORE_SCREENSHOTS.md`.
 - Day 37 release execution check completed: `npm run preflight:release` passes, this Mac is logged into Expo as `ayushs36`, and the app is linked to EAS project `@ayushs36/fitcheck-ai-mobile`.
 - Day 38 release freeze completed: EAS remote versioning is configured, local iOS build-number noise was removed, and the only current release blocker is Apple Developer Program approval before iOS signing/TestFlight submission.
-- V1 release status: Apple Developer Program is verified, code is feature-frozen, App Store Connect metadata is synced for `FitCheck Coach`, and iOS build `1.0.0` / `5` was uploaded to App Store Connect.
-- Confirm the uploaded build finishes Apple processing and appears in TestFlight.
+- V1 release status: Apple Developer Program is verified, code is feature-frozen, and iOS build `1.0.0` / `5` has finished processing, is available in TestFlight, and is attached to the App Store release.
+- September 10 listing setup: description, subtitle, category, keywords, support URL, copyright, wellness age rating, content rights, non-medical-device declaration, and published Data Not Collected disclosure completed. Free pricing and worldwide availability were approved by the owner and saved.
+- Private App Review contact details and review instructions are saved. The public support page now includes the approved support email.
+- Outstanding submission requirements: iPhone and iPad screenshots. Device QA remains unverified. Cloud accounts and backup are planned for the next work session before public launch; build 5 remains local-only. The app is not submitted for review.
 - Copy or confirm the prepared subtitle, category, keywords, privacy labels, and review notes in App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.
 - Use only original launch assets. The current icon is generated specifically for this project, uses an abstract check/progress mark, and avoids copied logos, text, brand marks, people, and third-party imagery.

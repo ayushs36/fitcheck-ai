@@ -50,6 +50,16 @@ export default function MobileSupportPage() {
         <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
           <h2 className="font-semibold text-slate-950">Need Help?</h2>
           <p className="mt-2">
+            Email{" "}
+            <a
+              href="mailto:epasronaldo@gmail.com?subject=FitCheck%20Coach%20Support"
+              className="break-all font-medium text-blue-700 underline underline-offset-4"
+            >
+              epasronaldo@gmail.com
+            </a>
+            {" "}for FitCheck Coach support or privacy questions.
+          </p>
+          <p className="mt-2">
             Include your device model, iOS version, app version, and a short description of what you
             were trying to do. Do not send sensitive health information unless it is required to
             explain the issue.

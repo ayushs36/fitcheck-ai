@@ -2,13 +2,20 @@
   "configVersion": 0,
   "apple": {
     "version": "1.0",
+    "copyright": "2026 Ayush Sharma",
+    "categories": ["HEALTH_AND_FITNESS"],
     "release": {
       "automaticRelease": true
     },
     "info": {
       "en-US": {
         "privacyPolicyUrl": "https://fitcheck-ai-psi.vercel.app/mobile-privacy",
-        "title": "FitCheck Coach"
+        "title": "FitCheck Coach",
+        "subtitle": "Fitness logging for goals",
+        "description": "FitCheck Coach brings your weight, nutrition, steps, and workout logs together around your goal: cutting, maintaining, or bulking.\n\nLOG AT YOUR OWN PACE\nRecord your morning weight, then add calories, protein, steps, and training later. Log only what you know. Blank fields stay missing instead of being counted as zero in averages. Edit past entries whenever you need to.\n\nUNDERSTAND YOUR PROGRESS\nSee weight trends, calorie and step charts, recent averages, and goal projections. Rule-based coaching summaries help you review your routine in the context of your chosen goal.\n\nKEEP YOUR TRAINING HISTORY CLOSE\nRecord exercises, sets, reps, and weights. Reuse workout and exercise names you have logged before, review past performance, and track bodyweight exercises by reps. Form-focused sessions are part of your training context.\n\nYOUR LOGS, ON YOUR DEVICE\nFitness logs and your local profile stay on your device. Export and restore local backups from Settings. There is no cloud account or automatic cross-device sync in this version.\n\nFitCheck Coach is a fitness logging tool, not a medical device. Calorie targets and goal projections are estimates, not guarantees.",
+        "keywords": ["weight", "calorie", "protein", "steps", "workout", "tracker", "strength", "reps", "cutting", "bulking", "maintenance", "goals"],
+        "promoText": "Track weight, nutrition, steps, and workouts around your current fitness goal.",
+        "supportUrl": "https://fitcheck-ai-psi.vercel.app/mobile-support"
       }
     },
     "advisory": {
@@ -35,7 +42,7 @@
       "ageRatingOverrideV2": "NONE",
       "developerAgeRatingInfoUrl": null,
       "gunsOrOtherWeapons": "NONE",
-      "healthOrWellnessTopics": false,
+      "healthOrWellnessTopics": true,
       "messagingAndChat": false,
       "parentalControls": false,
       "userGeneratedContent": false

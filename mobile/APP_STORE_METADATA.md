@@ -5,7 +5,8 @@
 - App name: FitCheck Coach
 - Subtitle: Fitness logging for goals
 - Category: Health & Fitness
-- Age rating: 4+, assuming no medical claims, no user-generated public content, no gambling, no unrestricted web access, and no mature content.
+- Age rating: Apple calculated 9+ after declaring Health or Wellness Topics on September 10, 2026; regional and older-OS ratings differ.
+- Machine-readable listing: `store.config.json` contains the current description, subtitle, keywords, category, and support/privacy URLs.
 
 ## Short Description
 
@@ -23,7 +24,7 @@ FitCheck Coach stores data locally on your device and does not include OpenAI AP
 
 ## Keywords
 
-fitness tracker, weight tracker, calorie tracker, protein, steps, workout log, strength training, cut, bulk, maintain, goal tracking
+weight,calorie,protein,steps,workout,tracker,strength,reps,cutting,bulking,maintenance,goals
 
 ## Promotional Text
 
@@ -44,8 +45,10 @@ Initial mobile release with goal-aware logging, progress trends, workout trackin
 
 - Privacy policy URL: https://fitcheck-ai-psi.vercel.app/mobile-privacy
 - Support URL: https://fitcheck-ai-psi.vercel.app/mobile-support
-- Marketing URL, optional: https://fitcheck-ai-psi.vercel.app/demo
+- Marketing URL: omitted; the web demo is a separate product.
 
 ## App Review Notes
 
 FitCheck Coach is a local-device fitness logging app. Account setup is local to the device in this release. The app does not provide medical diagnosis, does not sell supplements, does not collect payment, does not include third-party tracking, and does not embed a public OpenAI API key.
+
+Reviewers can enter a fictional name and a valid-format email such as `reviewer@example.com` on the Create Account screen. No password, verification email, paid subscription, or external account is required. After choosing a goal and completing onboarding, they can access logging, progress, training, and Settings. Apple review contact details must be entered privately in App Store Connect, not committed to this repository.

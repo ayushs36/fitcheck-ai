@@ -2,6 +2,16 @@
 
 Use fictional data only. Do not include personal logs, personal goals, real private notes, or screenshots from the personal web app.
 
+## Required Display Sizes
+
+Confirmed in App Store Connect on September 10, 2026 for build 5:
+
+- iPhone 6.5-inch slot: portrait `1242 x 2688` or `1284 x 2778`; landscape dimensions may be reversed.
+- iPad 13-inch slot: portrait `2064 x 2752` or `2048 x 2732`; landscape dimensions may be reversed.
+- Apple requires at least one screenshot for each of these two slots. Both are currently empty.
+- Capture the actual native app on a device or iOS simulator. Do not substitute web-app screenshots or invented app mockups.
+- Use a separate test device or simulator with fictional logs. Do not restore screenshot data over personal logs.
+
 ## Required Story
 
 1. Today screen: blank-friendly logging for weight, calories, protein, steps, and workout type.
