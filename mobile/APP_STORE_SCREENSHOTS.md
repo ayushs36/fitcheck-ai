@@ -1,4 +1,4 @@
-# FitCheck AI App Store Screenshots
+# FitCheck Coach App Store Screenshots
 
 Use fictional data only. Do not include personal logs, personal goals, real private notes, or screenshots from the personal web app.
 

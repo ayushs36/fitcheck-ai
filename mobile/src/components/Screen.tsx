@@ -12,7 +12,7 @@ export function Screen({ title, subtitle, children }: ScreenProps) {
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>FitCheck AI Mobile</Text>
+        <Text style={styles.eyebrow}>FitCheck Coach</Text>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>

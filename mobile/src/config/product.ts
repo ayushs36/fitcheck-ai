@@ -1,5 +1,5 @@
 export const productConfig = {
-  name: "FitCheck AI",
+  name: "FitCheck Coach",
   version: "1.0.0",
   versionSource: "eas-remote",
   audience: "public-consumer",

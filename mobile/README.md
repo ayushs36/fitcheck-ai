@@ -1,6 +1,6 @@
-# FitCheck AI Mobile
+# FitCheck Coach
 
-FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nutrition, steps, and training across cutting, maintaining, and bulking goals. It is intentionally separate from the recruiter-facing web app so mobile development does not affect the deployed AI coaching agent website.
+FitCheck Coach is the App Store-focused consumer app for logging weight, nutrition, steps, and training across cutting, maintaining, and bulking goals. It is intentionally separate from the recruiter-facing FitCheck AI web app so mobile development does not affect the deployed AI coaching agent website.
 
 ## Current Status
 
@@ -10,7 +10,8 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 - Bundle ID: `com.ayushs36.fitcheckai`
 - Versioning: EAS remote auto-incrementing
 - Release preflight: `npm run preflight:release`
-- Current blocker: Apple Developer Program enrollment must be approved before the first TestFlight build can be completed.
+- Apple Developer Program: verified
+- Current blocker: none in the codebase. V1 is ready for the first EAS iOS build and TestFlight QA.
 
 ## Core Features
 
@@ -27,7 +28,7 @@ FitCheck AI Mobile is the App Store-focused consumer app for logging weight, nut
 
 ## Product Direction
 
-The mobile app should help beginners through advanced lifters log consistently and understand progress across cutting, maintaining, and bulking goals. The web app remains the AI agent portfolio project; the mobile app is the consumer tracking product designed for App Store release and should never depend on a public OpenAI API key.
+FitCheck Coach should help beginners through advanced lifters log consistently and understand progress across cutting, maintaining, and bulking goals. The web app remains the FitCheck AI agent portfolio project; the mobile app is the consumer tracking product designed for App Store release and should never depend on a public OpenAI API key.
 
 ## Release Notes
 

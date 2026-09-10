@@ -147,7 +147,7 @@ export function SettingsScreen({
     const message = JSON.stringify(backup, null, 2);
 
     await Share.share({
-      title: "FitCheck AI Mobile Backup",
+      title: "FitCheck Coach Backup",
       message,
     });
   }
@@ -175,8 +175,8 @@ export function SettingsScreen({
     const parsedBackup = parseBackupText(restoreText);
 
     if (!parsedBackup) {
-      setRestoreStatus("Paste a valid FitCheck AI Mobile backup JSON first.");
-      Alert.alert("Invalid backup", "This does not look like a FitCheck AI Mobile backup.");
+      setRestoreStatus("Paste a valid FitCheck Coach backup JSON first.");
+      Alert.alert("Invalid backup", "This does not look like a FitCheck Coach backup.");
       return;
     }
 
@@ -255,7 +255,7 @@ export function SettingsScreen({
   return (
     <Screen
       title="Settings"
-      subtitle="Manage local data, privacy, and app preferences for FitCheck AI Mobile."
+      subtitle="Manage local data, privacy, and app preferences for FitCheck Coach."
     >
       <Card>
         <View style={styles.header}>
@@ -363,7 +363,7 @@ export function SettingsScreen({
         <View style={styles.header}>
           <Text style={styles.title}>Restore Backup</Text>
           <Text style={styles.body}>
-            Paste a FitCheck AI Mobile backup JSON to restore logs, workouts, and settings on
+            Paste a FitCheck Coach backup JSON to restore logs, workouts, and settings on
             this device.
           </Text>
         </View>

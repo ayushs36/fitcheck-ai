@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FitCheck AI Mobile Privacy Policy",
+  title: "FitCheck Coach Privacy Policy",
   description:
-    "Privacy policy for the FitCheck AI mobile app, including local-only fitness logging and no OpenAI API usage in the mobile client.",
+    "Privacy policy for the FitCheck Coach mobile app, including local-only fitness logging and no OpenAI API usage in the mobile client.",
 };
 
 export default function MobilePrivacyPage() {
@@ -11,7 +11,7 @@ export default function MobilePrivacyPage() {
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
       <section className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-          FitCheck AI Mobile
+          FitCheck Coach
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Privacy Policy</h1>
         <p className="mt-3 text-sm text-slate-500">Effective date: September 8, 2026</p>
@@ -20,7 +20,7 @@ export default function MobilePrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-950">What The App Stores</h2>
             <p className="mt-2">
-              FitCheck AI Mobile stores the fitness information you enter, including account
+              FitCheck Coach stores the fitness information you enter, including account
               profile details, goals, weight logs, calories, protein, steps, workouts, exercises,
               notes, and local backup data.
             </p>
@@ -30,7 +30,7 @@ export default function MobilePrivacyPage() {
             <h2 className="text-lg font-semibold text-slate-950">Where Data Is Stored</h2>
             <p className="mt-2">
               In the current mobile release, your fitness logs are stored locally on your device.
-              FitCheck AI Mobile does not run a public backend account system, does not sell your
+              FitCheck Coach does not run a public backend account system, does not sell your
               data, and does not use third-party advertising trackers.
             </p>
           </section>
@@ -56,7 +56,7 @@ export default function MobilePrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-950">Health Notice</h2>
             <p className="mt-2">
-              FitCheck AI Mobile is a fitness logging tool. It is not a medical device and does not
+              FitCheck Coach is a fitness logging tool. It is not a medical device and does not
               provide medical diagnosis or treatment advice.
             </p>
           </section>

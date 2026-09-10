@@ -1,25 +1,25 @@
-# FitCheck AI App Store Metadata
+# FitCheck Coach App Store Metadata
 
 ## Listing
 
-- App name: FitCheck AI
+- App name: FitCheck Coach
 - Subtitle: Fitness logging for goals
 - Category: Health & Fitness
 - Age rating: 4+, assuming no medical claims, no user-generated public content, no gambling, no unrestricted web access, and no mature content.
 
 ## Short Description
 
-FitCheck AI helps people log weight, calories, protein, steps, and workouts while keeping progress tied to a cutting, maintaining, or bulking goal.
+FitCheck Coach helps people log weight, calories, protein, steps, and workouts while keeping progress tied to a cutting, maintaining, or bulking goal.
 
 ## Full Description
 
-FitCheck AI is a fitness logging app for people who want a cleaner way to track weight, nutrition, steps, and training progress around a clear goal.
+FitCheck Coach is a fitness logging app for people who want a cleaner way to track weight, nutrition, steps, and training progress around a clear goal.
 
 Choose whether you are cutting, maintaining, or bulking, then log only what you know each day. Blank fields stay blank and are skipped in averages, so missing a weigh-in, calories, protein, steps, or workout does not distort your trends.
 
 The app summarizes recent weight movement, calorie and protein consistency, step averages, goal timeline, training history, and repeated exercise performance. It is designed to help beginners through advanced lifters understand whether their current routine matches their goal without forcing every feature onto one screen.
 
-FitCheck AI stores data locally on your device and does not include OpenAI API calls in the mobile app.
+FitCheck Coach stores data locally on your device and does not include OpenAI API calls in the mobile app.
 
 ## Keywords
 
@@ -48,4 +48,4 @@ Initial mobile release with goal-aware logging, progress trends, workout trackin
 
 ## App Review Notes
 
-FitCheck AI is a local-device fitness logging app. Account setup is local to the device in this release. The app does not provide medical diagnosis, does not sell supplements, does not collect payment, does not include third-party tracking, and does not embed a public OpenAI API key.
+FitCheck Coach is a local-device fitness logging app. Account setup is local to the device in this release. The app does not provide medical diagnosis, does not sell supplements, does not collect payment, does not include third-party tracking, and does not embed a public OpenAI API key.

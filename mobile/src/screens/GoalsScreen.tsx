@@ -226,7 +226,7 @@ export function GoalsScreen() {
   return (
     <Screen
       title="Goals"
-      subtitle="Set how FitCheck AI Mobile should interpret your logs for cutting, maintaining, or bulking."
+      subtitle="Set how FitCheck Coach should interpret your logs for cutting, maintaining, or bulking."
     >
       <Card>
         <View style={styles.header}>

@@ -96,7 +96,7 @@ export default function App() {
       <View style={styles.app}>
         {isLoadingSettings ? (
           <View style={styles.loadingState}>
-            <Text style={styles.loadingTitle}>FitCheck AI</Text>
+            <Text style={styles.loadingTitle}>FitCheck Coach</Text>
             <Text style={styles.loadingBody}>Loading your mobile workspace</Text>
           </View>
         ) : !hasAccount ? (

@@ -1,4 +1,4 @@
-# FitCheck AI Mobile App Store Checklist
+# FitCheck Coach App Store Checklist
 
 ## Day 28 Release Freeze
 
@@ -22,14 +22,14 @@
 - Day 36 listing infrastructure completed: public privacy/support pages were added, App Store metadata now includes those URLs, and screenshot guidance is drafted in `APP_STORE_SCREENSHOTS.md`.
 - Day 37 release execution check completed: `npm run preflight:release` passes, this Mac is logged into Expo as `ayushs36`, and the app is linked to EAS project `@ayushs36/fitcheck-ai-mobile`.
 - Day 38 release freeze completed: EAS remote versioning is configured, local iOS build-number noise was removed, and the only current release blocker is Apple Developer Program approval before iOS signing/TestFlight submission.
-- Create or confirm the App Store Connect app record.
-- Copy the prepared name, subtitle, category, age-rating answers, keywords, privacy labels, and review notes into App Store Connect.
+- V1 release status: Apple Developer Program is verified, code is feature-frozen, App Store Connect metadata is synced for `FitCheck Coach`, and iOS build `1.0.0` / `5` was uploaded to App Store Connect.
+- Confirm the uploaded build finishes Apple processing and appears in TestFlight.
+- Copy or confirm the prepared subtitle, category, keywords, privacy labels, and review notes in App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.
 - Use only original launch assets. The current icon is generated specifically for this project, uses an abstract check/progress mark, and avoids copied logos, text, brand marks, people, and third-party imagery.
 - Prepare privacy labels: fitness logs are stored on-device, no third-party tracking, no OpenAI API in mobile.
 - Capture App Store screenshots using fictional data only.
-- Run `npm run preflight:release`, then build with the EAS production profile using `npm run build:ios:testflight`.
-- Submit to TestFlight using `npm run submit:ios:testflight`.
+- Use the latest uploaded iOS build: `d008b19d-cf55-4739-8cfe-dbdba710c1d5`.
 - Install the TestFlight build on a real iPhone and test onboarding, saving, editing, deleting, backup, restore, and reset.
 - Test account creation, backup export/restore with account metadata, and reset returning to the account screen.
 - Test sign out returning to the account screen while preserving local logs.

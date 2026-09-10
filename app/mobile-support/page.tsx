@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FitCheck AI Mobile Support",
+  title: "FitCheck Coach Support",
   description:
-    "Support information for FitCheck AI Mobile, including setup, logging, backups, privacy, and TestFlight/App Store help.",
+    "Support information for FitCheck Coach, including setup, logging, backups, privacy, and TestFlight/App Store help.",
 };
 
 const supportItems = [
@@ -30,7 +30,7 @@ export default function MobileSupportPage() {
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
       <section className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-          FitCheck AI Mobile
+          FitCheck Coach
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Support</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">

@@ -1,4 +1,4 @@
-# FitCheck AI TestFlight Build Guide
+# FitCheck Coach TestFlight Build Guide
 
 ## Prerequisites
 
@@ -39,8 +39,6 @@ Confirm the login:
 npx eas-cli whoami
 ```
 
-If Apple Developer Program enrollment is still pending, stop here and wait for approval before starting the iOS build.
-
 Create or refresh native credentials if EAS asks for them:
 
 ```bash
@@ -57,13 +55,16 @@ EAS should handle the signing certificate, provisioning profile, and remote buil
 
 ## Submit To TestFlight
 
-After the build finishes:
+The first FitCheck Coach iOS build has already been uploaded:
 
-```bash
-npm run submit:ios:testflight
-```
+- App Store Connect app ID: `6810485632`
+- Build ID: `d008b19d-cf55-4739-8cfe-dbdba710c1d5`
+- App version: `1.0.0`
+- Build number: `5`
+- TestFlight URL: `https://appstoreconnect.apple.com/apps/6810485632/testflight/ios`
+- App Store listing URL: `https://appstoreconnect.apple.com/apps/6810485632/appstore`
 
-Then open App Store Connect and confirm the build appears under TestFlight.
+Wait for Apple processing to finish, then open App Store Connect and confirm the build appears under TestFlight.
 
 ## First TestFlight QA
 
