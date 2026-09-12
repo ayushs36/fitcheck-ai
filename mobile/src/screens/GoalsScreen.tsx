@@ -4,7 +4,7 @@ import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
-import { loadUserSettings, saveUserSettings } from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { GoalType, UserSettings } from "../types/fitness";
 import { parseOptionalNumber } from "../utils/logDraft";
@@ -147,7 +147,9 @@ function getCalorieSuggestion(goal: GoalType): string {
 }
 
 export function GoalsScreen() {
+  const { loadUserSettings, saveUserSettings } = useMobileStorage();
   const [draft, setDraft] = useState<GoalDraft>(defaultDraft);
+  const [originalSettings, setOriginalSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const weightUnit = getWeightUnitLabel(draft.unitSystem);
@@ -174,6 +176,7 @@ export function GoalsScreen() {
         const savedSettings = await loadUserSettings();
         if (isMounted) {
           setDraft(settingsToDraft(savedSettings));
+          setOriginalSettings(savedSettings);
         }
       } finally {
         if (isMounted) {
@@ -210,7 +213,9 @@ export function GoalsScreen() {
       updatedAt: new Date().toISOString(),
     };
 
-    await saveUserSettings(settings);
+    try { await saveUserSettings(settings, originalSettings); }
+    catch (error) { Alert.alert("Goal not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
+    setOriginalSettings(settings);
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Goal saved", "Your goal setup was saved on this device.");
   }

@@ -8,6 +8,7 @@
     "userInterfaceStyle": "light",
     "scheme": "fitcheckai",
     "ios": {
+      "usesAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.ayushs36.fitcheckai",
       "infoPlist": {
@@ -39,7 +40,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#F7F9FC"
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-apple-authentication"
     ]
   }
 }

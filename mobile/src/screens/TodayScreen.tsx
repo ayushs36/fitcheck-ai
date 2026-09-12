@@ -5,13 +5,7 @@ import { DailyCoachBriefCard } from "../components/DailyCoachBriefCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
-import {
-  getDailyLogByDate,
-  loadDailyLogsDescending,
-  loadRecentWorkoutSessions,
-  loadUserSettings,
-  upsertDailyLog,
-} from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
@@ -20,6 +14,8 @@ import { calculateProgressInsights } from "../utils/progressInsights";
 import { getWeightUnitLabel } from "../utils/units";
 
 export function TodayScreen() {
+  const { getDailyLogByDate, loadDailyLogsDescending, loadRecentWorkoutSessions,
+    loadUserSettings, upsertDailyLog } = useMobileStorage();
   const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [existingLog, setExistingLog] = useState<DailyLog | undefined>();
   const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
@@ -79,7 +75,9 @@ export function TodayScreen() {
       unitSystem: settings?.unitSystem ?? "imperial",
     });
 
-    const updatedLogs = await upsertDailyLog(dailyLog);
+    let updatedLogs: DailyLog[];
+    try { updatedLogs = await upsertDailyLog(dailyLog, existingLog ?? null); }
+    catch (error) { Alert.alert("Log not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
     const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
     setExistingLog(dailyLog);
     setAllLogs(sortedLogs);

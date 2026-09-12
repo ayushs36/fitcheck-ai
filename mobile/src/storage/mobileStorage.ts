@@ -51,7 +51,7 @@ export async function addWorkoutSession(session: WorkoutSession): Promise<Workou
   return sortedSessions;
 }
 
-export async function upsertWorkoutSession(session: WorkoutSession): Promise<WorkoutSession[]> {
+export async function upsertWorkoutSession(session: WorkoutSession, _previous?: WorkoutSession | null): Promise<WorkoutSession[]> {
   const sessions = await loadWorkoutSessions();
   const existingIndex = sessions.findIndex((existingSession) => existingSession.id === session.id);
   const nextSessions =
@@ -66,7 +66,7 @@ export async function upsertWorkoutSession(session: WorkoutSession): Promise<Wor
   return sortedSessions;
 }
 
-export async function deleteWorkoutSessionById(id: string): Promise<WorkoutSession[]> {
+export async function deleteWorkoutSessionById(id: string, _previous?: WorkoutSession | null): Promise<WorkoutSession[]> {
   const sessions = await loadWorkoutSessions();
   const nextSessions = sessions.filter((session) => session.id !== id);
   await saveWorkoutSessions(nextSessions);
@@ -86,7 +86,7 @@ export async function getDailyLogByDate(date: string): Promise<DailyLog | undefi
   return logs.find((log) => log.date === date);
 }
 
-export async function upsertDailyLog(log: DailyLog): Promise<DailyLog[]> {
+export async function upsertDailyLog(log: DailyLog, _previous?: DailyLog | null): Promise<DailyLog[]> {
   const logs = await loadDailyLogs();
   const existingIndex = logs.findIndex((existingLog) => existingLog.date === log.date);
   const nextLogs =
@@ -99,7 +99,7 @@ export async function upsertDailyLog(log: DailyLog): Promise<DailyLog[]> {
   return sortedLogs;
 }
 
-export async function deleteDailyLogByDate(date: string): Promise<DailyLog[]> {
+export async function deleteDailyLogByDate(date: string, _previous?: DailyLog | null): Promise<DailyLog[]> {
   const logs = await loadDailyLogs();
   const nextLogs = logs.filter((log) => log.date !== date);
   await saveDailyLogs(nextLogs);
@@ -132,7 +132,7 @@ export async function loadUserSettings(): Promise<UserSettings | null> {
   }
 }
 
-export async function saveUserSettings(settings: UserSettings): Promise<void> {
+export async function saveUserSettings(settings: UserSettings, _previous?: UserSettings | null): Promise<void> {
   await AsyncStorage.setItem(MOBILE_STORAGE_KEYS.settings, JSON.stringify(settings));
 }
 

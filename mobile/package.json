@@ -4,11 +4,14 @@
   "private": true,
   "main": "expo/AppEntry.js",
   "scripts": {
+    "test:storage": "node --experimental-strip-types --test tests/accountStorage.test.mjs",
+    "test:cloud": "node --experimental-strip-types --test tests/*.test.mjs",
     "start": "expo start",
     "ios": "expo start --ios",
     "android": "expo start --android",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "typecheck:server": "tsc --project supabase/tsconfig.json",
     "doctor": "npx expo-doctor",
     "preflight:release": "npm run typecheck && npx expo-doctor",
     "build:ios:testflight": "npx eas-cli build --platform ios --profile production",
@@ -16,14 +19,20 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "expo": "~57.0.21",
-    "expo-splash-screen": "~57.0.8",
+    "@supabase/supabase-js": "^2.116.0",
+    "expo": "~57.0.22",
+    "expo-apple-authentication": "~57.0.2",
+    "expo-crypto": "~57.0.3",
+    "expo-secure-store": "~57.0.4",
+    "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/react": "^19.2.0",
+    "jose": "^6.2.12",
     "typescript": "~6.0.3"
   }
 }

@@ -3,14 +3,8 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
-import {
-  clearMobileAccount,
-  clearMobileData,
-  loadMobileDataBackup,
-  MobileDataBackup,
-  restoreMobileDataBackup,
-  saveMobileAccount,
-} from "../storage/mobileStorage";
+import type { MobileDataBackup } from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { GoalType, MobileAccount, UserSettings } from "../types/fitness";
 import { getWeightUnitLabel } from "../utils/units";
@@ -99,6 +93,8 @@ export function SettingsScreen({
   onAccountSignedOut,
   onDataReset,
 }: SettingsScreenProps) {
+  const { clearMobileAccount, clearMobileData, loadMobileDataBackup,
+    restoreMobileDataBackup, saveMobileAccount } = useMobileStorage();
   const [snapshot, setSnapshot] = useState<DataSnapshot>({
     dailyLogCount: 0,
     workoutCount: 0,

@@ -4,13 +4,7 @@ import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
-import {
-  addWorkoutSession,
-  deleteWorkoutSessionById,
-  loadRecentWorkoutSessions,
-  loadUserSettings,
-  upsertWorkoutSession,
-} from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
@@ -94,6 +88,8 @@ function getLastExercisePerformance(
 }
 
 export function TrainingScreen() {
+  const { addWorkoutSession, deleteWorkoutSessionById, loadRecentWorkoutSessions,
+    loadUserSettings, upsertWorkoutSession } = useMobileStorage();
   const todayKey = useMemo(() => getTodayKey(), []);
   const [draft, setDraft] = useState<WorkoutDraft>(() => createBlankWorkoutDraft());
   const [recentSessions, setRecentSessions] = useState<WorkoutSession[]>([]);
@@ -232,9 +228,15 @@ export function TrainingScreen() {
           createdAt: editingSession.createdAt,
         }
       : draftedWorkoutSession;
-    const sessions = editingSession
-      ? await upsertWorkoutSession(workoutSession)
-      : await addWorkoutSession(workoutSession);
+    let sessions: WorkoutSession[];
+    try {
+      sessions = editingSession
+        ? await upsertWorkoutSession(workoutSession, editingSession)
+        : await addWorkoutSession(workoutSession);
+    } catch (error) {
+      Alert.alert("Workout not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept.");
+      return;
+    }
 
     setRecentSessions(sessions.slice(0, 20));
     setEditingSession(null);
@@ -258,7 +260,9 @@ export function TrainingScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            const sessions = await deleteWorkoutSessionById(session.id);
+            let sessions: WorkoutSession[];
+            try { sessions = await deleteWorkoutSessionById(session.id, session); }
+            catch (error) { Alert.alert("Workout not deleted", error instanceof Error ? error.message : "Please reopen the record and try again."); return; }
             setRecentSessions(sessions.slice(0, 20));
             if (editingSession?.id === session.id) {
               setEditingSession(null);

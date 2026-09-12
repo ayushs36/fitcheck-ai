@@ -6,13 +6,7 @@ import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
-import {
-  deleteDailyLogByDate,
-  loadDailyLogsDescending,
-  loadRecentWorkoutSessions,
-  loadUserSettings,
-  upsertDailyLog,
-} from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
 import { formatReadableDate } from "../utils/date";
@@ -21,6 +15,8 @@ import { calculateProgressInsights } from "../utils/progressInsights";
 import { getWeightUnitLabel } from "../utils/units";
 
 export function ProgressScreen() {
+  const { deleteDailyLogByDate, loadDailyLogsDescending, loadRecentWorkoutSessions,
+    loadUserSettings, upsertDailyLog } = useMobileStorage();
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [selectedLog, setSelectedLog] = useState<DailyLog | undefined>();
@@ -73,7 +69,9 @@ export function ProgressScreen() {
       unitSystem: settings?.unitSystem ?? "imperial",
     });
 
-    const updatedLogs = await upsertDailyLog(updatedLog);
+    let updatedLogs: DailyLog[];
+    try { updatedLogs = await upsertDailyLog(updatedLog, selectedLog); }
+    catch (error) { Alert.alert("Log not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
     const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
     setLogs(sortedLogs);
     setSelectedLog(updatedLog);
@@ -98,7 +96,9 @@ export function ProgressScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            const updatedLogs = await deleteDailyLogByDate(logDate);
+            let updatedLogs: DailyLog[];
+            try { updatedLogs = await deleteDailyLogByDate(logDate, selectedLog); }
+            catch (error) { Alert.alert("Log not deleted", error instanceof Error ? error.message : "Please reopen the record and try again."); return; }
             setLogs(updatedLogs);
             setSelectedLog(undefined);
             setEditDraft(blankTodayDraft);

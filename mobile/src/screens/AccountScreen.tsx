@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
-import { saveMobileAccount } from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { MobileAccount } from "../types/fitness";
 
@@ -16,6 +16,7 @@ function isValidEmail(value: string) {
 }
 
 export function AccountScreen({ onComplete }: AccountScreenProps) {
+  const { saveMobileAccount } = useMobileStorage();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
 

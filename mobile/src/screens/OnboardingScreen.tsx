@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
-import { saveUserSettings } from "../storage/mobileStorage";
+import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { GoalType, UserSettings } from "../types/fitness";
 import { parseOptionalNumber } from "../utils/logDraft";
@@ -60,6 +60,7 @@ function getGoalIntro(goal: GoalType): string {
 }
 
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+  const { saveUserSettings } = useMobileStorage();
   const [draft, setDraft] = useState(initialDraft);
   const weightUnit = getWeightUnitLabel(draft.unitSystem);
 
@@ -87,7 +88,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       updatedAt: new Date().toISOString(),
     };
 
-    await saveUserSettings(settings);
+    try { await saveUserSettings(settings, null); }
+    catch (error) { Alert.alert("Setup not saved", error instanceof Error ? error.message : "Please try again. Your choices were kept."); return; }
     onComplete(settings);
   }
 

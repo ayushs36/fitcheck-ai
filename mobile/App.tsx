@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { BottomTabs, MobileTab } from "./src/components/BottomTabs";
 import { AccountScreen } from "./src/screens/AccountScreen";
@@ -37,7 +37,18 @@ function renderScreen(
   }
 }
 
+declare const process: {env: {EXPO_PUBLIC_ACCOUNT_SYNC_ENABLED?: string}};
+const CloudRoot = lazy(() => import("./src/cloud/CloudRoot"));
+
 export default function App() {
+  // Keep existing installs local-only until release privacy/deletion/device QA is complete.
+  if (process.env.EXPO_PUBLIC_ACCOUNT_SYNC_ENABLED === "true") {
+    return <Suspense fallback={<View style={styles.loadingState}><Text style={styles.loadingTitle}>FitCheck Coach</Text></View>}><CloudRoot /></Suspense>;
+  }
+  return <LocalApp />;
+}
+
+function LocalApp() {
   const [activeTab, setActiveTab] = useState<MobileTab>("today");
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [hasAccount, setHasAccount] = useState(false);
