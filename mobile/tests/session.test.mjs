@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {openAccountSession} from '../src/cloud/session.ts';
+import {createOfflineAccess} from '../src/cloud/offlineAccess.ts';
 const owner='00000000-0000-0000-0000-000000000001';
 const other='00000000-0000-0000-0000-000000000002';
 function setup(ids=[owner,owner]) {
@@ -70,4 +71,100 @@ test('failed sign-out still locks account data without deleting it',async()=>{
   await assert.rejects(session.signOut(),/sign-out failed/);
   await assert.rejects(session.data.loadUserSettings(),/session closed/);
   assert.deepEqual([...state.values.entries()],before);
+});
+
+test('cancelled or failed deletion retains active records and session',async()=>{
+  const state=setup();
+  const session=await openAccountSession(state.client,state.storage);
+  await session.data.saveUserSettings({unitSystem:'imperial',defaultGoal:'cut'});
+  const before=[...state.values];
+  assert.equal(await session.deleteAccount(async()=> 'cancelled'),'cancelled');
+  await assert.rejects(session.deleteAccount(async()=>{throw new Error('connection lost');}),/connection lost/);
+  assert.deepEqual([...state.values],before);
+  assert.equal((await session.data.loadUserSettings()).defaultGoal,'cut');
+  session.close();
+});
+test('confirmed deletion retires workspace and signs out only its owner',async()=>{
+  const state=setup();
+  state.client.auth.getSession=async()=>({data:{session:{user:{id:owner}}},error:null});
+  let signedOut=0;
+  state.client.auth.signOut=async()=>{signedOut++;return {error:null};};
+  const session=await openAccountSession(state.client,state.storage);
+  await session.data.saveUserSettings({unitSystem:'imperial',defaultGoal:'cut'});
+  state.values.set('fitcheck-mobile:logs:v1','original logs');
+  assert.equal(await session.deleteAccount(async id=>{assert.equal(id,owner);return 'deleted';}),'deleted');
+  assert.equal(signedOut,1);
+  assert.equal(state.values.get('fitcheck-mobile:logs:v1'),'original logs');
+  const marker=[...state.values].find(([key])=>key.endsWith(':workspace:v1'))[1];
+  assert.equal(JSON.parse(marker).accountDeleted,true);
+  await assert.rejects(session.data.loadUserSettings(),/session closed/);
+});
+test('successful deletion does not sign out a newly active different account',async()=>{
+  const state=setup();
+  state.client.auth.getSession=async()=>({data:{session:{user:{id:other}}},error:null});
+  let signedOut=false;
+  state.client.auth.signOut=async()=>{signedOut=true;return {error:null};};
+  const session=await openAccountSession(state.client,state.storage);
+  await session.deleteAccount(async()=>{state.emit('SIGNED_IN',other);return 'deleted';});
+  assert.equal(signedOut,false);
+});
+test('deletion cleanup failure reports cloud deletion truthfully and locks records',async()=>{
+  const state=setup();
+  state.client.auth.getSession=async()=>({data:{session:null},error:null});
+  const session=await openAccountSession(state.client,state.storage);
+  await session.data.saveUserSettings({unitSystem:'imperial',defaultGoal:'cut'});
+  state.storage.setItem=async()=>{throw new Error('disk failure');};
+  await assert.rejects(session.deleteAccount(async()=> 'deleted'),/cloud account was deleted.*cache cleanup needs attention/);
+  await assert.rejects(session.data.loadUserSettings(),/session closed/);
+});
+test('duplicate deletion and manual sign-out are blocked during confirmation',async()=>{
+  const state=setup();
+  const session=await openAccountSession(state.client,state.storage);
+  let release;
+  const first=session.deleteAccount(()=>new Promise(resolve=>{release=resolve;}));
+  await assert.rejects(session.deleteAccount(async()=> 'deleted'),/already in progress/);
+  await assert.rejects(session.signOut(),/Wait for account deletion/);
+  release('cancelled');
+  await first;
+  session.close();
+});
+
+test('offline reopening requires secure permission, matching cached session, and existing workspace',async()=>{
+  const state=setup();
+  const secure=setup().storage;
+  const access=createOfflineAccess(secure);
+  const initial=await openAccountSession(state.client,state.storage,access);
+  await initial.data.saveUserSettings({unitSystem:'imperial',defaultGoal:'cut'});
+  await access.rememberVerifiedAccount(owner);
+  initial.close();
+  state.client.auth.getUser=async()=>({data:{user:null},error:{name:'AuthRetryableFetchError',status:0}});
+  state.client.auth.getSession=async()=>({data:{session:{user:{id:owner}}},error:null});
+  const offline=await openAccountSession(state.client,state.storage,access);
+  assert.equal(offline.isOffline,true);
+  assert.equal((await offline.data.loadUserSettings()).defaultGoal,'cut');
+  await offline.signOut();
+  await assert.rejects(openAccountSession(state.client,state.storage,access));
+});
+test('offline permission never creates a new empty workspace',async()=>{
+  const state=setup();
+  const access=createOfflineAccess(setup().storage);
+  await access.rememberVerifiedAccount(owner);
+  state.client.auth.getUser=async()=>({data:{user:null},error:{name:'AuthRetryableFetchError',status:0}});
+  state.client.auth.getSession=async()=>({data:{session:{user:{id:owner}}},error:null});
+  await assert.rejects(openAccountSession(state.client,state.storage,access),/Connect to restore/);
+  assert.equal(state.values.size,0);
+});
+test('failed offline permission cleanup still attempts Supabase sign-out',async()=>{
+  const state=setup();
+  const access=createOfflineAccess(setup().storage);
+  access.revoke=async()=>{throw Error('keychain unavailable');};
+  let signedOut=false;
+  state.client.auth.signOut=async()=>{signedOut=true;return {error:null};};
+  const session=await openAccountSession(state.client,state.storage,access);
+  await session.data.saveUserSettings({unitSystem:'imperial',defaultGoal:'cut'});
+  const before=[...state.values];
+  await assert.rejects(session.signOut(),/Signed out, but offline permission cleanup/);
+  assert.equal(signedOut,true);
+  assert.deepEqual([...state.values],before);
+  await assert.rejects(session.data.loadUserSettings(),/session closed/);
 });

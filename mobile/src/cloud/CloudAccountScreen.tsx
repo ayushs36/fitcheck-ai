@@ -6,6 +6,7 @@ import type { AccountSession } from "./session";
 import type { MobileStorage } from "../storage/StorageProvider";
 import type { SyncConflict } from "./reconcile";
 import { describeRecord } from "./recordDescription";
+import { confirmAppleAccountDeletion } from "./appleAuth";
 
 type Props = {
   session: AccountSession; storage: MobileStorage; conflicts: SyncConflict[];
@@ -61,6 +62,20 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
         {text: "Cancel", style: "cancel"}, {text: "Sign out", onPress: () => void perform(() => session.signOut())},
       ]);
     }}><Text style={styles.link}>Sign out</Text></Pressable>
+    <Pressable accessibilityRole="button" disabled={working} style={styles.button} onPress={() => {
+      Alert.alert("Delete your account?", "This permanently deletes your cloud account and synced records, and clears this account's active device cache, including unsynced edits. Original device logs and saved import/export backups remain. Export any records you want to keep before continuing.", [
+        {text: "Cancel", style: "cancel"},
+        {text: "Delete account", style: "destructive", onPress: () => void perform(async () => {
+          try {
+            const result = await session.deleteAccount(userId => confirmAppleAccountDeletion(userId, true));
+            if (result === "deleted") Alert.alert("Account deleted", "Your cloud account and active device cache were deleted. Original device logs and saved backups were not changed.");
+          } catch (failure) {
+            // Session closure may unmount this screen, so use a native alert.
+            Alert.alert("Account deletion", failure instanceof Error ? failure.message : "Deletion could not be confirmed. Device records were retained.");
+          }
+        })},
+      ]);
+    }}><Text style={styles.error}>Delete account</Text></Pressable>
     {message && <Text accessibilityRole="alert" style={styles.error}>{message}</Text>}
   </Screen>;
 }

@@ -4,6 +4,7 @@ import {createDeleteAccountHandler} from '../supabase/functions/delete-account/h
 function setup(){
   const calls=[];
   const services={
+    claimAttempt:async()=>true,
     authenticate:async token=>{calls.push(['authenticate',token]);return {id:'verified-user',appleSubject:'apple-owner'};},
     exchangeAppleCode:async code=>{calls.push(['exchange',code]);return {subject:'apple-owner',refreshToken:'private-refresh'};},
     revokeAppleToken:async token=>{calls.push(['revoke',token]);},
@@ -62,4 +63,18 @@ test('oversized bodies and non-POST requests are rejected',async()=>{
   const {handler}=setup();
   assert.equal((await handler(request({confirmed:true,authorizationCode:'x'.repeat(9000)}))).status,400);
   assert.equal((await handler(new Request('https://example.invalid/delete-account'))).status,405);
+});
+test('rate-limited deletion never exchanges Apple tokens or deletes records',async()=>{
+  const {services,calls,handler}=setup();
+  services.claimAttempt=async id=>{assert.equal(id,'verified-user');return false;};
+  assert.equal((await handler(request())).status,429);
+  assert.deepEqual(calls.map(call=>call[0]),['authenticate']);
+});
+test('unavailable deletion limiter fails closed',async()=>{
+  const {services,calls,handler}=setup();
+  services.claimAttempt=async()=>{throw new Error('private-service-details');};
+  const result=await handler(request());
+  assert.equal(result.status,503);
+  assert.deepEqual(await result.json(),{error:'deletion_limit_unavailable'});
+  assert.deepEqual(calls.map(call=>call[0]),['authenticate']);
 });

@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "FitCheck Coach Privacy Policy",
   description:
-    "Privacy policy for the FitCheck Coach mobile app, including local-only fitness logging and no OpenAI API usage in the mobile client.",
+    "Privacy policy for FitCheck Coach, covering device storage, Apple-linked cloud accounts, backups, and account deletion.",
 };
 
 export default function MobilePrivacyPage() {
@@ -15,7 +15,7 @@ export default function MobilePrivacyPage() {
           FitCheck Coach
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Privacy Policy</h1>
-        <p className="mt-3 text-sm text-slate-500">Effective date: September 8, 2026</p>
+        <p className="mt-3 text-sm text-slate-500">Last updated: September 12, 2026</p>
 
         <div className="mt-8 space-y-6 text-sm leading-7 text-slate-700">
           <section>
@@ -30,9 +30,24 @@ export default function MobilePrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-950">Where Data Is Stored</h2>
             <p className="mt-2">
-              In the current mobile release, your fitness logs are stored locally on your device.
-              FitCheck Coach does not run a public backend account system, does not sell your
-              data, and does not use third-party advertising trackers.
+              Local-only versions, including TestFlight build 5, store fitness logs on your
+              device. Cloud-enabled versions use Sign in with Apple and Supabase to store
+              account-linked records and sync them between your devices. They also keep a
+              device cache. Existing device logs are imported only after your confirmation.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-950">Cloud Accounts And Use Of Data</h2>
+            <p className="mt-2">
+              Cloud accounts use your Apple-linked identifier and the email address Apple
+              provides, which may be a private-relay address. Fitness logs, goals, workout
+              records, and notes you save in that account are sent to the mobile backend for
+              storage and synchronization. Authentication state is stored using the
+              device&apos;s secure storage. Service providers process connection and operational
+              information to run these services. FitCheck Coach does not sell your data or
+              use third-party advertising trackers. Mobile records are separate from the
+              FitCheck AI web demo.
             </p>
           </section>
 
@@ -46,11 +61,21 @@ export default function MobilePrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-950">Backups And Reset</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Backups And Deletion</h2>
             <p className="mt-2">
-              If you export a local backup, you control where that backup is saved or shared. If you
-              reset the app, locally stored mobile logs, workouts, goals, settings, and account
-              details are removed from that device.
+              You control where exported backups are saved or shared. In cloud-enabled
+              versions, Account includes an account-deletion request with fresh Apple
+              confirmation. Successful deletion removes your active cloud account and its
+              synced records, revokes Apple authorization, and clears that account&apos;s
+              active cache on the requesting device. Interrupted device cleanup may require
+              a retry. Signing out is not account deletion.
+            </p>
+            <p className="mt-2">
+              Original device logs, saved import backups, exported files, and caches on other
+              devices are not automatically erased by this action. Manage those copies on
+              each device or wherever you saved them. Deletion from the active database does
+              not promise immediate erasure from service-provider backups or operational logs.
+              Contact us for help with retained copies or a failed deletion request.
             </p>
           </section>
 

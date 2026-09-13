@@ -3,8 +3,25 @@
 Status: initial schema applied through the SQL editor to the separate mobile
 project `uzjrzjfduzqhfvypmlra` on September 10, 2026. The mobile app still
 defaults to local storage. A gated cloud startup path is implemented but is not
-enabled in EAS or the installed TestFlight build. No personal logs have been
+enabled in the production profile or installed TestFlight build 5. No personal logs have been
 uploaded, migrated, or reset during development.
+
+The separate `cloud-qa` EAS profile enables cloud mode for internal TestFlight
+validation and contains only the project URL and public publishable key. Build 6
+was created as `22a2cdd6-cadb-45d9-b644-244b53ce3460`; signing was refreshed with
+the existing distribution certificate. EAS submission
+`3e4129e5-6ebf-4dbb-838b-50b24bd4d327` finished successfully. Tester availability
+and device QA remain unverified. Do not submit it to App Review before device QA.
+Export build 5's local records before installing an update or approving migration.
+
+September 12 deployment: both payload-limit and deletion-limiter migrations were
+applied through Management API SQL, and `delete-account` was deployed with gateway
+JWT verification enabled. Read-only checks confirmed both tables have RLS,
+the payload constraint is validated, clients cannot execute the limiter or hard
+delete records, and the mobile record count remains zero. An unauthenticated
+function POST returns 401. This does not verify an authenticated Apple deletion.
+Management API SQL also does not update the migration ledger; reconcile all three
+migration entries before future CLI database pushes.
 
 Live read-only verification confirmed RLS enabled, three access policies,
 anonymous SELECT denied, authenticated hard DELETE denied, and zero records.
@@ -102,7 +119,18 @@ The cloud release flag is not enabled. No cloud sync or login is active in build
 5. The single-document workspace and coordinator
 pass simulated two-device tests, but real AsyncStorage interruption behavior,
 hosted authentication, and iPhone recovery still need end-to-end verification.
-Current test suite: 123 passing tests. No real personal records were used.
+Current test suite: 145 passing tests. No real personal records were used.
+The latest sign-out cleanup fix was made after build 6 and needs a new binary.
+
+Offline reopening is connected only in the disabled cloud path. `offlineAccess.ts` defines a seven-day
+local-cache permission bound to the last online-verified account and matching
+cached session. It rejects auth failures, mismatched accounts, expired grants,
+clock rollback, and corrupt grants. `offlineAccessNative.ts` supplies device-only
+SecureStore storage. Startup/session integration requires an existing workspace
+and a matching cached Supabase session; sync re-verifies identity before upload.
+Manual sign-out and deletion revoke the grant. Real offline-device tests remain,
+especially expired cached sessions: refresh failures can still prevent reopening.
+The seven-day grant does not guarantee seven days of offline availability.
 
 ## Account Deletion Setup
 
@@ -113,21 +141,25 @@ service signs short-lived client secrets and verifies returned identity tokens.
 Tests use fictional identities and generated test keys, not production secrets.
 Run `npm run typecheck:server` separately from the mobile TypeScript check.
 
-These modules are not a deployed endpoint. The Supabase authentication/admin
+The endpoint is deployed but not enabled in a mobile build. The Supabase authentication/admin
 adapter and Edge Function entry point are implemented. The adapter derives the
 Apple subject only from server-returned identities, not editable user metadata,
 and binds deletion authorization to one request. Dependencies are pinned in the
 function's `deno.json`. The Node TypeScript check covers the server modules but
-not the Deno entry point; Deno runtime validation is still required.
+not the Deno entry point. The complete entry point passed `deno check` using
+Deno 2.9.6 on September 12, 2026. Hosted execution and integration with the real
+Apple/Supabase services remain unverified.
 
-The owner reports saving `APPLE_TEAM_ID`, `APPLE_CLIENT_ID`, `APPLE_KEY_ID`, and
-`APPLE_PRIVATE_KEY` in Supabase Secrets. This has not been independently verified.
+The four Apple secrets were verified by digest on September 12. The private-key
+digest initially differed from the downloaded key, so that secret was replaced
+from the approved file using a private temporary file that was removed afterward.
+The resulting digest matches. No secret contents were printed or committed.
 The function also requires Supabase's server-provided `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY`; do not copy those values into mobile configuration.
-Native deletion UI, rate limiting, deployment, and end-to-end tests remain
+Native device verification, authenticated hosted limiter testing, and end-to-end tests remain
 outstanding. The replacement Apple key was saved in the owner's Downloads folder.
 The mobile `accountDeletionFlow.ts` orchestration and native Apple/Supabase
-adapters are implemented, but not connected to UI yet. It requires explicit confirmation,
+adapters are connected to the disabled cloud Account screen. It requires explicit confirmation,
 verifies the same account before and after Apple's prompt, checks returned state,
 and accepts only explicit server success. Cancellation and uncertain responses
 never clear records. The native adapter shares Apple's sign-in lock, does not
@@ -139,18 +171,41 @@ marker after a matching confirmed deletion receipt. The marker replaces active
 records, pending writes, and conflicts, and prevents delayed writers or a later
 workspace instance from recreating the deleted workspace. It retains original
 device logs, import snapshots/backups, and other accounts. Tests cover isolation,
-late writes, and failed cleanup persistence. This primitive still needs session/UI
-integration and on-device verification; it does not run automatically.
+late writes, and failed cleanup persistence. The account session invokes cleanup
+only after explicit remote deletion success, then clears the matching local auth
+session. Cancellation and remote failures retain the workspace. Cleanup failures
+report that cloud deletion already happened, rather than suggesting a repeat
+cloud deletion. The UI warns that original logs and backups remain. Device
+verification remains a release gate. A persisted cleanup journal now records
+confirmed deleted account IDs before cache retirement, and startup/sign-in retry
+pending cleanup before opening account data. It retains the receipt if cache
+writes or sign-out fail. Tests cover restart recovery, corrupt journals, and
+concurrent helpers. If even the initial receipt cannot be persisted, automatic
+recovery is not guaranteed; manual recovery and real-device fault testing remain.
+The native deletion flow now verifies journal writability before Apple's prompt
+or any destructive request, and refuses new deletion while cleanup is pending.
+This prevents deletion when storage is already broken, but cannot guarantee a
+later write succeeds if storage fails during the network request.
 Never put its contents in this repository, mobile configuration, or build output.
+
+The applied `202609120002_deletion_attempt_limit.sql` migration adds a
+server-only, atomic deletion-attempt counter: five attempts per account in a
+15-minute window. The handler claims an attempt after validating identity/body
+and before exchanging Apple tokens. Exhaustion returns 429; limiter failures
+return 503 without revocation/deletion. Local PostgreSQL tests verify access
+restrictions, account isolation, expiry, and cleanup by account-deletion cascade.
+This is not an IP-level or general API abuse limit. Hosted grants are verified;
+real authenticated behavior still requires disposable-account testing.
+Missing RPC configuration fails closed.
 
 ## Release Gates
 
 1. Refresh signing, configure the publishable key in EAS, and test the gated
    native button and session lifecycle. Verify secure
    storage with real session sizes and interrupted token refresh on an iPhone.
-2. Verify account-scoped storage and session switching on real devices. Cold
-   startup currently requires online identity verification; implement and test a
-   secure offline reopening policy before promising offline access after restart.
+2. Verify account-scoped storage and session switching on real devices. Test the
+   bounded offline startup path, expired-session refresh, and permission revocation
+   before promising reliable offline access after restart.
 3. Export a pre-migration backup and obtain explicit consent to attach local
    logs to a verified account. Never identify ownership by an unverified email.
 4. Validate screen-level loading/error states, retry scheduling, and conflict
@@ -158,7 +213,11 @@ Never put its contents in this repository, mobile configuration, or build output
    stale-record guards; verify those screens on-device. Initialize/import before the first download,
    and never start a second sync coordinator for the same active account session.
 5. Validate payloads before upload and restore; reject malformed data without
-   replacing local records. Add size limits before exposing production writes.
+   replacing local records. The applied `202609120001_mobile_payload_limit.sql`
+   migration caps each serialized JSONB payload at 65,536 bytes. Local PostgreSQL
+   tests cover oversized inserts/updates and multibyte text, including preserving
+   the original payload/revision on rejection. The live constraint is validated;
+   add friendly client-side size feedback before release.
 6. Test hosted access controls, cross-device recovery, tombstones, migration
    interruption, sign-out, and account deletion (including Apple token revocation).
 7. Update privacy disclosures and submit a new tested binary before cloud launch.

@@ -2,6 +2,34 @@
 
 ## Current Status
 
+September 12, 2026:
+
+- Cloud QA build: `6`, EAS ID `22a2cdd6-cadb-45d9-b644-244b53ce3460`.
+- TestFlight upload scheduled: `3e4129e5-6ebf-4dbb-838b-50b24bd4d327`;
+  EAS reports finished on September 12 at 22:51 UTC. Apple processing and tester
+  availability have not yet been independently confirmed.
+- Production profile remains local-only; `cloud-qa` enables Apple login and sync.
+- Mobile Supabase migrations and deletion function are deployed. Secret digests,
+  RLS/grants, and unauthenticated rejection were checked; authenticated Apple
+  end-to-end behavior still needs disposable-account/device testing.
+- Local checks: 145 tests and mobile TypeScript pass. The build-6 preflight passed
+  21 Expo Doctor checks and iOS export.
+- Post-build-6 change: sign-out now attempts Supabase cleanup even when offline
+  permission cleanup fails. This local fix needs a subsequent binary; it is not
+  included in the uploaded build 6.
+- App Store privacy, public privacy policy, and reviewer instructions must be
+  updated for cloud storage before release. `APP_STORE_METADATA.md` is a draft,
+  not proof those changes are published.
+- Export installed build 5's logs before updating. Do not import personal logs
+  during initial cloud QA. No personal data was migrated during development.
+- No App Review submission has been made for the cloud build.
+
+## Historical Build 5 Snapshot
+
+The following was recorded before cloud development and is not the current cloud
+release checklist. In particular, its no-login/Data Not Collected statements
+apply only to build 5.
+
 - Release version: `1.0.0`
 - iOS bundle ID: `com.ayushs36.fitcheckai`
 - EAS CLI: reachable through the local `npx eas-cli` scripts

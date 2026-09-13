@@ -4,6 +4,8 @@ import { getMobileCloudClient } from "./client";
 import { runAppleSignIn } from "./appleSignInFlow";
 import { runAccountDeletion } from "./accountDeletionFlow";
 import { createAccountDeletionRemote } from "./accountDeletionRemote";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {createDeletionRecovery} from "./deletionRecovery";
 
 let signingIn = false;
 export async function signInWithApple() {
@@ -29,12 +31,14 @@ export async function signOutCloudAccount() {
   // Account-scoped fitness data is retained; the account UI must unmount on sign-out.
 }
 
-// Not connected to the UI until post-deletion cleanup and device QA are ready.
+// Only the disabled cloud account UI calls this after explicit confirmation.
 export async function confirmAppleAccountDeletion(userId: string, confirmed: boolean) {
   if (!confirmed) throw new Error("Confirm account deletion before continuing.");
   if (signingIn) throw new Error("Apple authentication is already in progress.");
   signingIn = true;
   try {
+    // Fail before the destructive network request if recovery storage is unusable.
+    await createDeletionRecovery(AsyncStorage, async () => {}).verifyWritable();
     if (!await AppleAuthentication.isAvailableAsync()) throw new Error("Sign in with Apple is unavailable on this device.");
     return await runAccountDeletion(userId, confirmed, {
       ...createAccountDeletionRemote(getMobileCloudClient(), userId),

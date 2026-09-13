@@ -2,6 +2,7 @@
 // administrator credentials out of the mobile application.
 export type DeletionServices = {
   authenticate: (bearer: string) => Promise<{id: string; appleSubject: string} | null>;
+  claimAttempt: (userId: string) => Promise<boolean>;
   exchangeAppleCode: (code: string) => Promise<{subject: string; refreshToken: string}>;
   revokeAppleToken: (refreshToken: string) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
@@ -49,6 +50,9 @@ export function createDeleteAccountHandler(services: DeletionServices) {
       return response(400, {error: "deletion_confirmation_required"});
     }
     let apple;
+    try {
+      if (await services.claimAttempt(user.id) !== true) return response(429, {error: "too_many_deletion_attempts", retryAfterSeconds: 900});
+    } catch { return response(503, {error: "deletion_limit_unavailable"}); }
     try { apple = await services.exchangeAppleCode(body.authorizationCode); }
     catch { return response(401, {error: "apple_reauthentication_required"}); }
     if (apple.subject !== user.appleSubject || !apple.refreshToken) return response(403, {error: "apple_account_mismatch"});

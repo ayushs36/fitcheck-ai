@@ -60,7 +60,16 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
 
   useEffect(() => {
     mounted.current = true;
-    requestSync();
+    if (session.isOffline) {
+      void session.data.loadUserSettings().then(settings => {
+        if (!mounted.current) return;
+        if (!settings) { setError("Connect to finish restoring your account."); return; }
+        bootstrapped.current = true;
+        setHasSettings(true);
+        setLoaded(true);
+        setStatus("Offline - edits saved on this device");
+      }).catch(() => { if (mounted.current) setError("Saved account data could not be opened. Nothing was cleared."); });
+    } else requestSync();
     const listener = AppState.addEventListener("change", state => { if (state === "active") requestSync(); });
     return () => { mounted.current = false; listener.remove(); };
   }, [requestSync]);

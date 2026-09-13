@@ -1,5 +1,9 @@
 # FitCheck Coach App Store Metadata
 
+Cloud-release draft for build 6. These changes have not been published to App
+Store Connect. Replace the older local-only listing and privacy declarations only
+after cloud QA and owner review. Build 5 remains local-only.
+
 ## Listing
 
 - App name: FitCheck Coach
@@ -20,7 +24,10 @@ Choose whether you are cutting, maintaining, or bulking, then log only what you 
 
 The app summarizes recent weight movement, calorie and protein consistency, step averages, goal timeline, training history, and repeated exercise performance. It is designed to help beginners through advanced lifters understand whether their current routine matches their goal without forcing every feature onto one screen.
 
-FitCheck Coach stores data locally on your device and does not include OpenAI API calls in the mobile app.
+Sign in with Apple to keep your fitness records connected to your account. The
+cloud-enabled app caches records on your device and syncs them to its mobile
+backend. Existing device logs are imported only with your confirmation. The
+mobile app uses rule-based coaching and does not make OpenAI API calls.
 
 ## Keywords
 
@@ -32,13 +39,22 @@ Track weight, nutrition, steps, and workouts around your current fitness goal.
 
 ## What's New
 
-Initial mobile release with goal-aware logging, progress trends, workout tracking, local backups, and privacy-first on-device storage.
+Initial cloud-enabled release with goal-aware logging, progress trends, workout
+tracking, Sign in with Apple, account sync, backup export, and account deletion.
 
 ## Privacy Labels
 
 - Third-party tracking: No
-- Data linked to user: No data is collected by the app backend in the current mobile release.
-- Data stored on device: Name, email, weight logs, nutrition logs, step logs, workout logs, goals, notes, and backups are stored locally on the user's device.
+- Cloud privacy declaration requires owner review before publication. Do not use
+  "Data Not Collected" for the cloud-enabled release.
+- Account-linked data: Apple-linked account identifier and email (including an
+  Apple private-relay address), plus fitness logs, goals, workout records, and
+  user-entered notes. Used for account access, sync, and app functionality.
+- Device data: cached fitness records, secure authentication state, and retained
+  original logs/import backups. Exported backups remain wherever the user saves them.
+- Review Apple's Health/Fitness, User ID, Email Address, and user-content
+  categories against the final implementation; this draft is not a completed
+  App Store privacy questionnaire.
 - OpenAI/API usage: The mobile app does not include an OpenAI API key and does not call OpenAI from the public client.
 
 ## URLs To Prepare Before Submission
@@ -49,6 +65,13 @@ Initial mobile release with goal-aware logging, progress trends, workout trackin
 
 ## App Review Notes
 
-FitCheck Coach is a local-device fitness logging app. Account setup is local to the device in this release. The app does not provide medical diagnosis, does not sell supplements, does not collect payment, does not include third-party tracking, and does not embed a public OpenAI API key.
+FitCheck Coach is a goal-aware fitness logging app with Sign in with Apple and
+account sync in the cloud-enabled release. It does not provide medical diagnosis,
+sell supplements, collect payment, include advertising trackers, or use OpenAI.
 
-Reviewers can enter a fictional name and a valid-format email such as `reviewer@example.com` on the Create Account screen. No password, verification email, paid subscription, or external account is required. After choosing a goal and completing onboarding, they can access logging, progress, training, and Settings. Apple review contact details must be entered privately in App Store Connect, not committed to this repository.
+Reviewers use Sign in with Apple, keep any existing device logs separate, and
+complete goal onboarding. They can then use Today, Progress, Training, Goals,
+and Account. Account includes export and deletion, with fresh Apple confirmation
+for deletion. Use fictional records during review. Verify this complete flow on
+a real device before publishing these notes. Apple review contact details belong
+in the private App Store Connect fields, not this repository.

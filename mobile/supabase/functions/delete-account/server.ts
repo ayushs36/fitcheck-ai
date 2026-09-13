@@ -24,6 +24,12 @@ export async function createDeletionServer(readEnv: (name: string) => string | u
   });
   return (request: Request) => {
     const account = createSupabaseDeletionAdapter(admin.auth);
-    return createDeleteAccountHandler({...apple, ...account})(request);
+    return createDeleteAccountHandler({...apple, ...account,
+      async claimAttempt(userId) {
+        const {data, error} = await admin.rpc("mobile_claim_deletion_attempt", {account_id: userId});
+        if (error || typeof data !== "boolean") throw new Error("Deletion limit unavailable.");
+        return data;
+      },
+    })(request);
   };
 }

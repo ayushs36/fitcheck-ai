@@ -9,6 +9,21 @@ import { needsWorkspaceSetup, prepareAccountWorkspace } from "./prepareWorkspace
 import { MOBILE_STORAGE_KEYS } from "../storage/mobileStorage";
 import { colors } from "../theme/colors";
 import { CloudWorkspace } from "./CloudWorkspace";
+import {createDeletionRecovery} from "./deletionRecovery";
+import {nativeOfflineAccess} from "./offlineAccessNative";
+
+async function recoverDeletedAccounts() {
+  const client = getMobileCloudClient();
+  await createDeletionRecovery(AsyncStorage, async owner => {
+    const {data, error} = await client.auth.getSession();
+    if (error) throw error;
+    if (data.session?.user.id === owner) {
+      await nativeOfflineAccess.revoke();
+      const result = await client.auth.signOut({scope: "local"});
+      if (result.error) throw result.error;
+    }
+  }).resume();
+}
 
 export default function CloudRoot() {
   const [phase, setPhase] = useState<"loading" | "signin" | "setup" | "ready">("loading");
@@ -21,7 +36,7 @@ export default function CloudRoot() {
   const generation = useRef(0);
 
   async function connect(token: number) {
-    const candidate = await openAccountSession(getMobileCloudClient(), AsyncStorage);
+    const candidate = await openAccountSession(getMobileCloudClient(), AsyncStorage, nativeOfflineAccess);
     if (!mounted.current || token !== generation.current) { candidate.close(); return; }
     current.current?.close();
     current.current = candidate;
@@ -43,6 +58,7 @@ export default function CloudRoot() {
     let stop = () => {};
     async function resume() {
       try {
+        await recoverDeletedAccounts();
         stop = watchCloudSessionLifecycle();
         const {data, error: sessionError} = await getMobileCloudClient().auth.getSession();
         if (sessionError) throw sessionError;
@@ -72,6 +88,7 @@ export default function CloudRoot() {
   function signIn() {
     void perform(async () => {
       const token = ++generation.current;
+      await recoverDeletedAccounts();
       const user = await signInWithApple();
       if (user) await connect(token);
     });

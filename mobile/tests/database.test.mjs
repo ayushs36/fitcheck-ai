@@ -17,10 +17,20 @@ test('mobile migration enforces ownership, revisions, and deletion rules in Post
       grant usage on schema auth to authenticated;
       insert into auth.users values ('${a}'),('${b}');`);
     await db.exec(await readFile(new URL('../supabase/migrations/202609100001_mobile_records.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../supabase/migrations/202609120001_mobile_payload_limit.sql',import.meta.url),'utf8'));
     await db.exec(`set role authenticated; set request.jwt.claim.sub = '${a}';`);
     await db.query(`insert into public.mobile_records(user_id,kind,record_id,payload)
       values($1,'daily_log','2026-09-10',$2)`,[a,{weightLbs:135}]);
     assert.equal((await db.query('select * from public.mobile_records')).rows.length,1);
+    for (const notes of ['x'.repeat(65536), '\u00e9'.repeat(33000)]) {
+      await assert.rejects(db.query(`insert into public.mobile_records(user_id,kind,record_id,payload)
+        values($1,'workout','oversized',$2)`,[a,{notes}]),{code:'23514'});
+    }
+    await assert.rejects(db.query(`update public.mobile_records set payload=$1,revision=1`,
+      [{notes:'x'.repeat(65536)}]),{code:'23514'});
+    const unchanged = (await db.query('select payload,revision from public.mobile_records')).rows[0];
+    assert.deepEqual(unchanged.payload,{weightLbs:135});
+    assert.equal(Number(unchanged.revision),1);
     await assert.rejects(db.query(`insert into public.mobile_records(user_id,kind,record_id,payload)
       values($1,'daily_log','2026-09-11','{}')`,[b]),{code:'42501'});
     await db.query(`update public.mobile_records set payload='{"weightLbs":136}',revision=1`);
