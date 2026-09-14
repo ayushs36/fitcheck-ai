@@ -2,27 +2,69 @@
 
 ## Current Status
 
-September 12, 2026:
+September 13, 2026:
 
+- Private web-log import is implemented in source, not in build 8. The personal
+  web History view exports a dedicated JSON file; cloud Account > Backup imports
+  it only after file preview and signed-in-account confirmation. Existing dates,
+  including workouts and tombstones, are skipped. Goal settings and original web
+  logs remain unchanged; historical goals without a saved phase are disclosed.
+  Imports verify a recovery snapshot before committing the account workspace.
+  No personal files were accessed or transferred during implementation.
+- The owner explicitly approved uploading the updated source to the existing
+  Expo/EAS project. Importer build `9` was created as
+  `7d0580e7-0194-4900-90c4-a8c9ba3818f2`, with TestFlight upload queued as
+  `944c7eff-0af8-453d-a1c0-f0a59314fcb6`. Compilation and Apple processing are
+  not yet confirmed complete. Web deployment and device testing are still needed
+  before personal use. Do not submit build 8 as containing this feature.
+- Replacement candidate: build `8`, EAS ID
+  `b056b538-b0f0-4d2e-84e2-b633d32969bc`, created at the owner's request after
+  the cancellation of build 7. Submission
+  `b921746f-2ab5-470c-8cdc-989e58039c7d` reached Apple. Apple's API confirms
+  processing VALID, internal state IN_BETA_TESTING, and not expired. Build 8 is
+  available for internal TestFlight testing; device QA remains outstanding.
 - Cloud QA build: `6`, EAS ID `22a2cdd6-cadb-45d9-b644-244b53ce3460`.
 - TestFlight upload scheduled: `3e4129e5-6ebf-4dbb-838b-50b24bd4d327`;
-  EAS reports finished on September 12 at 22:51 UTC. Apple processing and tester
-  availability have not yet been independently confirmed.
+  EAS reports finished on September 12 at 22:51 UTC. Apple's API subsequently
+  confirmed processing VALID and internal state IN_BETA_TESTING.
 - Production profile remains local-only; `cloud-qa` enables Apple login and sync.
 - Mobile Supabase migrations and deletion function are deployed. Secret digests,
   RLS/grants, and unauthenticated rejection were checked; authenticated Apple
   end-to-end behavior still needs disposable-account/device testing.
-- Local checks: 145 tests and mobile TypeScript pass. The build-6 preflight passed
-  21 Expo Doctor checks and iOS export.
+- Local checks: 163 tests pass, including web-export/mobile-import round trips and
+  account-isolation safeguards. Mobile TypeScript, all 21 Expo Doctor checks, and
+  an iOS export with the new importer pass. Server TypeScript passed before this
+  mobile-only change; no server code was changed.
 - Post-build-6 change: sign-out now attempts Supabase cleanup even when offline
-  permission cleanup fails. This local fix needs a subsequent binary; it is not
-  included in the uploaded build 6.
-- App Store privacy, public privacy policy, and reviewer instructions must be
-  updated for cloud storage before release. `APP_STORE_METADATA.md` is a draft,
-  not proof those changes are published.
+  permission cleanup fails. Build 8 includes this fix; build 6 does not.
+- Updated public privacy policy is verified live. The cloud listing description,
+  name, categories, existing age-rating answers, and automatic-release settings
+  were synced with owner approval. Reviewer instructions and approved private
+  contact details were also synced successfully. App Store privacy disclosures
+  still need updating.
 - Export installed build 5's logs before updating. Do not import personal logs
   during initial cloud QA. No personal data was migrated during development.
 - No App Review submission has been made for the cloud build.
+- Automated startup tests confirm failed offline token refresh and rejected or
+  mismatched credentials deny access without modifying saved logs. They do not
+  establish that expired sessions can reopen offline on a real device.
+- Browser automation currently fails before connecting to App Store Connect.
+  The initial full metadata publication was blocked by safety review; the owner
+  subsequently approved its release/age-rating scope and the sync succeeded.
+  Reviewer notes validate through the `store-review` profile, which reads private
+  contacts from environment variables. The owner explicitly approved the contact
+  name, and Apple confirmed the review-details update. Phone details are not
+  stored in the repository.
+
+## User-Reported Device QA
+
+On September 13 the owner confirmed these build-6 tests succeeded with fictional
+data: Apple sign-in, saving a log, closing/reopening, airplane-mode reopening and
+editing, syncing after reconnecting, and signing out/back in with the same account.
+These are user-reported passes, not assistant-observed device tests. Separate-device
+restoration, cross-account isolation on devices, expired-session offline reopening,
+and Apple-authenticated account deletion remain unverified. Do not infer those
+results from same-device persistence or mark the full release checklist complete.
 
 ## Historical Build 5 Snapshot
 
@@ -68,17 +110,22 @@ apply only to build 5.
 - Store configuration validation: EAS Metadata lint passed.
 - Current blockers: real-iPhone testing and screenshots. The app has not been submitted for App Review. Cloud accounts and backup are planned for the next work session before public launch; no cloud implementation or data migration has occurred.
 
-## Next Required Step
+## Remaining Release Steps
 
-Install the available build using the existing TestFlight invitation:
-
-- Build `1.0.0` / `5` is confirmed in App Store Connect.
-- Install the build on a real iPhone through TestFlight.
-- Run the first TestFlight QA checklist in `TESTFLIGHT_BUILD_GUIDE.md`.
-- Capture App Store screenshots with fictional data only.
-- Verify the updated public support page after deployment.
-- Implement and test cloud accounts and backup in a separate mobile backend without overwriting existing logs. Update privacy disclosures, listing copy, and reviewer instructions to match the new implementation before submitting a new build.
-- Resolve any regional compliance prompts, then submit the tested build for App Review.
+- Complete the unverified cloud/device tests listed above using disposable accounts
+  and fictional records, especially account deletion and independent restoration.
+- Resolve any release-blocking failures and test replacement build 8 once Apple
+  finishes processing it. Build 7 remains canceled. Do not describe build 8 as
+  device-tested based on the earlier build-6 results.
+- Update Apple's privacy questionnaire for account-linked cloud data. Obtain owner
+  approval of the updated declaration before publishing; the previous approval
+  covered only the local-only disclosure.
+- Supply fictional-data screenshots for the required iPhone and iPad sizes.
+  Cloud listing copy and reviewer instructions have been synced.
+- Verify the tested cloud build is selected on the version submission page;
+  the historical build-5 selection is not confirmation of a build-6 selection.
+- Resolve any regional compliance prompts, submit the tested release for App
+  Review, and address Apple's feedback. Approval timing is controlled by Apple.
 
 ## Day 37 Result
 

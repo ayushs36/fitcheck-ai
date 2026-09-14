@@ -3,6 +3,7 @@ import { isDailyLog, isWorkoutSession, isUserSettings, validateRecordArray } fro
 import type { PendingWrite, QueuedWrite } from "./outbox.ts";
 import { validatePendingRecord } from "./recordStore.ts";
 import { reconcileCloudRecords, validateCloudRecord, type CloudRecord, type SyncConflict } from "./reconcile.ts";
+import type {WebLogImport} from "./webLogImport.ts";
 
 type WorkspaceDocument = {
   version: 1;
@@ -81,8 +82,53 @@ export function createAccountWorkspace(storage: KeyValueStorage, ownerId: string
     await storage.setItem(key, raw);
     if (await storage.getItem(key) !== raw) throw new Error("Account save could not be verified. Sync stopped.");
   }
+  function importPlan(document: WorkspaceDocument, input: WebLogImport) {
+    validateRecordArray(input.logs, isDailyLog, log => log.date);
+    validateRecordArray(input.workouts, isWorkoutSession, workout => workout.id);
+    const occupied = new Set<string>();
+    for (const row of [...document.records.map(row => ({kind: row.kind, id: row.record_id, payload: row.payload})),
+      ...document.pending.map(row => ({kind: row.kind, id: row.recordId, payload: row.payload}))]) {
+      if (row.kind === "daily_log") occupied.add(row.id);
+      if (row.kind === "workout" && typeof row.payload.date === "string") occupied.add(row.payload.date);
+    }
+    return {dates: input.logs.filter(log => !occupied.has(log.date)).map(log => log.date).sort(),
+      skippedDates: input.logs.filter(log => occupied.has(log.date)).map(log => log.date).sort()};
+  }
   return {
     snapshot: () => serial(read),
+    previewWebImport(input: WebLogImport) {
+      const captured = copy(input);
+      return serial(async () => importPlan(await read(), captured));
+    },
+    importWebLogs(input: WebLogImport, approvedDates: string[], active: () => void) {
+      const captured = copy(input), approved = [...approvedDates].sort();
+      return serial(async () => {
+        active();
+        const document = await read();
+        const plan = importPlan(document, captured);
+        if (!samePayload(plan.dates, approved)) throw new Error("Mobile records changed. Preview the import again.");
+        if (!plan.dates.length) return plan;
+        const dates = new Set(plan.dates);
+        const additions: PendingWrite[] = [
+          ...captured.logs.filter(log => dates.has(log.date)).map(log => ({kind: "daily_log" as const, recordId: log.date, payload: {...log}, deleted: false, expectedRevision: null})),
+          ...captured.workouts.filter(workout => dates.has(workout.date)).map(workout => ({kind: "workout" as const, recordId: workout.id, payload: {...workout}, deleted: false, expectedRevision: null})),
+        ];
+        for (const addition of additions) validatePendingRecord(addition);
+        if (document.nextSequence + additions.length >= Number.MAX_SAFE_INTEGER) throw new Error("Import sequence limit reached.");
+        // Verify a separate recovery snapshot before the single atomic workspace write.
+        const backupKey = `${key}:before-web-import:${document.nextSequence}`;
+        const before = JSON.stringify(document);
+        const backup = await storage.getItem(backupKey);
+        if (backup !== null && backup !== before) throw new Error("An earlier import backup requires review.");
+        active();
+        if (backup === null) await storage.setItem(backupKey, before);
+        if (await storage.getItem(backupKey) !== before) throw new Error("Import backup could not be verified.");
+        for (const addition of additions) document.pending.push({...addition, sequence: document.nextSequence++});
+        active();
+        await save(document);
+        return plan;
+      });
+    },
     retireAfterConfirmedDeletion(receipt: {userId: string; deleted: boolean}) {
       const confirmed = receipt.deleted === true && receipt.userId.toLowerCase() === owner;
       return serial(async () => {

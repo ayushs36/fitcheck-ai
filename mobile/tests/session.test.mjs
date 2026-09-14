@@ -4,6 +4,9 @@ import {openAccountSession} from '../src/cloud/session.ts';
 import {createOfflineAccess} from '../src/cloud/offlineAccess.ts';
 const owner='00000000-0000-0000-0000-000000000001';
 const other='00000000-0000-0000-0000-000000000002';
+const webExport=JSON.stringify({format:'fitcheck-personal-logs',version:1,units:'lb',logs:[{
+  date:'2026-09-01',goal:'Cutting',weight:135,calories:0,protein:0,steps:0,workout:'',exercises:[],
+}]});
 function setup(ids=[owner,owner]) {
   const values=new Map();
   let callback,reads=0,unsubscribed=0;
@@ -23,6 +26,32 @@ test('opening verifies identity without importing or uploading any data',async()
   assert.deepEqual(await session.data.loadDailyLogs(),[]);
   session.close();
   assert.equal(state.unsubscribed(),1);
+});
+test('web import verifies the current account and refuses a foreign identity',async()=>{
+  const state=setup([owner,owner,other]);
+  const session=await openAccountSession(state.client,state.storage);
+  const preview=await session.previewWebImport(webExport);
+  await assert.rejects(session.importWebLogs(webExport,preview.dates),/sign in to this account/);
+  assert.equal(state.values.size,0);
+  session.close();
+});
+test('web import binds saved records to the verified session, not an export identifier',async()=>{
+  const state=setup([owner,owner,owner]);
+  const session=await openAccountSession(state.client,state.storage);
+  const raw=JSON.stringify({...JSON.parse(webExport),ownerId:other,email:'other@example.com'});
+  const preview=await session.previewWebImport(raw);
+  await session.importWebLogs(raw,preview.dates);
+  assert.equal((await session.data.loadDailyLogs()).length,1);
+  assert.ok([...state.values.keys()].every(key=>key.includes(owner)));
+  session.close();
+});
+test('a closed session cannot confirm a previously previewed web import',async()=>{
+  const state=setup();
+  const session=await openAccountSession(state.client,state.storage);
+  const preview=await session.previewWebImport(webExport);
+  state.emit('SIGNED_OUT');
+  await assert.rejects(session.importWebLogs(webExport,preview.dates),/session closed/);
+  assert.equal(state.values.size,0);
 });
 test('missing identity cannot open account storage',async()=>{
   const state=setup([]);
@@ -168,3 +197,26 @@ test('failed offline permission cleanup still attempts Supabase sign-out',async(
   assert.deepEqual([...state.values],before);
   await assert.rejects(session.data.loadUserSettings(),/session closed/);
 });
+
+for (const scenario of [
+  {name:'expired token cannot refresh offline',sessionError:{name:'AuthRetryableFetchError',status:0}},
+  {name:'cached session belongs to another account',cachedOwner:other},
+  {name:'cached session is missing',cachedOwner:null},
+  {name:'server rejects revoked credentials',identityError:{name:'AuthApiError',status:401}},
+  {name:'server denies account access',identityError:{name:'AuthApiError',status:403}},
+]) {
+  test(`startup preserves logs and denies access when ${scenario.name}`,async()=>{
+    const state=setup();
+    const access=createOfflineAccess(setup().storage);
+    const initial=await openAccountSession(state.client,state.storage,access);
+    await initial.data.saveUserSettings({unitSystem:'imperial',defaultGoal:'cut'});
+    await access.rememberVerifiedAccount(owner);
+    initial.close();
+    const before=[...state.values];
+    const cachedOwner='cachedOwner' in scenario ? scenario.cachedOwner : owner;
+    state.client.auth.getUser=async()=>({data:{user:null},error:scenario.identityError??{name:'AuthRetryableFetchError',status:0}});
+    state.client.auth.getSession=async()=>({data:{session:cachedOwner?{user:{id:cachedOwner}}:null},error:scenario.sessionError??null});
+    await assert.rejects(openAccountSession(state.client,state.storage,access));
+    assert.deepEqual([...state.values],before);
+  });
+}

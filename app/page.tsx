@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { MobileLogExport } from "@/components/MobileLogExport";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LineChart,
@@ -3350,6 +3351,7 @@ const agentModeClass = getAgentModeShellClass(dailyBrief.agentMode);
 
 {showHistory && (
 <>
+{!isDemoMode && isPersonalRoute && <MobileLogExport logs={logs} goal={goal} goalHistory={goalHistory} />}
             <section className="rounded-3xl bg-white p-6 shadow-sm">
   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
     <div>

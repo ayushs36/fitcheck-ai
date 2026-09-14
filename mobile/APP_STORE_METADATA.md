@@ -1,8 +1,10 @@
 # FitCheck Coach App Store Metadata
 
-Cloud-release draft for build 6. These changes have not been published to App
-Store Connect. Replace the older local-only listing and privacy declarations only
-after cloud QA and owner review. Build 5 remains local-only.
+Cloud listing configuration was synced to App Store Connect with owner approval
+on September 13, 2026. Build 8 is available in internal TestFlight. Reviewer
+instructions and approved private contact details were also synced. Privacy labels
+remain pending; listing sync does not publish the privacy questionnaire or submit
+the app for review. Build 5 remains local-only.
 
 ## Listing
 
@@ -64,6 +66,11 @@ tracking, Sign in with Apple, account sync, backup export, and account deletion.
 - Marketing URL: omitted; the web demo is a separate product.
 
 ## App Review Notes
+
+The uploadable instructions are in `store.review.config.js`. The `store-review`
+submit profile requires APP_REVIEW_FIRST_NAME, APP_REVIEW_LAST_NAME,
+APP_REVIEW_EMAIL, and APP_REVIEW_PHONE supplied privately as environment variables.
+Never commit contact values or an exported contact-filled configuration.
 
 FitCheck Coach is a goal-aware fitness logging app with Sign in with Apple and
 account sync in the cloud-enabled release. It does not provide medical diagnosis,

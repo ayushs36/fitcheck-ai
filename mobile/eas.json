@@ -26,6 +26,12 @@
     }
   },
   "submit": {
+    "store-review": {
+      "extends": "cloud-qa",
+      "ios": {
+        "metadataPath": "store.review.config.js"
+      }
+    },
     "cloud-qa": {
       "ios": {
         "ascAppId": "6810485632"

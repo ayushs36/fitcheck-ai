@@ -6,6 +6,7 @@ import { createAccountSync } from "./sync.ts";
 import { createAccountWorkspace } from "./workspace.ts";
 import { createDeletionRecovery } from "./deletionRecovery.ts";
 import type {createOfflineAccess} from "./offlineAccess.ts";
+import {parseWebLogExport} from "./webLogImport.ts";
 
 // The caller must finish any explicitly approved legacy import before opening.
 // Authentication is verified remotely; a local profile/email never grants access.
@@ -76,6 +77,25 @@ export async function openAccountSession(client: SupabaseClient, storage: KeyVal
       if (closed) { listener(); return () => {}; }
       listeners.add(listener);
       return () => { listeners.delete(listener); };
+    },
+    async previewWebImport(raw: string) {
+      active();
+      const input = parseWebLogExport(raw);
+      const plan = await workspace.previewWebImport(input);
+      active();
+      return {...plan, workouts: input.workouts.filter(workout => plan.dates.includes(workout.date)).length,
+        assumedGoalDays: input.assumedGoalDays};
+    },
+    async importWebLogs(raw: string, approvedDates: string[]) {
+      active();
+      if (deleting) throw new Error("Account deletion is in progress.");
+      const verified = await client.auth.getUser();
+      if (verified.error || verified.data.user?.id !== user.id) throw new Error("Connect and sign in to this account before importing.");
+      active();
+      return workspace.importWebLogs(parseWebLogExport(raw), approvedDates, () => {
+        active();
+        if (deleting) throw new Error("Account deletion is in progress.");
+      });
     },
     async synchronize() {
       active();
