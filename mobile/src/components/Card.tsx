@@ -14,14 +14,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     gap: 12,
     padding: 16,
-    shadowColor: "#0B1220",
-    shadowOpacity: 0.045,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1,
   },
 });

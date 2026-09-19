@@ -3,6 +3,7 @@ import { colors } from "../theme/colors";
 import { ProgressInsights } from "../utils/progressInsights";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
+import { Disclosure } from "./Disclosure";
 
 type DailyCoachBriefCardProps = {
   insights: ProgressInsights;
@@ -108,12 +109,13 @@ export function DailyCoachBriefCard({
           <Text style={styles.title}>{insights.priority}</Text>
         </View>
         <View style={styles.goalPill}>
-          <Text style={styles.goalText}>{insights.activeGoal}</Text>
+          <Text style={styles.goalText}>{{cut: "Cutting", maintain: "Maintaining", bulk: "Bulking"}[insights.activeGoal]}</Text>
         </View>
       </View>
 
       <Text style={styles.body}>{insights.nextAction}</Text>
 
+      <Disclosure title="Weekly averages and coaching details">
       <View style={styles.signalRow}>
         <View style={styles.signalBox}>
           <Text style={styles.signalLabel}>Trend</Text>
@@ -164,6 +166,7 @@ export function DailyCoachBriefCard({
         <Text style={styles.nextLabel}>Plan Guardrail</Text>
         <Text style={styles.nextText}>{insights.loggingQuality.nextAction}</Text>
       </View>
+      </Disclosure>
     </Card>
   );
 }

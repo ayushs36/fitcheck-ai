@@ -5,6 +5,8 @@ import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
 import { useMobileStorage } from "../storage/StorageProvider";
+import { SelectMenu } from "../components/SelectMenu";
+import { Disclosure } from "../components/Disclosure";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
@@ -296,7 +298,7 @@ export function TrainingScreen() {
         });
       });
 
-    return Array.from(savedExercises.values()).slice(0, 8);
+    return Array.from(savedExercises.values());
   }, [draft.type, recentSessions]);
   const isRestDay = draft.type === "Rest";
   const weightUnit = getWeightUnitLabel(unitSystem);
@@ -305,7 +307,6 @@ export function TrainingScreen() {
   return (
     <Screen
       title="Training"
-      subtitle="Log exercises, sets, reps, weight, bodyweight work, and form-focus notes."
     >
       <Card>
         <View style={styles.header}>
@@ -321,21 +322,9 @@ export function TrainingScreen() {
 
         <View style={styles.section}>
           <Text style={styles.label}>Workout type</Text>
-          <View style={styles.typeGrid}>
-            {workoutTypes.map((type) => {
-              const isSelected = draft.type === type;
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  key={type}
-                  onPress={() => selectWorkoutType(type)}
-                  style={[styles.typeChip, isSelected && styles.selectedTypeChip]}
-                >
-                  <Text style={[styles.typeText, isSelected && styles.selectedTypeText]}>{type}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <SelectMenu label="Workout type" value={draft.type}
+            options={Array.from(new Set([...workoutTypes, ...recentSessions.map(session => session.type), draft.type])).map(value => ({label: value, value}))}
+            onChange={selectWorkoutType} />
         </View>
 
         {isRestDay ? (
@@ -368,19 +357,8 @@ export function TrainingScreen() {
             {savedExercisesForWorkout.length ? (
               <View style={styles.section}>
                 <Text style={styles.label}>Previously logged for {draft.type}</Text>
-                <View style={styles.templateGrid}>
-                  {savedExercisesForWorkout.map((savedExercise) => (
-                    <Pressable
-                      accessibilityRole="button"
-                      key={`${savedExercise.name}-${savedExercise.muscleGroup}`}
-                      onPress={() => addSavedExercise(savedExercise)}
-                      style={styles.savedExerciseChip}
-                    >
-                      <Text style={styles.templateName}>{savedExercise.name}</Text>
-                      <Text style={styles.templateMeta}>{savedExercise.muscleGroup || "Saved"}</Text>
-                    </Pressable>
-                  ))}
-                </View>
+                <SelectMenu label="Choose a saved exercise" options={savedExercisesForWorkout.map(exercise => ({label: exercise.name, value: exercise.name}))}
+                  onChange={name => {const exercise = savedExercisesForWorkout.find(item => item.name === name); if (exercise) addSavedExercise(exercise);}} />
               </View>
             ) : null}
           </>
@@ -526,6 +504,7 @@ export function TrainingScreen() {
           );
         })}
 
+        <Disclosure title={draft.notes ? "Workout notes (added)" : "Add workout notes"}>
         <TextField
           label="Workout notes"
           multiline
@@ -534,6 +513,7 @@ export function TrainingScreen() {
           style={styles.notesInput}
           value={draft.notes}
         />
+        </Disclosure>
 
         <Pressable accessibilityRole="button" onPress={saveWorkout} style={styles.saveButton}>
           <Text style={styles.saveButtonText}>

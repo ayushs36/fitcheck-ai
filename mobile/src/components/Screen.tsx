@@ -10,9 +10,8 @@ type ScreenProps = {
 
 export function Screen({ title, subtitle, children }: ScreenProps) {
   return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>FitCheck Coach</Text>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
@@ -26,6 +25,9 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 20,
     paddingBottom: 112,
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
   },
   header: {
     gap: 5,
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: "800",
     letterSpacing: 0,
   },

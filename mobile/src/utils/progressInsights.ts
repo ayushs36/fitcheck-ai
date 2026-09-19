@@ -1,5 +1,6 @@
 import { DailyLog, GoalType, UserSettings } from "../types/fitness";
 import { getProteinTarget } from "./proteinTargets";
+import { weeklyWeightChange } from "./weightTrend";
 
 type MetricKey = "calories" | "proteinGrams" | "steps";
 
@@ -281,18 +282,16 @@ function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): 
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  if (weighIns.length < 2) {
+  const measuredChange = weeklyWeightChange(logs);
+  if (measuredChange === undefined) {
     return {
-      status: "Need 2+ weigh-ins",
+      status: "Need 14 weigh-ins",
       direction: "unknown",
       weighIns: weighIns.length,
     };
   }
 
-  const first = weighIns[0];
-  const latest = weighIns[weighIns.length - 1];
-  const change = (latest.weightLbs ?? 0) - (first.weightLbs ?? 0);
-  const weeklyChange = round((change / daysBetween(first.date, latest.date)) * 7, 1);
+  const weeklyChange = measuredChange;
   const direction =
     Math.abs(weeklyChange) < 0.1 ? "flat" : weeklyChange > 0 ? "up" : "down";
 
@@ -897,7 +896,7 @@ export function calculateProgressInsights(
   const recentMetricLogs = logs.slice(0, RECENT_METRIC_AVERAGE_DAYS);
   const loggingQuality = buildLoggingQuality(logs);
   const proteinTarget = getProteinTarget(activeGoal, getLatestWeight(logs, settings));
-  const weightTrend = calculateWeightTrend(recentLogs, activeGoal, settings?.weeklyGoalPaceLbs);
+  const weightTrend = calculateWeightTrend(logs, activeGoal, settings?.weeklyGoalPaceLbs);
   const averages = [
     calculateMetricAverage(recentMetricLogs, "calories", settings?.calorieTarget),
     calculateMetricAverage(

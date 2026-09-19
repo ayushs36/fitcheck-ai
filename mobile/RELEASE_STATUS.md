@@ -2,7 +2,29 @@
 
 ## Current Status
 
-September 13, 2026:
+September 19, 2026 source update (requires a new TestFlight build):
+
+- UI follow-up: daily logging comes first; coaching detail, notes, and previous
+  workout detail are expandable. Progress separates Overview, Charts, and History.
+  Screen width is constrained on tablets, surfaces use a consistent quieter style,
+  and bottom navigation exposes Account with selected-tab accessibility state.
+  No data schema, API access, or account permissions changed in this UI pass.
+  Visual phone verification remains required; this Mac has no available simctl.
+
+- Cloud onboarding now offers the existing confirmed web-log import before setup.
+  Saved account history prefills the latest logged goal and earliest valid weight;
+  targets absent from the export remain optional. Unit changes convert weights.
+- Mobile trend pace now compares the latest seven valid weigh-ins against the
+  preceding seven, matching the web formula. Blank weights are skipped, and fewer
+  than fourteen weigh-ins do not produce a pace. These are log windows, not fixed
+  calendar weeks when weigh-ins are missing.
+- Workout type and saved-exercise choices use compact menus; custom exercise entry
+  remains available. Import access is account-scoped, not restricted to the owner.
+- Mobile TypeScript, all 165 automated tests, and the web production build passed.
+  New native UI requires phone verification; build 9 does not include this update.
+  No personal logs were read, uploaded, cleared, or changed during this work.
+
+September 17, 2026:
 
 - Private web-log import is implemented in source, not in build 8. The personal
   web History view exports a dedicated JSON file; cloud Account > Backup imports
@@ -13,24 +35,28 @@ September 13, 2026:
   No personal files were accessed or transferred during implementation.
 - The owner explicitly approved uploading the updated source to the existing
   Expo/EAS project. Importer build `9` was created as
-  `7d0580e7-0194-4900-90c4-a8c9ba3818f2`, with TestFlight upload queued as
-  `944c7eff-0af8-453d-a1c0-f0a59314fcb6`. Compilation and Apple processing are
-  not yet confirmed complete. Web deployment and device testing are still needed
-  before personal use. Do not submit build 8 as containing this feature.
+  `7d0580e7-0194-4900-90c4-a8c9ba3818f2`, with TestFlight submission
+  `944c7eff-0af8-453d-a1c0-f0a59314fcb6`. Apple's API confirms processing VALID,
+  internal state IN_BETA_TESTING, and not expired. GitHub main is confirmed at
+  `38ac5bfdc45c6b7f3fcfd5d3e0417c1ef5665f30`. Vercel's production deployment
+  `dpl_2PFnoYEuxbhx9QBtZCTF4qUPbrSF` is READY at that same commit, confirming
+  deployment of the web export. The owner confirmed the build-9 fictional-data
+  device checklist passed on September 17. Do not submit build 8 as containing
+  this feature.
 - Replacement candidate: build `8`, EAS ID
   `b056b538-b0f0-4d2e-84e2-b633d32969bc`, created at the owner's request after
   the cancellation of build 7. Submission
   `b921746f-2ab5-470c-8cdc-989e58039c7d` reached Apple. Apple's API confirms
   processing VALID, internal state IN_BETA_TESTING, and not expired. Build 8 is
-  available for internal TestFlight testing; device QA remains outstanding.
+  available for internal TestFlight testing; build 9 supersedes this candidate.
 - Cloud QA build: `6`, EAS ID `22a2cdd6-cadb-45d9-b644-244b53ce3460`.
 - TestFlight upload scheduled: `3e4129e5-6ebf-4dbb-838b-50b24bd4d327`;
   EAS reports finished on September 12 at 22:51 UTC. Apple's API subsequently
   confirmed processing VALID and internal state IN_BETA_TESTING.
 - Production profile remains local-only; `cloud-qa` enables Apple login and sync.
 - Mobile Supabase migrations and deletion function are deployed. Secret digests,
-  RLS/grants, and unauthenticated rejection were checked; authenticated Apple
-  end-to-end behavior still needs disposable-account/device testing.
+  RLS/grants, and unauthenticated rejection were checked. The owner subsequently
+  reported successful build-9 cloud and account-deletion device testing.
 - Local checks: 163 tests pass, including web-export/mobile-import round trips and
   account-isolation safeguards. Mobile TypeScript, all 21 Expo Doctor checks, and
   an iOS export with the new importer pass. Server TypeScript passed before this
@@ -58,13 +84,23 @@ September 13, 2026:
 
 ## User-Reported Device QA
 
+On September 17 the owner confirmed the build-9 fictional-data checklist was
+complete: import, duplicate prevention, cross-device sync, account isolation,
+offline reopening, and account deletion. Record these as user-reported passes,
+not assistant-observed tests. No additional device logs or screenshots were
+provided. This report does not establish separate fault-injection or deliberately
+expired-token test results. Move on to privacy disclosure, screenshots, build
+selection and App Review submission; do not repeatedly request the completed
+checklist.
+
+Earlier build-6 report:
+
 On September 13 the owner confirmed these build-6 tests succeeded with fictional
 data: Apple sign-in, saving a log, closing/reopening, airplane-mode reopening and
 editing, syncing after reconnecting, and signing out/back in with the same account.
-These are user-reported passes, not assistant-observed device tests. Separate-device
-restoration, cross-account isolation on devices, expired-session offline reopening,
-and Apple-authenticated account deletion remain unverified. Do not infer those
-results from same-device persistence or mark the full release checklist complete.
+These were user-reported passes, not assistant-observed device tests. At that
+time, separate-device restoration, cross-account isolation and Apple-authenticated
+deletion were unverified; the later build-9 report above supersedes those gaps.
 
 ## Historical Build 5 Snapshot
 
@@ -112,18 +148,15 @@ apply only to build 5.
 
 ## Remaining Release Steps
 
-- Complete the unverified cloud/device tests listed above using disposable accounts
-  and fictional records, especially account deletion and independent restoration.
-- Resolve any release-blocking failures and test replacement build 8 once Apple
-  finishes processing it. Build 7 remains canceled. Do not describe build 8 as
-  device-tested based on the earlier build-6 results.
+- Build 9 is the user-tested candidate. Build 7 remains canceled; do not create
+  another binary unless a release-blocking issue requires a code change.
 - Update Apple's privacy questionnaire for account-linked cloud data. Obtain owner
   approval of the updated declaration before publishing; the previous approval
   covered only the local-only disclosure.
 - Supply fictional-data screenshots for the required iPhone and iPad sizes.
   Cloud listing copy and reviewer instructions have been synced.
-- Verify the tested cloud build is selected on the version submission page;
-  the historical build-5 selection is not confirmation of a build-6 selection.
+- Select and verify build 9 on the version submission page; the historical
+  build-5 selection is not confirmation of the current selection.
 - Resolve any regional compliance prompts, submit the tested release for App
   Review, and address Apple's feedback. Approval timing is controlled by Apple.
 
@@ -137,4 +170,7 @@ Day 38 is the mobile release-freeze pass: the app configuration, App Store check
 
 ## V1 Release State
 
-The mobile app is feature-frozen for v1. The first FitCheck Coach iOS production build was successfully uploaded to App Store Connect. Remaining work is TestFlight QA, fictional-data screenshots, App Store listing entry, and App Review submission.
+The mobile app is feature-frozen for v1. Build 9 is available in TestFlight and the
+owner reports its fictional-data checklist passed. Remaining work is privacy
+disclosures, fictional-data screenshots, final build selection, and App Review
+submission. Listing copy and reviewer instructions have already been synced.

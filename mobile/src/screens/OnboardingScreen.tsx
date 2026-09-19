@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
@@ -9,9 +9,14 @@ import { colors } from "../theme/colors";
 import { GoalType, UserSettings } from "../types/fitness";
 import { parseOptionalNumber } from "../utils/logDraft";
 import { getWeightUnitLabel, parseWeightToLbs, UnitSystem } from "../utils/units";
+import { formatWeightFromLbs } from "../utils/units";
+import type { AccountSession } from "../cloud/session";
+import { WebLogImportControl } from "../cloud/WebLogImportControl";
 
 type OnboardingScreenProps = {
   onComplete: (settings: UserSettings) => void;
+  session?: AccountSession;
+  onSync?: () => void;
 };
 
 type OnboardingDraft = {
@@ -59,10 +64,24 @@ function getGoalIntro(goal: GoalType): string {
   return "FitCheck will prioritize stable weight, consistent habits, and training quality while you maintain.";
 }
 
-export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+export function OnboardingScreen({ onComplete, session, onSync }: OnboardingScreenProps) {
   const { saveUserSettings } = useMobileStorage();
   const [draft, setDraft] = useState(initialDraft);
+  const [importBusy, setImportBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const weightUnit = getWeightUnitLabel(draft.unitSystem);
+
+  useEffect(() => {
+    let active = true;
+    if (session) void session.data.loadDailyLogs().then(records => {
+      if (!active) return;
+      const logs = records.slice().sort((a, b) => a.date.localeCompare(b.date));
+      const firstWeight = logs.find(log => typeof log.weightLbs === "number" && log.weightLbs > 0)?.weightLbs;
+      setDraft(current => ({...current, defaultGoal: logs.at(-1)?.goal ?? current.defaultGoal,
+        startingWeight: current.startingWeight || formatWeightFromLbs(firstWeight, current.unitSystem)}));
+    }).catch(() => { if (active) Alert.alert("History unavailable", "Reopen setup before continuing to restore your saved history."); });
+    return () => { active = false; };
+  }, [session]);
 
   function updateDraft<Value extends keyof OnboardingDraft>(
     key: Value,
@@ -75,6 +94,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   }
 
   async function completeOnboarding() {
+    if (importBusy || saving) return;
+    setSaving(true);
     const settings: UserSettings = {
       unitSystem: draft.unitSystem,
       defaultGoal: draft.defaultGoal,
@@ -89,7 +110,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     };
 
     try { await saveUserSettings(settings, null); }
-    catch (error) { Alert.alert("Setup not saved", error instanceof Error ? error.message : "Please try again. Your choices were kept."); return; }
+    catch (error) { setSaving(false); Alert.alert("Setup not saved", error instanceof Error ? error.message : "Please try again. Your choices were kept."); return; }
     onComplete(settings);
   }
 
@@ -98,6 +119,14 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       title="Set Up FitCheck"
       subtitle="Start with the basics so the app can interpret your logs around your current goal."
     >
+      {session && onSync && <View pointerEvents={saving ? "none" : "auto"}>
+        <WebLogImportControl session={session} onSync={onSync} onBusyChange={setImportBusy} onImported={async () => {
+          const logs = (await session.data.loadDailyLogs()).slice().sort((a, b) => a.date.localeCompare(b.date));
+          const firstWeight = logs.find(log => typeof log.weightLbs === "number" && log.weightLbs > 0)?.weightLbs;
+          setDraft(current => ({...current, defaultGoal: logs.at(-1)?.goal ?? current.defaultGoal,
+            startingWeight: firstWeight === undefined ? current.startingWeight : formatWeightFromLbs(firstWeight, current.unitSystem)}));
+        }} />
+      </View>}
       <Card>
         <View style={styles.header}>
           <Text style={styles.title}>Your coaching setup</Text>
@@ -109,7 +138,11 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           <SegmentedControl
             options={unitOptions}
             value={draft.unitSystem}
-            onChange={(unitSystem) => updateDraft("unitSystem", unitSystem)}
+            onChange={(unitSystem) => setDraft(current => ({...current, unitSystem,
+              startingWeight: formatWeightFromLbs(parseWeightToLbs(current.startingWeight, current.unitSystem), unitSystem),
+              targetWeight: formatWeightFromLbs(parseWeightToLbs(current.targetWeight, current.unitSystem), unitSystem),
+              weeklyGoalPace: formatWeightFromLbs(parseWeightToLbs(current.weeklyGoalPace, current.unitSystem), unitSystem),
+            }))}
           />
         </View>
 
@@ -178,7 +211,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           </Text>
         </View>
 
-        <Pressable accessibilityRole="button" onPress={completeOnboarding} style={styles.primaryButton}>
+        <Pressable accessibilityRole="button" disabled={importBusy || saving} onPress={completeOnboarding} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Start Logging</Text>
         </Pressable>
       </Card>

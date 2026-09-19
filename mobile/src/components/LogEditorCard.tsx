@@ -5,6 +5,8 @@ import { GoalType, TodayLogDraft, WorkoutType } from "../types/fitness";
 import { Card } from "./Card";
 import { SegmentedControl } from "./SegmentedControl";
 import { TextField } from "./TextField";
+import { SelectMenu } from "./SelectMenu";
+import { Disclosure } from "./Disclosure";
 
 const goalOptions: { label: string; value: GoalType }[] = [
   { label: "Cut", value: "cut" },
@@ -131,26 +133,13 @@ export function LogEditorCard({
 
       <View style={styles.section}>
         <Text style={styles.label}>Workout type</Text>
-        <View style={styles.workoutGrid}>
-          {workoutTypes.map((type) => {
-            const isSelected = draft.workoutType === type;
-            return (
-              <Pressable
-                accessibilityRole="button"
-                key={type}
-                onPress={() => updateDraft("workoutType", type)}
-                style={[styles.workoutChip, isSelected && styles.selectedWorkoutChip]}
-              >
-                <Text style={[styles.workoutText, isSelected && styles.selectedWorkoutText]}>
-                  {type}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <SelectMenu label="Workout type" value={draft.workoutType}
+          options={Array.from(new Set([...workoutTypes, draft.workoutType])).map(value => ({label: value, value}))}
+          onChange={value => updateDraft("workoutType", value)} />
       </View>
 
       {workoutPerformancePreview ? (
+        <Disclosure title={`Last ${workoutPerformancePreview.workoutType} workout`}>
         <View style={styles.performanceBox}>
           <View style={styles.performanceHeader}>
             <View style={styles.performanceCopy}>
@@ -181,8 +170,10 @@ export function LogEditorCard({
             ))}
           </View>
         </View>
+        </Disclosure>
       ) : null}
 
+      <Disclosure title={draft.notes ? "Notes (added)" : "Add notes"} initiallyOpen={Boolean(draft.notes)}>
       <TextField
         label="Notes"
         multiline
@@ -191,6 +182,7 @@ export function LogEditorCard({
         style={styles.notesInput}
         value={draft.notes}
       />
+      </Disclosure>
 
       <Pressable accessibilityRole="button" onPress={onSubmit} style={styles.saveButton}>
         <Text style={styles.saveButtonText}>{submitLabel}</Text>

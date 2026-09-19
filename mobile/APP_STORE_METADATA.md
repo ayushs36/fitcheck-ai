@@ -59,7 +59,29 @@ tracking, Sign in with Apple, account sync, backup export, and account deletion.
   App Store privacy questionnaire.
 - OpenAI/API usage: The mobile app does not include an OpenAI API key and does not call OpenAI from the public client.
 
-## URLs To Prepare Before Submission
+## Privacy Questionnaire Draft (September 17)
+
+Implementation-based mapping, not a published or complete declaration:
+
+| Apple category | App evidence | Initial purpose |
+| --- | --- | --- |
+| Email Address | Apple-provided email in cloud authentication | App Functionality |
+| User ID | Apple-linked identity and Supabase account ID | App Functionality |
+| Health | Synced weight and nutrition records | App Functionality; review Product Personalization for goal-based guidance |
+| Fitness | Synced steps, workouts, exercises and goals | App Functionality; review Product Personalization for goal-based guidance |
+| Other User Content | Synced free-text notes | App Functionality |
+
+These records are linked to the account, not anonymized. No advertising tracking
+is implemented. Do not equate account sync with Apple's advertising-related
+tracking definition. Before publishing, confirm Supabase operational logging and
+any additional SDK collection, including applicable diagnostic or other-data
+categories. Do not assume those categories are absent merely because there is
+no dedicated analytics SDK. Obtain owner approval of the completed declaration.
+
+Sources: [Apple data definitions](https://developer.apple.com/app-store/app-privacy-details/)
+and [questionnaire workflow](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy).
+
+## Store URLs
 
 - Privacy policy URL: https://fitcheck-ai-psi.vercel.app/mobile-privacy
 - Support URL: https://fitcheck-ai-psi.vercel.app/mobile-support

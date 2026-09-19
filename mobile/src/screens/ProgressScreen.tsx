@@ -6,6 +6,7 @@ import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
 import { RecentLogsList } from "../components/RecentLogsList";
 import { Screen } from "../components/Screen";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
 import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
@@ -23,6 +24,7 @@ export function ProgressScreen() {
   const [editDraft, setEditDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState<"overview" | "charts" | "history">("overview");
   const [lastEditedDate, setLastEditedDate] = useState<string | null>(null);
 
   async function refreshLogs() {
@@ -121,12 +123,14 @@ export function ProgressScreen() {
   return (
     <Screen
       title="Progress"
-      subtitle="Track goal-aware trends while skipping missing fields from averages."
     >
-      <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />
-      <ProgressChartsCard logs={logs} workouts={workouts} unitSystem={unitSystem} />
+      <SegmentedControl value={view} onChange={setView} options={[
+        {label: "Overview", value: "overview"}, {label: "Charts", value: "charts"}, {label: "History", value: "history"},
+      ]} />
+      {view === "overview" && <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />}
+      {view === "charts" && <ProgressChartsCard logs={logs} workouts={workouts} unitSystem={unitSystem} />}
 
-      <Card>
+      {view === "history" && <Card>
         <View style={styles.headerRow}>
           <View style={styles.headerCopy}>
             <Text style={styles.title}>Log History</Text>
@@ -144,9 +148,9 @@ export function ProgressScreen() {
           onSelectLog={selectLog}
           selectedDate={selectedLog?.date}
         />
-      </Card>
+      </Card>}
 
-      {selectedLog ? (
+      {view === "history" && selectedLog ? (
         <LogEditorCard
           dateLabel={formatReadableDate(selectedLog.date)}
           draft={editDraft}

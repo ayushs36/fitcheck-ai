@@ -8,7 +8,7 @@ const tabItems: { icon: string; label: string; value: MobileTab }[] = [
   { icon: "kg", label: "Train", value: "training" },
   { icon: "~", label: "Progress", value: "progress" },
   { icon: ">", label: "Goals", value: "goals" },
-  { icon: "=", label: "Settings", value: "settings" },
+  { icon: "=", label: "Account", value: "settings" },
 ];
 
 type BottomTabsProps = {
@@ -24,11 +24,11 @@ export function BottomTabs({ activeTab, onChange }: BottomTabsProps) {
         return (
           <Pressable
             accessibilityRole="tab"
+            accessibilityState={{selected: isActive}}
             key={item.value}
             onPress={() => onChange(item.value)}
             style={[styles.tab, isActive && styles.activeTab]}
           >
-            <Text style={[styles.icon, isActive && styles.activeLabel]}>{item.icon}</Text>
             <Text style={[styles.label, isActive && styles.activeLabel]}>{item.label}</Text>
           </Pressable>
         );
@@ -41,25 +41,21 @@ const styles = StyleSheet.create({
   shell: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 24,
+    borderRadius: 0,
     borderWidth: 1,
-    bottom: 20,
+    bottom: 0,
     flexDirection: "row",
     gap: 4,
-    left: 16,
+    left: 0,
     padding: 6,
     position: "absolute",
-    right: 16,
-    shadowColor: "#0B1220",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
+    right: 0,
   },
   tab: {
     alignItems: "center",
-    borderRadius: 16,
+    borderRadius: 8,
     flex: 1,
-    minHeight: 46,
+    minHeight: 52,
     justifyContent: "center",
   },
   activeTab: {
@@ -67,7 +63,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800",
   },
   icon: {

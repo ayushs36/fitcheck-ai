@@ -109,10 +109,7 @@ export function TodayScreen() {
   return (
     <Screen
       title="Today"
-      subtitle="Log what you know. Blank fields stay blank and will not count against your trends."
     >
-      <DailyCoachBriefCard insights={coachInsights} unitSystem={unitSystem} />
-
       <LogEditorCard
         dateLabel={formatReadableDate(todayKey)}
         draft={draft}
@@ -133,10 +130,12 @@ export function TodayScreen() {
         }
       />
 
+      <DailyCoachBriefCard insights={coachInsights} unitSystem={unitSystem} />
+
       <Card>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Recent Logs</Text>
-          <Text style={styles.cardMeta}>Last 5 saved days on this device</Text>
+          <Text style={styles.cardMeta}>Last 5 saved days</Text>
         </View>
         <RecentLogsList logs={recentLogs} unitSystem={unitSystem} />
       </Card>

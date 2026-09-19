@@ -7,17 +7,17 @@ import type {AccountSession} from "./session";
 import {MAX_WEB_EXPORT_BYTES} from "./webLogImport";
 
 type Preview = Awaited<ReturnType<AccountSession["previewWebImport"]>> & {raw: string};
-export function WebLogImportControl({session, onSync}: {session: AccountSession; onSync: () => void}) {
+export function WebLogImportControl({session, onSync, onImported, onBusyChange}: {session: AccountSession; onSync: () => void; onImported?: () => Promise<void>; onBusyChange?: (busy: boolean) => void}) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const locked = useRef(false);
   async function run(action: () => Promise<void>) {
     if (locked.current) return;
-    locked.current = true; setBusy(true); setMessage("");
+    locked.current = true; setBusy(true); onBusyChange?.(true); setMessage("");
     try { await action(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "Import could not be completed."); }
-    finally { locked.current = false; setBusy(false); }
+    finally { locked.current = false; setBusy(false); onBusyChange?.(false); }
   }
   async function choose() {
     setPreview(null);
@@ -46,6 +46,7 @@ export function WebLogImportControl({session, onSync}: {session: AccountSession;
         setPreview(null);
         setMessage(`${result.dates.length} days saved on this device. ${result.skippedDates.length} existing dates skipped. Check sync status for cloud backup.`);
         onSync();
+        await onImported?.();
       })},
     ]);
   }
