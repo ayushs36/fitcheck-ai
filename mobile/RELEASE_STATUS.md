@@ -2,6 +2,23 @@
 
 ## Current Status
 
+September 19 build 10:
+
+- Source revision `a9818fc` includes setup import, navigation/UI cleanup, trend
+  parity, sorted input handling, zero/blank metric exclusion, and same-workout-type
+  volume comparisons. TypeScript, 167 automated tests, and the web build passed.
+- EAS build: `e9374f20-f114-4627-b706-15830f521c35`, version 1.0.0 (10), cloud-qa.
+  Existing signing credentials were reused. TestFlight upload is scheduled as
+  `04f1092e-4ea8-4bb2-a525-4923c452b225`; scheduling is not proof of Apple processing
+  completion. No App Store review submission was made.
+- Test notes could not be supplied through EAS (Enterprise-only feature); upload
+  was scheduled successfully without them. Check onboarding import with fictional
+  data, retained logs after updating, selection menus, Progress views and sync.
+- Browser control still crashes before page access. Privacy publication and
+  screenshot upload remain blocked. Genuine device screenshots and build-10 phone
+  verification are outstanding. This review does not claim complete parity for
+  simplified mobile nutrition scoring, goal forecasts, or long-term strength rules.
+
 September 19, 2026 source update (requires a new TestFlight build):
 
 - UI follow-up: daily logging comes first; coaching detail, notes, and previous
