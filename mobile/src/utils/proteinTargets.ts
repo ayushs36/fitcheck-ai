@@ -1,4 +1,4 @@
-import { GoalType } from "../types/fitness";
+import type { GoalType } from "../types/fitness.ts";
 
 export type ProteinTarget = {
   target: number;

@@ -1,6 +1,6 @@
-import { DailyLog, GoalType, UserSettings } from "../types/fitness";
-import { getProteinTarget } from "./proteinTargets";
-import { weeklyWeightChange } from "./weightTrend";
+import type { DailyLog, GoalType, UserSettings } from "../types/fitness.ts";
+import { getProteinTarget } from "./proteinTargets.ts";
+import { weeklyWeightChange } from "./weightTrend.ts";
 
 type MetricKey = "calories" | "proteinGrams" | "steps";
 
@@ -113,7 +113,7 @@ function round(value: number, digits = 0): number {
 function getNumericValues(logs: DailyLog[], key: MetricKey): number[] {
   return logs
     .map((log) => log[key])
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0);
 }
 
 function averageNumbers(values: number[]): number | undefined {
@@ -194,7 +194,7 @@ function getTodayKey(): string {
 }
 
 function hasValue(value: unknown): boolean {
-  return typeof value === "number" && Number.isFinite(value);
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 function calculateStreakDays(logsByDate: Map<string, DailyLog>): number {
@@ -337,7 +337,7 @@ function getLatestWeight(logs: DailyLog[], settings: UserSettings | null): numbe
   const latestWeightLog = logs
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
-    .find((log) => typeof log.weightLbs === "number" && Number.isFinite(log.weightLbs));
+    .find((log) => hasValue(log.weightLbs));
 
   return latestWeightLog?.weightLbs ?? settings?.startingWeightLbs ?? 0;
 }
@@ -346,7 +346,7 @@ function getLatestWeighIn(logs: DailyLog[]): DailyLog | undefined {
   return logs
     .slice()
     .sort((a, b) => b.date.localeCompare(a.date))
-    .find((log) => typeof log.weightLbs === "number" && Number.isFinite(log.weightLbs));
+    .find((log) => hasValue(log.weightLbs));
 }
 
 function buildSummary(goal: GoalType, trend: WeightTrend): string {
@@ -891,6 +891,7 @@ export function calculateProgressInsights(
   logs: DailyLog[],
   settings: UserSettings | null,
 ): ProgressInsights {
+  logs = logs.slice().sort((a, b) => b.date.localeCompare(a.date));
   const activeGoal = getActiveGoal(logs, settings);
   const recentLogs = logs.slice(0, 14);
   const recentMetricLogs = logs.slice(0, RECENT_METRIC_AVERAGE_DAYS);

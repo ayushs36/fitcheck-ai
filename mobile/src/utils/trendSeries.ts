@@ -1,5 +1,5 @@
-import { DailyLog, WorkoutSession } from "../types/fitness";
-import { formatReadableDate } from "./date";
+import type { DailyLog, WorkoutSession } from "../types/fitness.ts";
+import { formatReadableDate } from "./date.ts";
 
 type LogMetricKey = "weightLbs" | "calories" | "steps";
 
@@ -53,7 +53,7 @@ export function buildTrendSeries(
   limit = 14,
 ): TrendPoint[] {
   return logs
-    .filter((log) => isNumber(log[key]))
+    .filter((log) => isNumber(log[key]) && log[key]! > 0)
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-limit)
@@ -255,11 +255,12 @@ export function buildStrengthPreview(sessions: WorkoutSession[]): StrengthPrevie
   const latestWorkout = loggedWorkouts[0];
   const latestVolume = getWorkoutVolume(latestWorkout);
 
-  if (loggedWorkouts.length === 1) {
+  const previousMatchingWorkout = loggedWorkouts.slice(1).find(session => session.type === latestWorkout.type);
+  if (!previousMatchingWorkout) {
     return {
       status: "Need another workout",
-      detail: "One workout is saved. Add another similar session to compare progression.",
-      workoutsLogged: 1,
+      detail: "Log another workout of this type to compare session volume.",
+      workoutsLogged: loggedWorkouts.length,
       exerciseTrends: buildExerciseTrends(loggedWorkouts),
       latestWorkout: `${formatReadableDate(latestWorkout.date)} ${latestWorkout.type}`,
       latestSets: latestVolume.sets,
@@ -271,7 +272,7 @@ export function buildStrengthPreview(sessions: WorkoutSession[]): StrengthPrevie
     };
   }
 
-  const previousVolume = getWorkoutVolume(loggedWorkouts[1]);
+  const previousVolume = getWorkoutVolume(previousMatchingWorkout);
   const repDifference = latestVolume.reps - previousVolume.reps;
   const setDifference = latestVolume.sets - previousVolume.sets;
   const formFocusRatio = latestVolume.sets ? latestVolume.formFocusSets / latestVolume.sets : 0;
