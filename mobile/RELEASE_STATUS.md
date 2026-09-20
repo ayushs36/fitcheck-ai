@@ -1,6 +1,17 @@
 # FitCheck Coach Release Status
 
-September 20 source changes awaiting the final build:
+September 20 release candidate: version 1.0.0, build 14
+
+- Source revision: `4c38088`; Expo patched to 57.0.24.
+- Release preflight: 21/21 checks; 161 automated tests passed.
+- EAS build: `ced8b6e4-f813-45ea-b3e9-e6f42c90e77d` (cloud-qa,
+  Apple sign-in and cloud sync enabled, existing signing credentials reused).
+- Automatic TestFlight submission scheduled:
+  `b7634d5e-ec2e-4024-94e9-85900536eb17`.
+- Build completion, upload, and Apple processing still require confirmation.
+  This is not an App Store review submission.
+
+Included changes:
 
 - Removed the temporary web-to-mobile transfer controls and implementation.
   Previously imported records retain their identifiers and storage format.
@@ -8,7 +19,8 @@ September 20 source changes awaiting the final build:
   returning to the app. Saved logs remain editable for the same day.
 - The editor distinguishes saved records from unsaved edits and restores local
   drafts when reopening.
-- A final iOS build has not been started for these changes.
+- Verify retained logs, local date rollover, saved/unsaved status, and sync on
+  the iPhone after installing build 14.
 
 ## Current Status
 
