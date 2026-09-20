@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { Screen } from "../components/Screen";
 import { colors } from "../theme/colors";
 import type { AccountSession } from "./session";
@@ -8,6 +8,9 @@ import type { SyncConflict } from "./reconcile";
 import { describeRecord } from "./recordDescription";
 import { confirmAppleAccountDeletion } from "./appleAuth";
 import { WebLogImportControl } from "./WebLogImportControl";
+
+const SUPPORT_URL = "https://fitcheck-ai-psi.vercel.app/mobile-support";
+const PRIVACY_URL = "https://fitcheck-ai-psi.vercel.app/mobile-privacy";
 
 type Props = {
   session: AccountSession; storage: MobileStorage; conflicts: SyncConflict[];
@@ -32,6 +35,13 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
       {text: "Cancel", style: "cancel"},
       {text: choice === "local" ? "Keep device version" : "Keep cloud version", onPress: () => void perform(() => onResolve(conflict, choice))},
     ]);
+  }
+  async function openExternal(url: string) {
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) {
+      throw new Error("This link could not be opened on this device.");
+    }
+    await Linking.openURL(url);
   }
   return <Screen title="Account">
     <View style={styles.section}>
@@ -58,6 +68,12 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
         await Share.share({title: "FitCheck Coach Backup", message: JSON.stringify(backup, null, 2)});
       })}><Text style={styles.link}>Export account records</Text></Pressable>
       <WebLogImportControl session={session} onSync={onSync} />
+    </View>
+    <View style={styles.section}>
+      <Text style={styles.title}>Help & Support</Text>
+      <Text style={styles.body}>Find setup, backup, privacy, and troubleshooting help for FitCheck Coach.</Text>
+      <Pressable accessibilityRole="link" disabled={working} style={styles.button} onPress={() => void perform(() => openExternal(SUPPORT_URL))}><Text style={styles.link}>Open support</Text></Pressable>
+      <Pressable accessibilityRole="link" disabled={working} style={styles.button} onPress={() => void perform(() => openExternal(PRIVACY_URL))}><Text style={styles.link}>Privacy policy</Text></Pressable>
     </View>
     <Pressable accessibilityRole="button" disabled={working} style={styles.button} onPress={() => {
       Alert.alert("Sign out?", "Account records on this device will be retained. Unsynced edits are not yet backed up to the cloud.", [

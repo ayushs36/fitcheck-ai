@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 const supportItems = [
   {
     title: "Getting Started",
-    body: "Open the app, create the local profile, choose cutting, maintaining, or bulking, then log only the fields you know each day.",
+    body: "Sign in with Apple, choose cutting, maintaining, or bulking, then log only the fields you know each day.",
   },
   {
     title: "Blank Fields",
@@ -17,11 +17,11 @@ const supportItems = [
   },
   {
     title: "Backups",
-    body: "Use Settings to export a local backup before changing devices, testing reset, or reinstalling the app.",
+    body: "Use Account to export a backup before changing devices, testing reset, or reinstalling the app.",
   },
   {
     title: "Privacy",
-    body: "The mobile app stores logs on-device in the current release and does not include an OpenAI API key in the public client.",
+    body: "Apple-linked accounts keep fitness logs private and sync them between your devices. The mobile app does not include an OpenAI API key in the public client.",
   },
 ];
 
