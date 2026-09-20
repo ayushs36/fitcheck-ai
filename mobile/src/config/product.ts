@@ -5,5 +5,4 @@ export const productConfig = {
   audience: "public-consumer",
   releaseTarget: "app-store",
   storageModel: "local-device-storage",
-  usesPublicOpenAiApi: false,
 } as const;

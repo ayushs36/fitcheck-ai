@@ -3,10 +3,8 @@
 ## Day 28 Release Freeze
 
 - Core logging is local-only: weight, calories, protein, steps, workout type, exercises, sets, reps, load, form-focus, and notes.
-- Mobile does not include an OpenAI API key and does not call the web app's OpenAI routes.
 - Account setup exists before onboarding. Production Sign in with Apple/Google should replace the local account provider before enabling cloud sync or public server accounts.
 - Account management exists in Settings so users can edit their local profile or sign out without deleting logs.
-- Private OpenAI access must go through a protected backend allowlist. Never ship an OpenAI API key inside the mobile client.
 - Missing fields stay blank and are skipped in averages.
 - Cutting, maintaining, and bulking goals drive the coaching summaries.
 - App identity is configured with bundle ID `com.ayushs36.fitcheckai`.
@@ -14,7 +12,6 @@
 
 ## Before TestFlight
 
-- Day 31 QA pass completed: mobile version is set to `1.0.0`, Settings surfaces release/privacy status, and the client still has no OpenAI API key or OpenAI route calls.
 - Day 32 App Store Connect prep completed: listing copy, category, age-rating assumptions, keywords, privacy labels, and review notes are drafted in `APP_STORE_METADATA.md`.
 - Day 33 TestFlight build path completed: EAS build and submit scripts are in `package.json`, and the exact first-build flow is documented in `TESTFLIGHT_BUILD_GUIDE.md`.
 - Day 34 EAS preflight completed: EAS CLI is reachable and build scripts call it through `npx eas-cli`.
@@ -29,7 +26,7 @@
 - Copy or confirm the prepared subtitle, category, keywords, privacy labels, and review notes in App Store Connect.
 - Do a final App Store and trademark name check before submission. The current working name is related to the web project, but the public mobile listing should use a distinctive name/subtitle if Apple or trademark search shows conflict.
 - Use only original launch assets. The current icon is generated specifically for this project, uses an abstract check/progress mark, and avoids copied logos, text, brand marks, people, and third-party imagery.
-- Prepare privacy labels: fitness logs are stored on-device, no third-party tracking, no OpenAI API in mobile.
+- Prepare privacy labels: fitness logs are stored on-device with cloud sync, and there is no third-party tracking.
 - Capture App Store screenshots using fictional data only.
 - Use the latest uploaded iOS build: `d008b19d-cf55-4739-8cfe-dbdba710c1d5`.
 - Install the TestFlight build on a real iPhone and test onboarding, saving, editing, deleting, backup, restore, and reset.

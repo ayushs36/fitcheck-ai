@@ -136,7 +136,6 @@ apply only to build 5.
 - Version source: remote EAS auto-incrementing
 - Release preflight: passing
 - Expo Doctor: `21/21` checks passing
-- Mobile OpenAI usage: not included in the public client
 - Apple Developer Program: verified
 - App Store Connect app ID: `6810485632`
 - Latest iOS build ID: `d008b19d-cf55-4739-8cfe-dbdba710c1d5`

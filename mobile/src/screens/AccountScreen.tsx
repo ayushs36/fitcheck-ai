@@ -58,8 +58,7 @@ export function AccountScreen({ onComplete }: AccountScreenProps) {
         <View style={styles.header}>
           <Text style={styles.title}>FitCheck Coach</Text>
           <Text style={styles.body}>
-            Your logs stay on this device. Cloud login and private AI access will use a secure
-            backend instead of storing an API key in the app.
+            Set up your profile before choosing your goal.
           </Text>
         </View>
 

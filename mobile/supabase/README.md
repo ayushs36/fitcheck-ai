@@ -228,7 +228,7 @@ bundle exports successfully; a browser preview requires the optional
 `react-native-web` dependency, which has not been added solely for previewing.
 
 Only the project URL and publishable key belong in mobile configuration. Database
-passwords, service-role keys, and OpenAI keys must never enter the app bundle.
+passwords and service-role keys must never enter the app bundle.
 
 Email login was deferred by the owner in favor of native Apple sign-in. Custom
 SMTP remains disabled; do not expose email-code login in the launch app.

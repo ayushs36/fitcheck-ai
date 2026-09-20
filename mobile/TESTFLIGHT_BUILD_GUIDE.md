@@ -6,7 +6,6 @@
 - App Store Connect app record exists for bundle ID `com.ayushs36.fitcheckai`.
 - Expo account `ayushs36` is available on the Mac that runs the build.
 - EAS project `@ayushs36/fitcheck-ai-mobile` is linked in `app.json`.
-- No OpenAI API key is stored in the mobile app, `app.json`, EAS secrets, or client source.
 
 ## Local Preflight
 
@@ -80,7 +79,5 @@ Wait for Apple processing to finish, then open App Store Connect and confirm the
 
 ## Release Guardrails
 
-- Do not add OpenAI API calls to the mobile client.
-- Do not add a public API key to the app bundle.
 - Do not add new product features during TestFlight unless they fix a release blocker.
 - Keep App Store screenshots based on fictional data.

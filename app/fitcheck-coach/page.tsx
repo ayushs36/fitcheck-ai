@@ -55,7 +55,7 @@ export default function FitCheckCoachPage() {
               <a href="#features" className="rounded-[8px] bg-[#1769a8] px-5 py-3 text-white hover:bg-[#12598f]">Explore features</a>
               <Link href="/mobile-support" className="rounded-[8px] border border-[#d5e1ec] px-5 py-3 text-[#102a4c] hover:border-[#1769a8]">Get support</Link>
             </div>
-            <p className="mt-5 text-sm leading-6 text-[#5f738b]">Coming soon to the App Store. No public API key or AI feature is included in the mobile app.</p>
+            <p className="mt-5 text-sm leading-6 text-[#5f738b]">Coming soon to the App Store.</p>
           </div>
 
           <div className="justify-self-center">
@@ -95,7 +95,7 @@ export default function FitCheckCoachPage() {
             </p>
           </div>
           <div className="self-center border-l-2 border-[#078a78] pl-5 text-lg leading-8 text-[#102a4c]">
-            The mobile app is a logging and progress tool, not medical advice. It does not include an OpenAI API key or use a public AI service.
+            The mobile app is a logging and progress tool, not medical advice.
           </div>
         </div>
       </section>

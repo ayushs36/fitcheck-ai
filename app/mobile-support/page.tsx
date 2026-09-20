@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "FitCheck Coach Support",
-  description:
-    "Support information for FitCheck Coach, including setup, logging, backups, privacy, and TestFlight/App Store help.",
+  description: "Support information for FitCheck Coach.",
 };
 
 const supportItems = [
@@ -21,7 +20,7 @@ const supportItems = [
   },
   {
     title: "Privacy",
-    body: "Apple-linked accounts keep fitness logs private and sync them between your devices. The mobile app does not include an OpenAI API key in the public client.",
+    body: "Apple-linked accounts keep fitness logs private and sync them between your devices.",
   },
 ];
 

@@ -32,6 +32,5 @@ Confirmed in App Store Connect on September 10, 2026 for build 5:
 
 - Use demo or fictional mobile data only.
 - Confirm blank fields are not displayed as zero.
-- Confirm no OpenAI/API feature appears in the mobile app.
 - Confirm app icon and splash screen match the release assets.
 - Capture with consistent device size, light mode, and clean status bar.

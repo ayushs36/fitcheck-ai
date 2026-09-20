@@ -30,10 +30,10 @@ export default function MobilePrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-950">Where Data Is Stored</h2>
             <p className="mt-2">
-              Local-only versions, including TestFlight build 5, store fitness logs on your
-              device. Cloud-enabled versions use Sign in with Apple and Supabase to store
-              account-linked records and sync them between your devices. They also keep a
-              device cache. Existing device logs are imported only after your confirmation.
+              FitCheck Coach stores fitness records locally on your device. Cloud-enabled
+              versions use Sign in with Apple and Supabase to store account-linked records and
+              sync them between your devices. They also keep a device cache. Existing device
+              logs are imported only after your confirmation.
             </p>
           </section>
 
@@ -48,15 +48,6 @@ export default function MobilePrivacyPage() {
               information to run these services. FitCheck Coach does not sell your data or
               use third-party advertising trackers. Mobile records are separate from the
               FitCheck AI web demo.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-950">OpenAI And API Keys</h2>
-            <p className="mt-2">
-              The mobile app does not include an OpenAI API key and does not call OpenAI from the
-              public mobile client. The separate web app may include protected AI features, but
-              those are not part of the public mobile client.
             </p>
           </section>
 

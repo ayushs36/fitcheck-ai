@@ -1,10 +1,8 @@
 # FitCheck Coach App Store Metadata
 
-Cloud listing configuration was synced to App Store Connect with owner approval
-on September 13, 2026. Build 8 is available in internal TestFlight. Reviewer
-instructions and approved private contact details were also synced. Privacy labels
-remain pending; listing sync does not publish the privacy questionnaire or submit
-the app for review. Build 5 remains local-only.
+Cloud listing configuration, reviewer instructions, and private contact details
+are maintained in App Store Connect. Privacy labels remain pending until the
+final questionnaire is completed and published.
 
 ## Listing
 
@@ -28,8 +26,8 @@ The app summarizes recent weight movement, calorie and protein consistency, step
 
 Sign in with Apple to keep your fitness records connected to your account. The
 cloud-enabled app caches records on your device and syncs them to its mobile
-backend. Existing device logs are imported only with your confirmation. The
-mobile app uses rule-based coaching and does not make OpenAI API calls.
+backend. Existing device logs are imported only with your confirmation. The app
+uses practical, rule-based coaching.
 
 ## Keywords
 
@@ -57,7 +55,6 @@ tracking, Sign in with Apple, account sync, backup export, and account deletion.
 - Review Apple's Health/Fitness, User ID, Email Address, and user-content
   categories against the final implementation; this draft is not a completed
   App Store privacy questionnaire.
-- OpenAI/API usage: The mobile app does not include an OpenAI API key and does not call OpenAI from the public client.
 
 ## Privacy Questionnaire Draft (September 17)
 
@@ -85,7 +82,7 @@ and [questionnaire workflow](https://developer.apple.com/help/app-store-connect/
 
 - Privacy policy URL: https://fitcheck-ai-psi.vercel.app/mobile-privacy
 - Support URL: https://fitcheck-ai-psi.vercel.app/mobile-support
-- Marketing URL: omitted; the web demo is a separate product.
+- Marketing URL: https://fitcheck-ai-psi.vercel.app/fitcheck-coach
 
 ## App Review Notes
 
@@ -96,7 +93,7 @@ Never commit contact values or an exported contact-filled configuration.
 
 FitCheck Coach is a goal-aware fitness logging app with Sign in with Apple and
 account sync in the cloud-enabled release. It does not provide medical diagnosis,
-sell supplements, collect payment, include advertising trackers, or use OpenAI.
+sell supplements, collect payment, or include advertising trackers.
 
 Reviewers use Sign in with Apple, keep any existing device logs separate, and
 complete goal onboarding. They can then use Today, Progress, Training, Goals,

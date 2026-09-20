@@ -322,9 +322,6 @@ export function SettingsScreen({
 
         {accountStatus ? <Text style={styles.restoreStatus}>{accountStatus}</Text> : null}
 
-        <Text style={styles.helperText}>
-          Mobile has no OpenAI key. Future AI access must use a protected backend.
-        </Text>
       </Card>
 
       <Card>
@@ -387,8 +384,7 @@ export function SettingsScreen({
       <Card>
         <Text style={styles.title}>Private By Default</Text>
         <Text style={styles.body}>
-          The mobile app stores fitness logs on-device and does not include an OpenAI API key in
-          the public client.
+          Your fitness records stay on this device unless you choose to sign in and sync them.
         </Text>
       </Card>
 
