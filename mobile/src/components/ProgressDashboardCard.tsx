@@ -190,9 +190,12 @@ export function ProgressDashboardCard({
 
         <View style={styles.timelineGrid}>
           <View style={styles.timelineMetric}>
-            <Text style={styles.metricLabel}>Current</Text>
+            <Text style={styles.metricLabel}>7-day avg</Text>
             <Text style={styles.timelineValue}>
               {formatWeight(insights.goalTimeline.latestWeightLbs, unitSystem)}
+            </Text>
+            <Text style={styles.metricMeta}>
+              {insights.weightTrend.movingAverage7LoggedDays}/7 weigh-ins
             </Text>
           </View>
           <View style={styles.timelineMetric}>

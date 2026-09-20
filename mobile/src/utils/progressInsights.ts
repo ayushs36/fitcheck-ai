@@ -1,6 +1,6 @@
 import type { DailyLog, GoalType, UserSettings } from "../types/fitness.ts";
 import { getProteinTarget } from "./proteinTargets.ts";
-import { weeklyWeightChange } from "./weightTrend.ts";
+import { getWeightTrendSummary } from "./weightTrend.ts";
 
 type MetricKey = "calories" | "proteinGrams" | "steps";
 
@@ -19,6 +19,9 @@ export type WeightTrend = {
   weeklyChange?: number;
   direction: "up" | "down" | "flat" | "unknown";
   weighIns: number;
+  movingAverage7?: number;
+  movingAverage7LoggedDays: number;
+  fourteenLogAverage?: number;
 };
 
 export type LoggingQuality = {
@@ -282,12 +285,19 @@ function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): 
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const measuredChange = weeklyWeightChange(logs);
+  const summary = getWeightTrendSummary(logs);
+  const baseTrend = {
+    movingAverage7: summary.movingAverage7,
+    movingAverage7LoggedDays: summary.movingAverage7LoggedDays,
+    fourteenLogAverage: summary.fourteenLogAverage,
+  };
+  const measuredChange = summary.weeklyWeightChange;
   if (measuredChange === undefined) {
     return {
       status: "Need 14 weigh-ins",
       direction: "unknown",
       weighIns: weighIns.length,
+      ...baseTrend,
     };
   }
 
@@ -298,27 +308,27 @@ function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): 
   if (goal === "cut") {
     const targetPace = pace && pace > 0 ? pace : 1;
     if (weeklyChange <= -targetPace * 0.7) {
-      return { status: "Cutting pace on track", weeklyChange, direction, weighIns: weighIns.length };
+      return { status: "Cutting pace on track", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
     }
     if (weeklyChange > 0) {
-      return { status: "Weight trending against cut", weeklyChange, direction, weighIns: weighIns.length };
+      return { status: "Weight trending against cut", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
     }
-    return { status: "Cut is slower than target", weeklyChange, direction, weighIns: weighIns.length };
+    return { status: "Cut is slower than target", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
   }
 
   if (goal === "bulk") {
     const targetPace = pace && pace > 0 ? pace : 0.5;
     if (weeklyChange >= targetPace * 0.5) {
-      return { status: "Bulk pace moving up", weeklyChange, direction, weighIns: weighIns.length };
+      return { status: "Bulk pace moving up", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
     }
     if (weeklyChange < 0) {
-      return { status: "Weight trending down on bulk", weeklyChange, direction, weighIns: weighIns.length };
+      return { status: "Weight trending down on bulk", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
     }
-    return { status: "Bulk is slower than target", weeklyChange, direction, weighIns: weighIns.length };
+    return { status: "Bulk is slower than target", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
   }
 
   if (Math.abs(weeklyChange) <= 0.3) {
-    return { status: "Maintenance looks stable", weeklyChange, direction, weighIns: weighIns.length };
+    return { status: "Maintenance looks stable", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
   }
 
   return {
@@ -326,6 +336,7 @@ function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): 
     weeklyChange,
     direction,
     weighIns: weighIns.length,
+    ...baseTrend,
   };
 }
 
@@ -800,7 +811,7 @@ function buildGoalTimeline(
   trend: WeightTrend,
 ): GoalTimeline {
   const latestWeighIn = getLatestWeighIn(logs);
-  const latestWeightLbs = latestWeighIn?.weightLbs ?? settings?.startingWeightLbs;
+  const latestWeightLbs = trend.movingAverage7 ?? latestWeighIn?.weightLbs ?? settings?.startingWeightLbs;
 
   if (goal === "maintain") {
     return {
@@ -845,7 +856,7 @@ function buildGoalTimeline(
       latestWeightLbs,
       targetWeightLbs,
       poundsRemaining,
-      summary: "Your latest weigh-in is at or beyond the target.",
+      summary: "Your current weight trend is at or beyond the target.",
       nextAction: "Decide whether to maintain, set a new target, or start the next phase.",
     };
   }
@@ -896,8 +907,11 @@ export function calculateProgressInsights(
   const recentLogs = logs.slice(0, 14);
   const recentMetricLogs = logs.slice(0, RECENT_METRIC_AVERAGE_DAYS);
   const loggingQuality = buildLoggingQuality(logs);
-  const proteinTarget = getProteinTarget(activeGoal, getLatestWeight(logs, settings));
   const weightTrend = calculateWeightTrend(logs, activeGoal, settings?.weeklyGoalPaceLbs);
+  const proteinTarget = getProteinTarget(
+    activeGoal,
+    weightTrend.movingAverage7 ?? getLatestWeight(logs, settings),
+  );
   const averages = [
     calculateMetricAverage(recentMetricLogs, "calories", settings?.calorieTarget),
     calculateMetricAverage(

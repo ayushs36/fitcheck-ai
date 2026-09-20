@@ -4,6 +4,7 @@ import { colors } from "../theme/colors";
 import { DailyLog } from "../types/fitness";
 import { buildTrendSeries, TrendPoint } from "../utils/trendSeries";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
+import { getWeightTrendSummary } from "../utils/weightTrend";
 import { Card } from "./Card";
 
 type ProgressChartsCardProps = {
@@ -74,10 +75,12 @@ function ChartSection({
   label,
   points,
   unit,
+  summary,
 }: {
   label: string;
   points: TrendPoint[];
   unit: string;
+  summary?: string;
 }) {
   const latestPoint = points[points.length - 1];
 
@@ -86,7 +89,7 @@ function ChartSection({
       <View style={styles.sectionHeader}>
         <Text style={styles.chartLabel}>{label}</Text>
         <Text style={styles.chartMeta}>
-          {latestPoint ? `${latestPoint.value} ${unit}` : "No data"}
+          {summary ?? (latestPoint ? `${latestPoint.value} ${unit}` : "No data")}
         </Text>
       </View>
       <MiniBarChart points={points} unit={unit} weight={label === "Weight"} color={label === "Weight" ? colors.primary : label === "Calories" ? colors.warning : colors.success} />
@@ -106,6 +109,11 @@ export function ProgressChartsCard({
   const caloriePoints = buildTrendSeries(logs, "calories");
   const stepPoints = buildTrendSeries(logs, "steps");
   const weightUnit = getWeightUnitLabel(unitSystem);
+  const weightSummary = getWeightTrendSummary(logs);
+  const weightMovingAverage =
+    typeof weightSummary.movingAverage7 === "number"
+      ? `${Math.round(convertWeightFromLbs(weightSummary.movingAverage7, unitSystem) * 10) / 10} ${weightUnit} 7-day avg`
+      : undefined;
 
   return (
     <Card>
@@ -114,7 +122,7 @@ export function ProgressChartsCard({
         <Text style={styles.body}>Charts only use days where that field was logged.</Text>
       </View>
 
-      <ChartSection label="Weight" points={weightPoints} unit={weightUnit} />
+      <ChartSection label="Weight" points={weightPoints} unit={weightUnit} summary={weightMovingAverage} />
       <ChartSection label="Calories" points={caloriePoints} unit="cal" />
       <ChartSection label="Steps" points={stepPoints} unit="steps" />
     </Card>
