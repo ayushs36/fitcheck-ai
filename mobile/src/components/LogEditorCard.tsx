@@ -35,6 +35,7 @@ type LogEditorCardProps = {
   weightUnit: string;
   footer?: ReactNode;
   onDraftChange: (draft: TodayLogDraft) => void;
+  onStartWorkout?: () => void;
   onSubmit: () => void;
 };
 
@@ -55,6 +56,7 @@ export function LogEditorCard({
   weightUnit,
   footer,
   onDraftChange,
+  onStartWorkout,
   onSubmit,
 }: LogEditorCardProps) {
   function updateDraft<Value extends keyof TodayLogDraft>(
@@ -137,6 +139,16 @@ export function LogEditorCard({
           options={Array.from(new Set([...workoutTypes, draft.workoutType])).map(value => ({label: value, value}))}
           onChange={value => updateDraft("workoutType", value)} />
       </View>
+
+      {draft.workoutType !== "Rest" && onStartWorkout ? (
+        <Pressable accessibilityRole="button" onPress={onStartWorkout} style={styles.workoutDetailsButton}>
+          <View style={styles.workoutDetailsCopy}>
+            <Text style={styles.workoutDetailsTitle}>Log workout details</Text>
+            <Text style={styles.workoutDetailsBody}>Add exercises, sets, reps, and form notes in Training.</Text>
+          </View>
+          <Text style={styles.workoutDetailsArrow}>›</Text>
+        </Pressable>
+      ) : null}
 
       {workoutPerformancePreview ? (
         <Disclosure title={`Last ${workoutPerformancePreview.workoutType} workout`}>
@@ -350,6 +362,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+  },
+  workoutDetailsArrow: {
+    color: colors.primary,
+    fontSize: 28,
+    fontWeight: "400",
+  },
+  workoutDetailsBody: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  workoutDetailsButton: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    padding: 13,
+  },
+  workoutDetailsCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  workoutDetailsTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "800",
   },
   workoutText: {
     color: colors.text,

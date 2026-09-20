@@ -247,8 +247,8 @@ export function TrainingScreen() {
     Alert.alert(
       editingSession ? "Workout updated" : "Workout saved",
       editingSession
-        ? "Your saved workout was updated on this device."
-        : "Your workout was saved on this device.",
+        ? "Your saved workout was updated."
+        : "Your workout was saved.",
     );
   }
 

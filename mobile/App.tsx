@@ -16,6 +16,7 @@ function renderScreen(
   activeTab: MobileTab,
   onDataReset: () => void,
   onAccountSignedOut: () => void,
+  onStartWorkout: () => void,
 ) {
   switch (activeTab) {
     case "training":
@@ -33,7 +34,7 @@ function renderScreen(
       );
     case "today":
     default:
-      return <TodayScreen />;
+      return <TodayScreen onStartWorkout={onStartWorkout} />;
   }
 }
 
@@ -114,7 +115,7 @@ function LocalApp() {
           <AccountScreen onComplete={completeAccount} />
         ) : hasCompletedOnboarding ? (
           <>
-            {renderScreen(activeTab, handleDataReset, handleAccountSignedOut)}
+            {renderScreen(activeTab, handleDataReset, handleAccountSignedOut, () => setActiveTab("training"))}
             <BottomTabs activeTab={activeTab} onChange={setActiveTab} />
           </>
         ) : (

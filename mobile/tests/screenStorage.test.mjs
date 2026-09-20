@@ -9,7 +9,7 @@ function setup(){
   const values=new Map();
   const data=createAccountData(createAccountWorkspace({getItem:async key=>values.get(key)??null,setItem:async(key,value)=>{values.set(key,value);}},owner));
   let saves=0;
-  return {data,storage:createAccountScreenStorage({data,signOut:async()=>data.close()},()=>{saves++;}),saves:()=>saves};
+  return {data,storage:createAccountScreenStorage({userId:owner,data,signOut:async()=>data.close()},()=>{saves++;}),saves:()=>saves};
 }
 test('screen save queues sync only after a successful local save',async()=>{
   const {storage,saves}=setup();

@@ -1,10 +1,14 @@
 import type { MobileStorage } from "../storage/StorageProvider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { accountStorageKey } from "../storage/accountStorage.ts";
+import { accountTodayDraftKey, clearTodayDraft, loadTodayDraft, saveTodayDraft } from "../storage/todayDraft.ts";
 import type { AccountSession } from "./session.ts";
 
 // No method falls back to legacy storage. Unsupported bulk operations fail closed
 // until an account-aware import/delete flow is provided by the account screen.
 export function createAccountScreenStorage(session: AccountSession, onSaved: () => void): MobileStorage {
   const data = session.data;
+  const draftKey = accountTodayDraftKey(accountStorageKey(session.userId));
   const changed = async <T>(operation: Promise<T>) => {
     const result = await operation;
     onSaved();
@@ -12,6 +16,9 @@ export function createAccountScreenStorage(session: AccountSession, onSaved: () 
   };
   const unavailable = async () => { throw new Error("Use the account data controls. Legacy replacement is disabled for cloud accounts."); };
   return {
+    loadTodayLogDraft: date => loadTodayDraft(AsyncStorage, draftKey, date),
+    saveTodayLogDraft: (date, draft) => saveTodayDraft(AsyncStorage, draftKey, date, draft),
+    clearTodayLogDraft: () => clearTodayDraft(AsyncStorage, draftKey),
     loadDailyLogs: data.loadDailyLogs,
     saveDailyLogs: unavailable,
     loadDailyLogsDescending: async () => (await data.loadDailyLogs()).reverse(),

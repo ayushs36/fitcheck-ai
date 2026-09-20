@@ -13,9 +13,9 @@ import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../ut
 import { calculateProgressInsights } from "../utils/progressInsights";
 import { getWeightUnitLabel } from "../utils/units";
 
-export function TodayScreen() {
+export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void }) {
   const { getDailyLogByDate, loadDailyLogsDescending, loadRecentWorkoutSessions,
-    loadUserSettings, upsertDailyLog } = useMobileStorage();
+    loadTodayLogDraft, loadUserSettings, saveTodayLogDraft, clearTodayLogDraft, upsertDailyLog } = useMobileStorage();
   const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [existingLog, setExistingLog] = useState<DailyLog | undefined>();
   const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
@@ -31,11 +31,12 @@ export function TodayScreen() {
 
     async function loadSavedLog() {
       try {
-        const [savedTodayLog, savedLogs, savedSettings, savedWorkouts] = await Promise.all([
+        const [savedTodayLog, savedLogs, savedSettings, savedWorkouts, savedDraft] = await Promise.all([
           getDailyLogByDate(todayKey),
           loadDailyLogsDescending(),
           loadUserSettings(),
           loadRecentWorkoutSessions(30),
+          loadTodayLogDraft(todayKey),
         ]);
 
         if (!isMounted) {
@@ -50,6 +51,8 @@ export function TodayScreen() {
         setDraft(
           savedTodayLog
             ? dailyLogToDraft(savedTodayLog, unitSystem)
+            : savedDraft
+              ? savedDraft
             : { ...dailyLogToDraft(undefined, unitSystem), goal: savedSettings?.defaultGoal ?? "maintain" },
         );
         setRecentLogs(savedLogs.slice(0, 5));
@@ -67,6 +70,13 @@ export function TodayScreen() {
     };
   }, [todayKey]);
 
+  function updateDraft(nextDraft: TodayLogDraft) {
+    setDraft(nextDraft);
+    if (!isLoading) {
+      void saveTodayLogDraft(todayKey, nextDraft);
+    }
+  }
+
   async function saveLog() {
     const dailyLog = createDailyLogFromDraft({
       date: todayKey,
@@ -78,12 +88,13 @@ export function TodayScreen() {
     let updatedLogs: DailyLog[];
     try { updatedLogs = await upsertDailyLog(dailyLog, existingLog ?? null); }
     catch (error) { Alert.alert("Log not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
+    void clearTodayLogDraft();
     const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
     setExistingLog(dailyLog);
     setAllLogs(sortedLogs);
     setRecentLogs(sortedLogs.slice(0, 5));
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    Alert.alert("Log saved", "Your daily log was saved on this device.");
+    Alert.alert("Log saved", "Your daily log was saved.");
   }
 
   const coachSettings: UserSettings = {
@@ -114,7 +125,8 @@ export function TodayScreen() {
         dateLabel={formatReadableDate(todayKey)}
         draft={draft}
         workoutPerformancePreview={workoutPerformancePreview}
-        onDraftChange={setDraft}
+        onDraftChange={updateDraft}
+        onStartWorkout={onStartWorkout}
         onSubmit={saveLog}
         weightUnit={weightUnit}
         statusLabel={

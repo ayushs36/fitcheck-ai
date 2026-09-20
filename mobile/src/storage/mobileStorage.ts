@@ -1,12 +1,31 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DailyLog, MobileAccount, UserSettings, WorkoutSession } from "../types/fitness";
+import { DailyLog, MobileAccount, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
+import {
+  clearTodayDraft,
+  loadTodayDraft,
+  localTodayDraftKey,
+  saveTodayDraft,
+} from "./todayDraft";
 
 export const MOBILE_STORAGE_KEYS = {
   logs: "fitcheck-mobile:daily-logs:v1",
   workouts: "fitcheck-mobile:workout-sessions:v1",
   settings: "fitcheck-mobile:user-settings:v1",
   account: "fitcheck-mobile:account:v1",
+  todayDraft: localTodayDraftKey,
 } as const;
+
+export function loadTodayLogDraft(date: string) {
+  return loadTodayDraft(AsyncStorage, MOBILE_STORAGE_KEYS.todayDraft, date);
+}
+
+export function saveTodayLogDraft(date: string, draft: TodayLogDraft) {
+  return saveTodayDraft(AsyncStorage, MOBILE_STORAGE_KEYS.todayDraft, date, draft);
+}
+
+export function clearTodayLogDraft() {
+  return clearTodayDraft(AsyncStorage, MOBILE_STORAGE_KEYS.todayDraft);
+}
 
 export async function loadDailyLogs(): Promise<DailyLog[]> {
   const rawLogs = await AsyncStorage.getItem(MOBILE_STORAGE_KEYS.logs);
@@ -197,5 +216,6 @@ export async function clearMobileData(): Promise<void> {
     MOBILE_STORAGE_KEYS.workouts,
     MOBILE_STORAGE_KEYS.settings,
     MOBILE_STORAGE_KEYS.account,
+    MOBILE_STORAGE_KEYS.todayDraft,
   ]);
 }

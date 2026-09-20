@@ -94,7 +94,7 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
   else if (tab === "training") content = <TrainingScreen />;
   else if (tab === "progress") content = <ProgressScreen />;
   else if (tab === "goals") content = <GoalsScreen />;
-  else content = <TodayScreen />;
+  else content = <TodayScreen onStartWorkout={() => setTab("training")} />;
 
   return <SafeAreaView style={styles.safe}><StorageProvider storage={storage}><View style={styles.app}>
     {loaded && <Pressable accessibilityRole="button" accessibilityLabel={`Account sync: ${status}. Open account settings.`} style={styles.status} onPress={() => setTab("settings")}>
