@@ -208,7 +208,7 @@ export function LogEditorCard({
 const styles = StyleSheet.create({
   cardHeader: {
     alignItems: "flex-start",
-    flexDirection: "row",
+    flexDirection: "column",
     gap: 12,
     justifyContent: "space-between",
   },

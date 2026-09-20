@@ -7,7 +7,6 @@ import type { MobileStorage } from "../storage/StorageProvider";
 import type { SyncConflict } from "./reconcile";
 import { describeRecord } from "./recordDescription";
 import { confirmAppleAccountDeletion } from "./appleAuth";
-import { WebLogImportControl } from "./WebLogImportControl";
 
 const SUPPORT_URL = "https://fitcheck-ai-psi.vercel.app/mobile-support";
 const PRIVACY_URL = "https://fitcheck-ai-psi.vercel.app/mobile-privacy";
@@ -67,7 +66,6 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
         const backup = await storage.loadMobileDataBackup();
         await Share.share({title: "FitCheck Coach Backup", message: JSON.stringify(backup, null, 2)});
       })}><Text style={styles.link}>Export account records</Text></Pressable>
-      <WebLogImportControl session={session} onSync={onSync} />
     </View>
     <View style={styles.section}>
       <Text style={styles.title}>Help & Support</Text>

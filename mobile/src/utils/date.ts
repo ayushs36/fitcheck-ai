@@ -1,5 +1,5 @@
-export function getTodayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+export function getTodayKey(today = new Date()): string {
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
 export function formatReadableDate(dateKey: string): string {

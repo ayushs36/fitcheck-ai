@@ -89,7 +89,7 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
       {error && <><Text style={styles.error}>{error}</Text><Pressable accessibilityRole="button" onPress={requestSync} style={styles.button}><Text style={styles.link}>Retry restore</Text></Pressable></>}
       <Pressable accessibilityRole="button" style={styles.button} onPress={() => { void session.signOut().catch(failure => setError(String(failure))); }}><Text style={styles.link}>Sign out</Text></Pressable>
     </View>;
-  } else if (!hasSettings) content = <OnboardingScreen session={session} onSync={requestSync} onComplete={() => { setHasSettings(true); requestSync(); }} />;
+  } else if (!hasSettings) content = <OnboardingScreen session={session} onComplete={() => { setHasSettings(true); requestSync(); }} />;
   else if (tab === "settings") content = <CloudAccountScreen session={session} storage={storage} conflicts={conflicts} error={error} status={status} onSync={requestSync} onResolve={resolve} />;
   else if (tab === "training") content = <TrainingScreen />;
   else if (tab === "progress") content = <ProgressScreen />;

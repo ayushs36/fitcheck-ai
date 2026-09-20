@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, AppState, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { DailyCoachBriefCard } from "../components/DailyCoachBriefCard";
 import { LogEditorCard } from "../components/LogEditorCard";
@@ -14,6 +14,26 @@ import { calculateProgressInsights } from "../utils/progressInsights";
 import { getWeightUnitLabel } from "../utils/units";
 
 export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void }) {
+  const [date, setDate] = useState(() => getTodayKey());
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    function refreshDate() {
+      clearTimeout(timer);
+      setDate(getTodayKey());
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      timer = setTimeout(refreshDate, midnight.getTime() - now.getTime() + 50);
+    }
+    refreshDate();
+    const subscription = AppState.addEventListener("change", state => {
+      if (state === "active") refreshDate();
+    });
+    return () => { clearTimeout(timer); subscription.remove(); };
+  }, []);
+  return <TodayLogScreen key={date} todayKey={date} onStartWorkout={onStartWorkout} />;
+}
+
+function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWorkout?: () => void}) {
   const { getDailyLogByDate, loadDailyLogsDescending, loadRecentWorkoutSessions,
     loadTodayLogDraft, loadUserSettings, saveTodayLogDraft, clearTodayLogDraft, upsertDailyLog } = useMobileStorage();
   const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
@@ -24,7 +44,9 @@ export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void })
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-  const todayKey = useMemo(() => getTodayKey(), []);
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -49,13 +71,18 @@ export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void })
         setRecentWorkouts(savedWorkouts);
         const unitSystem = savedSettings?.unitSystem ?? "imperial";
         setDraft(
-          savedTodayLog
-            ? dailyLogToDraft(savedTodayLog, unitSystem)
-            : savedDraft
-              ? savedDraft
+          savedDraft
+            ? savedDraft
+            : savedTodayLog
+              ? dailyLogToDraft(savedTodayLog, unitSystem)
             : { ...dailyLogToDraft(undefined, unitSystem), goal: savedSettings?.defaultGoal ?? "maintain" },
         );
         setRecentLogs(savedLogs.slice(0, 5));
+      } catch {
+        if (isMounted) {
+          setLoadError(true);
+          Alert.alert("Log unavailable", "Reopen Today to load your saved log before editing.");
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -71,30 +98,44 @@ export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void })
   }, [todayKey]);
 
   function updateDraft(nextDraft: TodayLogDraft) {
+    if (isLoading || loadError || saveLock.current) return;
     setDraft(nextDraft);
     if (!isLoading) {
-      void saveTodayLogDraft(todayKey, nextDraft);
+      void saveTodayLogDraft(todayKey, nextDraft).catch(() => {
+        Alert.alert("Draft not saved", "Save today's log before closing the app.");
+      });
     }
   }
 
   async function saveLog() {
-    const dailyLog = createDailyLogFromDraft({
-      date: todayKey,
-      draft,
-      existingLog,
-      unitSystem: settings?.unitSystem ?? "imperial",
-    });
+    if (isLoading || loadError || saveLock.current) return;
+    saveLock.current = true;
+    setSaving(true);
+    try {
+      const dailyLog = createDailyLogFromDraft({
+        date: todayKey,
+        draft,
+        existingLog,
+        unitSystem: settings?.unitSystem ?? "imperial",
+      });
 
-    let updatedLogs: DailyLog[];
-    try { updatedLogs = await upsertDailyLog(dailyLog, existingLog ?? null); }
-    catch (error) { Alert.alert("Log not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
-    void clearTodayLogDraft();
-    const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
-    setExistingLog(dailyLog);
-    setAllLogs(sortedLogs);
-    setRecentLogs(sortedLogs.slice(0, 5));
-    setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    Alert.alert("Log saved", "Your daily log was saved.");
+      let updatedLogs: DailyLog[];
+      try { updatedLogs = await upsertDailyLog(dailyLog, existingLog ?? null); }
+      catch (error) { Alert.alert("Log not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
+      if (getTodayKey() === todayKey) {
+        try { await clearTodayLogDraft(); }
+        catch { Alert.alert("Log saved", "Draft cleanup failed. Check the values when reopening Today."); }
+      }
+      const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
+      setExistingLog(dailyLog);
+      setDraft(dailyLogToDraft(dailyLog, settings?.unitSystem ?? "imperial"));
+      setAllLogs(sortedLogs);
+      setRecentLogs(sortedLogs.slice(0, 5));
+      setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+    } finally {
+      saveLock.current = false;
+      setSaving(false);
+    }
   }
 
   const coachSettings: UserSettings = {
@@ -112,6 +153,12 @@ export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void })
   const coachInsights = calculateProgressInsights(allLogs, coachSettings);
   const unitSystem = settings?.unitSystem ?? "imperial";
   const weightUnit = getWeightUnitLabel(unitSystem);
+  const hasUnsavedChanges = existingLog
+    ? JSON.stringify(draft) !== JSON.stringify(dailyLogToDraft(existingLog, unitSystem))
+    : false;
+  const savedTime = lastSavedAt ?? (existingLog
+    ? new Date(existingLog.updatedAt).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})
+    : null);
   const workoutPerformancePreview = useMemo(
     () => buildWorkoutPerformancePreview(draft.workoutType, recentWorkouts),
     [draft.workoutType, recentWorkouts],
@@ -121,6 +168,7 @@ export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void })
     <Screen
       title="Today"
     >
+      <View pointerEvents={isLoading || loadError || saving ? "none" : "auto"}>
       <LogEditorCard
         dateLabel={formatReadableDate(todayKey)}
         draft={draft}
@@ -131,16 +179,23 @@ export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void })
         weightUnit={weightUnit}
         statusLabel={
           isLoading
-            ? "Loading saved log"
+            ? "Loading today"
+            : loadError
+              ? "Unable to load"
+            : saving
+              ? "Saving"
+            : hasUnsavedChanges
+              ? "Unsaved changes"
             : existingLog
-              ? "Editing saved daily log"
+              ? "Saved for today"
               : "New daily check-in"
         }
-        submitLabel={existingLog ? "Update Today" : "Save Today"}
+        submitLabel={saving ? "Saving..." : existingLog ? "Update Today" : "Save Today"}
         footer={
-          lastSavedAt ? <Text style={styles.savedMeta}>Last saved at {lastSavedAt}</Text> : null
+          existingLog && savedTime ? <Text accessibilityLiveRegion="polite" style={styles.savedMeta}>Saved at {savedTime}</Text> : null
         }
       />
+      </View>
 
       <DailyCoachBriefCard insights={coachInsights} unitSystem={unitSystem} />
 

@@ -11,12 +11,10 @@ import { parseOptionalNumber } from "../utils/logDraft";
 import { getWeightUnitLabel, parseWeightToLbs, UnitSystem } from "../utils/units";
 import { formatWeightFromLbs } from "../utils/units";
 import type { AccountSession } from "../cloud/session";
-import { WebLogImportControl } from "../cloud/WebLogImportControl";
 
 type OnboardingScreenProps = {
   onComplete: (settings: UserSettings) => void;
   session?: AccountSession;
-  onSync?: () => void;
 };
 
 type OnboardingDraft = {
@@ -64,10 +62,9 @@ function getGoalIntro(goal: GoalType): string {
   return "FitCheck will prioritize stable weight, consistent habits, and training quality while you maintain.";
 }
 
-export function OnboardingScreen({ onComplete, session, onSync }: OnboardingScreenProps) {
+export function OnboardingScreen({ onComplete, session }: OnboardingScreenProps) {
   const { saveUserSettings } = useMobileStorage();
   const [draft, setDraft] = useState(initialDraft);
-  const [importBusy, setImportBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const weightUnit = getWeightUnitLabel(draft.unitSystem);
 
@@ -94,7 +91,7 @@ export function OnboardingScreen({ onComplete, session, onSync }: OnboardingScre
   }
 
   async function completeOnboarding() {
-    if (importBusy || saving) return;
+    if (saving) return;
     setSaving(true);
     const settings: UserSettings = {
       unitSystem: draft.unitSystem,
@@ -119,14 +116,6 @@ export function OnboardingScreen({ onComplete, session, onSync }: OnboardingScre
       title="Set Up FitCheck"
       subtitle="Start with the basics so the app can interpret your logs around your current goal."
     >
-      {session && onSync && <View pointerEvents={saving ? "none" : "auto"}>
-        <WebLogImportControl session={session} onSync={onSync} onBusyChange={setImportBusy} onImported={async () => {
-          const logs = (await session.data.loadDailyLogs()).slice().sort((a, b) => a.date.localeCompare(b.date));
-          const firstWeight = logs.find(log => typeof log.weightLbs === "number" && log.weightLbs > 0)?.weightLbs;
-          setDraft(current => ({...current, defaultGoal: logs.at(-1)?.goal ?? current.defaultGoal,
-            startingWeight: firstWeight === undefined ? current.startingWeight : formatWeightFromLbs(firstWeight, current.unitSystem)}));
-        }} />
-      </View>}
       <Card>
         <View style={styles.header}>
           <Text style={styles.title}>Your coaching setup</Text>
@@ -211,7 +200,7 @@ export function OnboardingScreen({ onComplete, session, onSync }: OnboardingScre
           </Text>
         </View>
 
-        <Pressable accessibilityRole="button" disabled={importBusy || saving} onPress={completeOnboarding} style={styles.primaryButton}>
+        <Pressable accessibilityRole="button" disabled={saving} onPress={completeOnboarding} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Start Logging</Text>
         </Pressable>
       </Card>

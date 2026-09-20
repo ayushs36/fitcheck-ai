@@ -1,5 +1,15 @@
 # FitCheck Coach Release Status
 
+September 20 source changes awaiting the final build:
+
+- Removed the temporary web-to-mobile transfer controls and implementation.
+  Previously imported records retain their identifiers and storage format.
+- Today uses the phone's local calendar date and refreshes at midnight or on
+  returning to the app. Saved logs remain editable for the same day.
+- The editor distinguishes saved records from unsaved edits and restores local
+  drafts when reopening.
+- A final iOS build has not been started for these changes.
+
 ## Current Status
 
 September 19 build 10:

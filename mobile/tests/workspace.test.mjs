@@ -12,6 +12,20 @@ function memory() {
   const values = new Map();
   return {values,getItem:async key=>values.get(key)??null,setItem:async(key,value)=>{values.set(key,value);}};
 }
+test('previously imported web records remain editable after transfer tools are removed', async () => {
+  const storage = memory();
+  const imported = {...payload, id: 'web:2026-09-11', calories: 2200};
+  const workspace = createAccountWorkspace(storage, owner);
+  await workspace.receive([{...remote, payload: imported}]);
+  const reopened = createAccountWorkspace(storage, owner);
+  assert.deepEqual(visibleWorkspaceRecords(await reopened.snapshot())[0].payload, imported);
+  await reopened.edit({...edit, expectedRevision: 1, payload: {...imported, steps: 8500}}, imported);
+  const saved = visibleWorkspaceRecords(await reopened.snapshot())[0].payload;
+  assert.equal(saved.weightLbs, 135);
+  assert.equal(saved.calories, 2200);
+  assert.equal(saved.steps, 8500);
+  assert.equal(visibleWorkspaceRecords(await createAccountWorkspace(storage, other).snapshot()).length, 0);
+});
 test('one persisted document preserves local edits and pending upload across restart',async()=>{
   const storage=memory();
   await createAccountWorkspace(storage,owner).edit(edit);
