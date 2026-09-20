@@ -12,17 +12,18 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
-    },
-    "cloud-qa": {
-      "extends": "production",
-      "distribution": "store",
-      "environment": "preview",
+      "autoIncrement": true,
+      "environment": "production",
       "env": {
         "EXPO_PUBLIC_ACCOUNT_SYNC_ENABLED": "true",
         "EXPO_PUBLIC_SUPABASE_URL": "https://uzjrzjfduzqhfvypmlra.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QQRK0swOJdFikSbJFD81vQ_zcRGCVVx"
       }
+    },
+    "cloud-qa": {
+      "extends": "production",
+      "distribution": "store",
+      "environment": "preview"
     }
   },
   "submit": {

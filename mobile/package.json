@@ -15,6 +15,7 @@
     "doctor": "npx expo-doctor",
     "preflight:release": "npm run typecheck && npx expo-doctor",
     "build:ios:testflight": "npx eas-cli build --platform ios --profile production",
+    "build:ios:cloud-qa": "npx eas-cli build --platform ios --profile cloud-qa",
     "submit:ios:testflight": "npx eas-cli submit --platform ios --profile production"
   },
   "dependencies": {
