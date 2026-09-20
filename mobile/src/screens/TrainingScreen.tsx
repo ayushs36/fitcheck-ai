@@ -229,10 +229,11 @@ export function TrainingScreen() {
   }
 
   function editWorkout(session: WorkoutSession) {
+    const nextDraft = createWorkoutDraftFromSession(session, unitSystem);
     setEditingSession(session);
-    setDraft(createWorkoutDraftFromSession(session, unitSystem));
+    setDraft(nextDraft);
     setLastSavedAt(null);
-    setSavedExerciseIds(new Set());
+    setSavedExerciseIds(new Set(nextDraft.exercises.map((exercise) => exercise.id)));
     setActiveExerciseId(null);
     setIsComposerOpen(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -308,6 +309,16 @@ export function TrainingScreen() {
       Alert.alert(
         "Exercises still in this draft",
         "Remove the exercises or choose a workout name before saving a rest day.",
+      );
+      return;
+    }
+    const unfinishedExercise = draft.exercises.find(
+      (exercise) => exercise.name.trim() && !savedExerciseIds.has(exercise.id),
+    );
+    if (!isRest && unfinishedExercise) {
+      Alert.alert(
+        "Finish this exercise",
+        `Save ${unfinishedExercise.name.trim()} before saving the workout.`,
       );
       return;
     }
@@ -737,21 +748,21 @@ export function TrainingScreen() {
 
                         <Pressable
                           accessibilityRole="button"
-                          onPress={() => saveExercise(exercise)}
-                          style={styles.exerciseSaveButton}
-                        >
-                          <Text style={styles.exerciseSaveText}>
-                            Save exercise
-                          </Text>
-                        </Pressable>
-
-                        <Pressable
-                          accessibilityRole="button"
                           onPress={() => addSet(exercise.id)}
                           style={styles.secondaryButton}
                         >
                           <Text style={styles.secondaryButtonText}>
                             Add set
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => saveExercise(exercise)}
+                          style={styles.exerciseSaveButton}
+                        >
+                          <Text style={styles.exerciseSaveText}>
+                            Save exercise
                           </Text>
                         </Pressable>
                       </>

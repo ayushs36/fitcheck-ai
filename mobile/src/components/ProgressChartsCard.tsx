@@ -50,16 +50,17 @@ function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; u
       <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator onContentSizeChange={() => scroll.current?.scrollToEnd({animated: false})}>
       <View style={{width, height: 196}}>
       {ticks.map((_, index) => <View key={index} style={{position: "absolute", top: index * 40, width: "100%", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border}} />)}
-      {points.map((point) => {
+      {points.map((point, index) => {
         const height = (point.value - min) / (max - min) * 160;
         const offset = Math.round((Date.parse(`${point.date}T12:00:00Z`) - start) / 86400000);
+        const showDateLabel = index === points.length - 1 || (points.length - 1 - index) % 2 === 0;
 
         return (
           <Pressable key={point.date} accessibilityRole="button" accessibilityLabel={`${point.label}: ${point.value} ${unit}`}
             accessibilityState={{selected: selected.date === point.date}} onPress={() => setSelectedDate(point.date)}
             style={{position: "absolute", left: offset / days * width, width: width / days, height: 196, alignItems: "center"}}>
             <View style={{position: "absolute", bottom: weight ? 36 + height - 5 : 36, width: weight ? 10 : 18, height: weight ? 10 : height, borderRadius: weight ? 5 : 2, backgroundColor: color, opacity: selected.date === point.date ? 1 : 0.7}} />
-            <Text style={{position: "absolute", bottom: 10, fontSize: 10, color: colors.textMuted}}>{point.date.slice(5).replace("-", "/")}</Text>
+            {showDateLabel ? <Text style={{position: "absolute", bottom: 10, fontSize: 10, color: colors.textMuted}}>{point.date.slice(5).replace("-", "/")}</Text> : null}
           </Pressable>
         );
       })}

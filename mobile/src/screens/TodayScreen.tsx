@@ -11,7 +11,7 @@ import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/
 import { formatReadableDate, getTodayKey } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
-import { getWeightUnitLabel } from "../utils/units";
+import { formatWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 
 export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void }) {
   const [date, setDate] = useState(() => getTodayKey());
@@ -160,8 +160,8 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
     ? new Date(existingLog.updatedAt).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})
     : null);
   const workoutPerformancePreview = useMemo(
-    () => buildWorkoutPerformancePreview(draft.workoutType, recentWorkouts),
-    [draft.workoutType, recentWorkouts],
+    () => buildWorkoutPerformancePreview(draft.workoutType, recentWorkouts, unitSystem),
+    [draft.workoutType, recentWorkouts, unitSystem],
   );
 
   return (
@@ -213,6 +213,7 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
 function buildWorkoutPerformancePreview(
   workoutType: TodayLogDraft["workoutType"],
   workouts: WorkoutSession[],
+  unitSystem: UnitSystem,
 ) {
   if (workoutType === "Rest") {
     return null;
@@ -250,7 +251,7 @@ function buildWorkoutPerformancePreview(
           const load = set.isBodyweight
             ? "bodyweight"
             : typeof set.weightLbs === "number"
-              ? `${set.weightLbs} lb`
+              ? `${formatWeightFromLbs(set.weightLbs, unitSystem)} ${getWeightUnitLabel(unitSystem)}`
               : "no load";
 
           return `${reps} reps @ ${load}`;

@@ -217,7 +217,7 @@ export function GoalsScreen() {
     catch (error) { Alert.alert("Goal not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
     setOriginalSettings(settings);
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    Alert.alert("Goal saved", "Your goal setup was saved on this device.");
+    Alert.alert("Goal saved", "Your goal setup was saved.");
   }
 
   function useSuggestedTargets() {
@@ -253,7 +253,22 @@ export function GoalsScreen() {
           <SegmentedControl
             options={unitOptions}
             value={draft.unitSystem}
-            onChange={(unitSystem) => updateDraft("unitSystem", unitSystem)}
+            onChange={(unitSystem) => setDraft((current) => ({
+              ...current,
+              unitSystem,
+              startingWeight: formatWeightFromLbs(
+                parseWeightToLbs(current.startingWeight, current.unitSystem),
+                unitSystem,
+              ),
+              targetWeight: formatWeightFromLbs(
+                parseWeightToLbs(current.targetWeight, current.unitSystem),
+                unitSystem,
+              ),
+              weeklyGoalPaceLbs: formatWeightFromLbs(
+                parseWeightToLbs(current.weeklyGoalPaceLbs, current.unitSystem),
+                unitSystem,
+              ),
+            }))}
           />
         </View>
 
