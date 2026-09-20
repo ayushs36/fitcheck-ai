@@ -95,9 +95,10 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
   else if (tab === "progress") content = <ProgressScreen />;
   else if (tab === "goals") content = <GoalsScreen />;
   else content = <TodayScreen onStartWorkout={() => setTab("training")} />;
+  const showSyncNotice = loaded && status !== "Up to date";
 
   return <SafeAreaView style={styles.safe}><StorageProvider storage={storage}><View style={styles.app}>
-    {loaded && <Pressable accessibilityRole="button" accessibilityLabel={`Account sync: ${status}. Open account settings.`} style={styles.status} onPress={() => setTab("settings")}>
+    {showSyncNotice && <Pressable accessibilityRole="button" accessibilityLabel={`Account sync: ${status}. Open account settings.`} style={styles.status} onPress={() => setTab("settings")}>
       <Text style={[styles.statusText, error ? {color: colors.danger} : undefined]}>{status}</Text>
     </Pressable>}
     {content}

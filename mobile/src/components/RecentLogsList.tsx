@@ -67,7 +67,6 @@ export function RecentLogsList({
             <View style={styles.rowHeader}>
               <View style={styles.dateBlock}>
                 <Text style={styles.date}>{formatReadableDate(log.date)}</Text>
-                <Text style={styles.dateMeta}>{log.date}</Text>
               </View>
               <View style={styles.goalPill}>
                 <Text style={styles.goal}>{log.goal}</Text>
@@ -106,12 +105,6 @@ const styles = StyleSheet.create({
   },
   dateBlock: {
     flex: 1,
-    gap: 2,
-  },
-  dateMeta: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "700",
   },
   emptyBody: {
     color: colors.textMuted,

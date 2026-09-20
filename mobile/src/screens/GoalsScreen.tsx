@@ -73,14 +73,14 @@ function settingsToDraft(settings: UserSettings | null): GoalDraft {
 
 function getGoalCopy(goal: GoalType): string {
   if (goal === "cut") {
-    return "Use this when the main goal is fat loss. Pace should usually be entered as weight lost per week.";
+    return "Set a realistic weekly loss pace and the targets that support it.";
   }
 
   if (goal === "bulk") {
-    return "Use this when the main goal is muscle gain. Pace should usually be slower than a cut.";
+    return "Set a measured weekly gain pace and the targets that support it.";
   }
 
-  return "Use this when the main goal is keeping weight stable while training, eating well, and staying active.";
+  return "Set steady targets that support stable weight and training.";
 }
 
 function getStepSuggestion(goal: GoalType): number {
@@ -231,7 +231,7 @@ export function GoalsScreen() {
   return (
     <Screen
       title="Goals"
-      subtitle="Set how FitCheck Coach should interpret your logs for cutting, maintaining, or bulking."
+      subtitle="Set targets for your current phase."
     >
       <Card>
         <View style={styles.header}>

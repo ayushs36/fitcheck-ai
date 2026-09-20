@@ -355,7 +355,7 @@ export function TrainingScreen() {
               value={exercise.name}
             />
             <Disclosure
-              title={exercise.muscleGroup ? `Muscle group: ${exercise.muscleGroup}` : "Add muscle group"}
+              title={exercise.muscleGroup ? `Muscle group: ${exercise.muscleGroup}` : "Muscle group (optional)"}
               initiallyOpen={Boolean(exercise.muscleGroup)}
             >
               <TextField
