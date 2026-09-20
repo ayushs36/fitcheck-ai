@@ -9,7 +9,7 @@
     "scheme": "fitcheckai",
     "ios": {
       "usesAppleSignIn": true,
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.ayushs36.fitcheckai",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
