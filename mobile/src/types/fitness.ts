@@ -1,15 +1,6 @@
 export type GoalType = "cut" | "maintain" | "bulk";
 
-export type WorkoutType =
-  | "Push"
-  | "Pull"
-  | "Legs"
-  | "Upper"
-  | "Lower"
-  | "Full Body"
-  | "Cardio"
-  | "Rest"
-  | "Other";
+export type WorkoutType = string;
 
 export type ExerciseSet = {
   id: string;

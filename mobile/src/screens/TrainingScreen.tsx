@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
@@ -7,6 +7,8 @@ import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
 import { useMobileStorage } from "../storage/StorageProvider";
 import { SelectMenu } from "../components/SelectMenu";
 import { Disclosure } from "../components/Disclosure";
+import { WorkoutNameField } from "../components/WorkoutNameField";
+import { loggedExercises } from "../utils/workoutSuggestions";
 import { colors } from "../theme/colors";
 import { ExerciseDraft, WorkoutDraft, WorkoutSession, WorkoutType } from "../types/fitness";
 import { formatReadableDate, getTodayKey } from "../utils/date";
@@ -19,17 +21,6 @@ import {
   createWorkoutSessionFromDraft,
 } from "../utils/workoutDraft";
 
-const workoutTypes: WorkoutType[] = [
-  "Push",
-  "Pull",
-  "Legs",
-  "Upper",
-  "Lower",
-  "Full Body",
-  "Cardio",
-  "Rest",
-  "Other",
-];
 
 function normalizeExerciseName(name: string) {
   return name.trim().toLowerCase();
@@ -90,7 +81,7 @@ function getLastExercisePerformance(
 }
 
 export function TrainingScreen() {
-  const { addWorkoutSession, deleteWorkoutSessionById, loadRecentWorkoutSessions,
+  const { addWorkoutSession, deleteWorkoutSessionById, loadWorkoutSessions,
     loadUserSettings, upsertWorkoutSession } = useMobileStorage();
   const todayKey = useMemo(() => getTodayKey(), []);
   const [draft, setDraft] = useState<WorkoutDraft>(() => createBlankWorkoutDraft());
@@ -98,18 +89,22 @@ export function TrainingScreen() {
   const [unitSystem, setUnitSystem] = useState<UnitSystem>("imperial");
   const [editingSession, setEditingSession] = useState<WorkoutSession | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const saveLock = useRef(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const [saving, setSaving] = useState(false);
+  const [historyMonth, setHistoryMonth] = useState("");
 
   async function refreshSessions() {
     const [sessions, settings] = await Promise.all([
-      loadRecentWorkoutSessions(20),
+      loadWorkoutSessions(),
       loadUserSettings(),
     ]);
-    setRecentSessions(sessions);
+    setRecentSessions(sessions.slice().sort((a, b) => b.date.localeCompare(a.date)));
     setUnitSystem(settings?.unitSystem ?? "imperial");
   }
 
   useEffect(() => {
-    refreshSessions();
+    void refreshSessions().catch(() => Alert.alert("Workouts unavailable", "Reopen Training to load your saved workouts."));
   }, []);
 
   function updateExercise(exerciseId: string, nextExercise: ExerciseDraft) {
@@ -143,26 +138,23 @@ export function TrainingScreen() {
   }
 
   function removeExercise(exerciseId: string) {
-    setDraft((currentDraft) => ({
+    const remove = () => setDraft((currentDraft) => ({
       ...currentDraft,
       exercises: currentDraft.exercises.filter((exercise) => exercise.id !== exerciseId),
     }));
+    const exercise = draft.exercises.find(item => item.id === exerciseId);
+    if (!exercise?.name.trim() && !exercise?.sets.some(set => set.reps || set.weightLbs)) {
+      remove();
+      return;
+    }
+    Alert.alert("Remove exercise?", "This removes the exercise from this draft. Save the workout to update its history.", [
+      {text: "Cancel", style: "cancel"}, {text: "Remove", style: "destructive", onPress: remove},
+    ]);
   }
 
   function selectWorkoutType(type: WorkoutType) {
+    // Naming a workout must not discard exercises already entered.
     setDraft((currentDraft) => {
-      if (type === "Rest") {
-        return {
-          ...currentDraft,
-          type,
-          exercises: [],
-        };
-      }
-
-      if (currentDraft.type === "Rest") {
-        return createBlankWorkoutDraft(type);
-      }
-
       return {
         ...currentDraft,
         type,
@@ -170,27 +162,11 @@ export function TrainingScreen() {
     });
   }
 
-  function useLastWorkout() {
-    const matchingWorkout = recentSessions.find(
-      (session) => session.type === draft.type && session.exercises.length > 0,
-    );
-    const fallbackWorkout = recentSessions.find((session) => session.exercises.length > 0);
-    const sourceWorkout = matchingWorkout ?? fallbackWorkout;
-
-    if (!sourceWorkout) {
-      Alert.alert("No previous workout", "Save a workout first, then you can reuse it here.");
-      return;
-    }
-
-    setDraft(createWorkoutDraftFromSession(sourceWorkout, unitSystem));
-    setEditingSession(null);
-    setLastSavedAt(null);
-  }
-
   function editWorkout(session: WorkoutSession) {
     setEditingSession(session);
     setDraft(createWorkoutDraftFromSession(session, unitSystem));
     setLastSavedAt(null);
+    scrollRef.current?.scrollTo({y: 0, animated: true});
   }
 
   function cancelEditWorkout() {
@@ -211,13 +187,23 @@ export function TrainingScreen() {
   }
 
   async function saveWorkout() {
+    if (saveLock.current) return;
+    if (!draft.type.trim()) {
+      Alert.alert("Name your workout", "Enter a workout name before saving.");
+      return;
+    }
+    const isRest = draft.type.trim().toLowerCase() === "rest";
+    if (isRest && draft.exercises.some(exercise => exercise.name.trim())) {
+      Alert.alert("Exercises still in this draft", "Remove the exercises or choose a workout name before saving a rest day.");
+      return;
+    }
     const draftedWorkoutSession = createWorkoutSessionFromDraft({
-      date: editingSession?.date ?? todayKey,
-      draft,
+      date: editingSession?.date ?? getTodayKey(),
+      draft: isRest ? {...draft, type: "Rest", exercises: []} : draft,
       unitSystem,
     });
 
-    if (draftedWorkoutSession.exercises.length === 0 && draft.type !== "Rest") {
+    if (draftedWorkoutSession.exercises.length === 0 && !isRest) {
       Alert.alert("Add an exercise", "Name at least one exercise before saving this workout.");
       return;
     }
@@ -231,6 +217,8 @@ export function TrainingScreen() {
         }
       : draftedWorkoutSession;
     let sessions: WorkoutSession[];
+    saveLock.current = true;
+    setSaving(true);
     try {
       sessions = editingSession
         ? await upsertWorkoutSession(workoutSession, editingSession)
@@ -238,9 +226,12 @@ export function TrainingScreen() {
     } catch (error) {
       Alert.alert("Workout not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept.");
       return;
+    } finally {
+      saveLock.current = false;
+      setSaving(false);
     }
 
-    setRecentSessions(sessions.slice(0, 20));
+    setRecentSessions(sessions.slice().sort((a, b) => b.date.localeCompare(a.date)));
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft(draft.type));
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
@@ -265,49 +256,31 @@ export function TrainingScreen() {
             let sessions: WorkoutSession[];
             try { sessions = await deleteWorkoutSessionById(session.id, session); }
             catch (error) { Alert.alert("Workout not deleted", error instanceof Error ? error.message : "Please reopen the record and try again."); return; }
-            setRecentSessions(sessions.slice(0, 20));
+            setRecentSessions(sessions.slice().sort((a, b) => b.date.localeCompare(a.date)));
             if (editingSession?.id === session.id) {
               setEditingSession(null);
               setDraft(createBlankWorkoutDraft(draft.type));
             }
-            Alert.alert("Workout deleted", "The workout was removed from this device.");
+            Alert.alert("Workout deleted", "The workout was removed from your saved training history.");
           },
         },
       ],
     );
   }
 
-  const savedExercisesForWorkout = useMemo(() => {
-    const savedExercises = new Map<string, Pick<ExerciseDraft, "name" | "muscleGroup">>();
-
-    recentSessions
-      .filter((session) => session.type === draft.type)
-      .forEach((session) => {
-        session.exercises.forEach((loggedExercise) => {
-          const exerciseName = loggedExercise.name.trim();
-          const normalizedName = exerciseName.toLowerCase();
-
-          if (!exerciseName || savedExercises.has(normalizedName)) {
-            return;
-          }
-
-          savedExercises.set(normalizedName, {
-            name: exerciseName,
-            muscleGroup: loggedExercise.muscleGroup || "Saved",
-          });
-        });
-      });
-
-    return Array.from(savedExercises.values());
-  }, [draft.type, recentSessions]);
-  const isRestDay = draft.type === "Rest";
+  const savedExercisesForWorkout = useMemo(() => loggedExercises(draft.type, recentSessions), [draft.type, recentSessions]);
+  const isRestDay = draft.type.trim().toLowerCase() === "rest" && !draft.exercises.some(exercise => exercise.name.trim());
   const weightUnit = getWeightUnitLabel(unitSystem);
-  const visibleRecentSessions = recentSessions.slice(0, 5);
+  const historyMonths = [...new Set(recentSessions.map(session => session.date.slice(0, 7)))];
+  const selectedMonth = historyMonths.includes(historyMonth) ? historyMonth : historyMonths[0];
+  const visibleRecentSessions = recentSessions.filter(session => session.date.startsWith(selectedMonth ?? ""));
 
   return (
     <Screen
       title="Training"
+      scrollRef={scrollRef}
     >
+      <View pointerEvents={saving ? "none" : "auto"}>
       <Card>
         <View style={styles.header}>
           <Text style={styles.title}>
@@ -321,10 +294,7 @@ export function TrainingScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Workout type</Text>
-          <SelectMenu label="Workout type" value={draft.type}
-            options={Array.from(new Set([...workoutTypes, ...recentSessions.map(session => session.type), draft.type])).map(value => ({label: value, value}))}
-            onChange={selectWorkoutType} />
+          <WorkoutNameField value={draft.type} onChange={selectWorkoutType} refreshKey={recentSessions} />
         </View>
 
         {isRestDay ? (
@@ -340,17 +310,10 @@ export function TrainingScreen() {
             <View style={styles.quickActions}>
               <Pressable
                 accessibilityRole="button"
-                onPress={useLastWorkout}
-                style={styles.secondaryButton}
-              >
-                <Text style={styles.secondaryButtonText}>Use Last Workout</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
                 onPress={addExercise}
                 style={styles.secondaryButton}
               >
-                <Text style={styles.secondaryButtonText}>Add Custom Exercise</Text>
+                <Text style={styles.secondaryButtonText}>Add exercise</Text>
               </Pressable>
             </View>
 
@@ -418,7 +381,14 @@ export function TrainingScreen() {
 
             {exercise.sets.map((set, setIndex) => (
               <View key={set.id} style={styles.setBlock}>
-                <Text style={styles.setTitle}>Set {setIndex + 1}</Text>
+                <View style={styles.exerciseHeader}>
+                  <Text style={styles.setTitle}>Set {setIndex + 1}</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Remove set ${setIndex + 1}`}
+                    style={styles.removeExerciseButton}
+                    onPress={() => updateExercise(exercise.id, {...exercise, sets: exercise.sets.filter(item => item.id !== set.id)})}>
+                    <Text style={styles.removeExerciseText}>Remove</Text>
+                  </Pressable>
+                </View>
                 <View style={styles.setGrid}>
                   <TextField
                     keyboardType="number-pad"
@@ -522,7 +492,7 @@ export function TrainingScreen() {
 
         <Pressable accessibilityRole="button" onPress={saveWorkout} style={styles.saveButton}>
           <Text style={styles.saveButtonText}>
-            {editingSession ? "Update Workout" : "Save Workout"}
+            {saving ? "Saving..." : editingSession ? "Update Workout" : "Save Workout"}
           </Text>
         </Pressable>
 
@@ -540,7 +510,10 @@ export function TrainingScreen() {
       </Card>
 
       <Card>
-        <Text style={styles.title}>Recent Workouts</Text>
+        <Disclosure title={`Saved workouts (${recentSessions.length})`}>
+        {historyMonths.length > 0 && <SelectMenu label="Month" value={selectedMonth}
+          options={historyMonths.map(month => ({value: month, label: new Date(`${month}-01T12:00:00`).toLocaleDateString(undefined, {month: "long", year: "numeric"})}))}
+          onChange={setHistoryMonth} />}
         {visibleRecentSessions.length === 0 ? (
           <Text style={styles.body}>No workouts saved yet.</Text>
         ) : (
@@ -577,7 +550,9 @@ export function TrainingScreen() {
             ))}
           </View>
         )}
+        </Disclosure>
       </Card>
+      </View>
 
       <TrainingAnalyticsCard sessions={recentSessions} unitSystem={unitSystem} />
     </Screen>
@@ -602,7 +577,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
     borderRadius: 999,
     borderWidth: 1,
-    minHeight: 34,
+    minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: 12,
   },
@@ -616,7 +591,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 999,
     borderWidth: 1,
-    minHeight: 34,
+    minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: 12,
   },
@@ -627,8 +602,7 @@ const styles = StyleSheet.create({
   },
   exerciseBlock: {
     borderColor: colors.border,
-    borderRadius: 18,
-    borderWidth: 1,
+    borderTopWidth: 1,
     gap: 12,
     padding: 14,
   },
@@ -711,7 +685,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FEE4E2",
     borderRadius: 999,
-    minHeight: 32,
+    minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: 12,
   },
@@ -777,6 +751,7 @@ const styles = StyleSheet.create({
   },
   sessionActions: {
     alignItems: "flex-end",
+    maxWidth: "45%",
     gap: 8,
   },
   sessionCopy: {
@@ -794,8 +769,7 @@ const styles = StyleSheet.create({
   },
   sessionRow: {
     borderColor: colors.border,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderBottomWidth: 1,
     gap: 4,
     padding: 14,
   },

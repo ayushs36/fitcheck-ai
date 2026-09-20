@@ -5,7 +5,7 @@ import { GoalType, TodayLogDraft, WorkoutType } from "../types/fitness";
 import { Card } from "./Card";
 import { SegmentedControl } from "./SegmentedControl";
 import { TextField } from "./TextField";
-import { SelectMenu } from "./SelectMenu";
+import { WorkoutNameField } from "./WorkoutNameField";
 import { Disclosure } from "./Disclosure";
 
 const goalOptions: { label: string; value: GoalType }[] = [
@@ -14,17 +14,6 @@ const goalOptions: { label: string; value: GoalType }[] = [
   { label: "Bulk", value: "bulk" },
 ];
 
-const workoutTypes: WorkoutType[] = [
-  "Push",
-  "Pull",
-  "Legs",
-  "Upper",
-  "Lower",
-  "Full Body",
-  "Cardio",
-  "Rest",
-  "Other",
-];
 
 type LogEditorCardProps = {
   dateLabel: string;
@@ -134,13 +123,11 @@ export function LogEditorCard({
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>Workout type</Text>
-        <SelectMenu label="Workout type" value={draft.workoutType}
-          options={Array.from(new Set([...workoutTypes, draft.workoutType])).map(value => ({label: value, value}))}
+        <WorkoutNameField value={draft.workoutType} refreshKey={statusLabel}
           onChange={value => updateDraft("workoutType", value)} />
       </View>
 
-      {draft.workoutType !== "Rest" && onStartWorkout ? (
+      {draft.workoutType.trim() && draft.workoutType.trim().toLowerCase() !== "rest" && onStartWorkout ? (
         <Pressable accessibilityRole="button" onPress={onStartWorkout} style={styles.workoutDetailsButton}>
           <View style={styles.workoutDetailsCopy}>
             <Text style={styles.workoutDetailsTitle}>Log workout details</Text>

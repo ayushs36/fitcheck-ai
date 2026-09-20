@@ -34,7 +34,7 @@ export function createBlankExercise(): ExerciseDraft {
   };
 }
 
-export function createBlankWorkoutDraft(type: WorkoutType = "Push"): WorkoutDraft {
+export function createBlankWorkoutDraft(type: WorkoutType = ""): WorkoutDraft {
   return {
     type,
     exercises: type === "Rest" ? [] : [createBlankExercise()],
@@ -112,7 +112,7 @@ export function createWorkoutSessionFromDraft({
   return {
     id: createId("workout"),
     date,
-    type: draft.type,
+    type: draft.type.trim(),
     exercises,
     notes: draft.notes.trim() || undefined,
     createdAt: now,

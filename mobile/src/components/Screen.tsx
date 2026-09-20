@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, type Ref } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 
@@ -6,11 +6,12 @@ type ScreenProps = {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  scrollRef?: Ref<ScrollView>;
 };
 
-export function Screen({ title, subtitle, children }: ScreenProps) {
+export function Screen({ title, subtitle, children, scrollRef }: ScreenProps) {
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}

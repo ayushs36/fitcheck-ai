@@ -7,7 +7,7 @@ export const blankTodayDraft: TodayLogDraft = {
   calories: "",
   proteinGrams: "",
   steps: "",
-  workoutType: "Rest",
+  workoutType: "",
   notes: "",
 };
 
@@ -36,7 +36,7 @@ export function dailyLogToDraft(log?: DailyLog, unitSystem: UnitSystem = "imperi
     calories: formatOptionalNumber(log.calories),
     proteinGrams: formatOptionalNumber(log.proteinGrams),
     steps: formatOptionalNumber(log.steps),
-    workoutType: log.workoutType ?? "Rest",
+    workoutType: log.workoutType ?? "",
     notes: log.notes ?? "",
   };
 }
@@ -62,7 +62,7 @@ export function createDailyLogFromDraft({
     calories: parseOptionalNumber(draft.calories),
     proteinGrams: parseOptionalNumber(draft.proteinGrams),
     steps: parseOptionalNumber(draft.steps),
-    workoutType: draft.workoutType as WorkoutType,
+    workoutType: draft.workoutType.trim().toLowerCase() === "rest" ? "Rest" : draft.workoutType.trim() || undefined,
     notes: draft.notes.trim() || undefined,
     createdAt: existingLog?.createdAt ?? now,
     updatedAt: now,
