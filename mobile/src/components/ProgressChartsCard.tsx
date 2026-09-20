@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import {useRef, useState} from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { DailyLog, WorkoutSession } from "../types/fitness";
 import { buildStrengthPreview, buildTrendSeries, TrendPoint } from "../utils/trendSeries";
@@ -18,7 +19,9 @@ function getRange(points: TrendPoint[]): { min: number; max: number } {
   return { min, max: min === max ? min + 1 : max };
 }
 
-function MiniBarChart({ points }: { points: TrendPoint[] }) {
+function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; unit: string; color: string; weight: boolean }) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const scroll = useRef<ScrollView>(null);
   if (points.length === 0) {
     return (
       <View style={styles.emptyChart}>
@@ -28,18 +31,42 @@ function MiniBarChart({ points }: { points: TrendPoint[] }) {
   }
 
   const range = getRange(points);
+  const min = weight ? Math.max(0, Math.floor((range.min - 0.5) * 10) / 10) : 0;
+  const max = weight ? Math.ceil((range.max + 0.5) * 10) / 10 : Math.max(4, Math.ceil(range.max / 4) * 4);
+  const ticks = Array.from({length: 5}, (_, i) => max - i * (max - min) / 4);
+  const start = Date.parse(`${points[0].date}T12:00:00Z`);
+  const end = Date.parse(`${points[points.length - 1].date}T12:00:00Z`);
+  const days = Math.round((end - start) / 86400000) + 1;
+  const selected = points.find(point => point.date === selectedDate) ?? points[points.length - 1];
+  const width = Math.max(240, days * 48);
 
   return (
-    <View style={styles.chartRow}>
+    <View style={{gap: 10}}>
+      <Text style={styles.chartMeta}>{selected.label}: {selected.value.toLocaleString()} {unit}</Text>
+      <View style={{flexDirection: "row", paddingTop: 10}}>
+      <View style={{width: 60, height: 160}}>
+        {ticks.map((tick, index) => <Text key={index} style={{position: "absolute", top: index * 40 - 8, right: 8, fontSize: 11, color: colors.textMuted}}>{tick.toLocaleString(undefined, {maximumFractionDigits: 1})}</Text>)}
+      </View>
+      <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator onContentSizeChange={() => scroll.current?.scrollToEnd({animated: false})}>
+      <View style={{width, height: 196}}>
+      {ticks.map((_, index) => <View key={index} style={{position: "absolute", top: index * 40, width: "100%", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border}} />)}
       {points.map((point) => {
-        const heightPercent = ((point.value - range.min) / (range.max - range.min)) * 68 + 18;
+        const height = (point.value - min) / (max - min) * 160;
+        const offset = Math.round((Date.parse(`${point.date}T12:00:00Z`) - start) / 86400000);
 
         return (
-          <View key={`${point.date}-${point.value}`} style={styles.barSlot}>
-            <View style={[styles.bar, { height: `${heightPercent}%` }]} />
-          </View>
+          <Pressable key={point.date} accessibilityRole="button" accessibilityLabel={`${point.label}: ${point.value} ${unit}`}
+            accessibilityState={{selected: selected.date === point.date}} onPress={() => setSelectedDate(point.date)}
+            style={{position: "absolute", left: offset / days * width, width: width / days, height: 196, alignItems: "center"}}>
+            <View style={{position: "absolute", bottom: weight ? 36 + height - 5 : 36, width: weight ? 10 : 18, height: weight ? 10 : height, borderRadius: weight ? 5 : 2, backgroundColor: color, opacity: selected.date === point.date ? 1 : 0.7}} />
+            <Text style={{position: "absolute", bottom: 10, fontSize: 10, color: colors.textMuted}}>{point.date.slice(5).replace("-", "/")}</Text>
+          </Pressable>
         );
       })}
+      </View>
+      </ScrollView>
+      </View>
+      <Text style={styles.chartMeta}>Date (month/day) · {unit}{weight ? " · Adjusted weight scale" : ""}</Text>
     </View>
   );
 }
@@ -63,7 +90,7 @@ function ChartSection({
           {latestPoint ? `${latestPoint.value} ${unit}` : "No data"}
         </Text>
       </View>
-      <MiniBarChart points={points} />
+      <MiniBarChart points={points} unit={unit} weight={label === "Weight"} color={label === "Weight" ? colors.primary : label === "Calories" ? colors.warning : colors.success} />
       <Text style={styles.chartMeta}>{points.length} logged days shown</Text>
     </View>
   );
@@ -183,7 +210,10 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   chartSection: {
-    gap: 8,
+    gap: 12,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   emptyChart: {
     alignItems: "center",

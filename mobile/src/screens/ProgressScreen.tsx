@@ -4,7 +4,7 @@ import { Card } from "../components/Card";
 import { ProgressChartsCard } from "../components/ProgressChartsCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
-import { RecentLogsList } from "../components/RecentLogsList";
+import { LogHistory } from "../components/LogHistory";
 import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { useMobileStorage } from "../storage/StorageProvider";
@@ -142,7 +142,7 @@ export function ProgressScreen() {
             <Text style={styles.refreshText}>Refresh</Text>
           </Pressable>
         </View>
-        <RecentLogsList
+        <LogHistory
           logs={logs}
           unitSystem={unitSystem}
           onSelectLog={selectLog}

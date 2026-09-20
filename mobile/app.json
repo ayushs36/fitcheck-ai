@@ -20,7 +20,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F7F9FC"
+        "backgroundColor": "#102A4C"
       }
     },
     "extra": {
@@ -38,7 +38,7 @@
         {
           "image": "./assets/splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#F7F9FC"
+          "backgroundColor": "#F4F7FB"
         }
       ],
       "expo-secure-store",
