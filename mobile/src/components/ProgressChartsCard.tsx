@@ -1,14 +1,13 @@
 import {useRef, useState} from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
-import { DailyLog, WorkoutSession } from "../types/fitness";
-import { buildStrengthPreview, buildTrendSeries, TrendPoint } from "../utils/trendSeries";
+import { DailyLog } from "../types/fitness";
+import { buildTrendSeries, TrendPoint } from "../utils/trendSeries";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
 
 type ProgressChartsCardProps = {
   logs: DailyLog[];
-  workouts: WorkoutSession[];
   unitSystem?: UnitSystem;
 };
 
@@ -96,25 +95,8 @@ function ChartSection({
   );
 }
 
-function getDirectionText(direction: string): string {
-  if (direction === "up") {
-    return "Up";
-  }
-
-  if (direction === "down") {
-    return "Down";
-  }
-
-  if (direction === "flat") {
-    return "Flat";
-  }
-
-  return "More data needed";
-}
-
 export function ProgressChartsCard({
   logs,
-  workouts,
   unitSystem = "imperial",
 }: ProgressChartsCardProps) {
   const weightPoints = buildTrendSeries(logs, "weightLbs").map((point) => ({
@@ -123,7 +105,6 @@ export function ProgressChartsCard({
   }));
   const caloriePoints = buildTrendSeries(logs, "calories");
   const stepPoints = buildTrendSeries(logs, "steps");
-  const strengthPreview = buildStrengthPreview(workouts);
   const weightUnit = getWeightUnitLabel(unitSystem);
 
   return (
@@ -136,38 +117,6 @@ export function ProgressChartsCard({
       <ChartSection label="Weight" points={weightPoints} unit={weightUnit} />
       <ChartSection label="Calories" points={caloriePoints} unit="cal" />
       <ChartSection label="Steps" points={stepPoints} unit="steps" />
-
-      <View style={styles.strengthBox}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.chartLabel}>Strength Preview</Text>
-          <Text style={styles.chartMeta}>{getDirectionText(strengthPreview.direction)}</Text>
-        </View>
-        <Text style={styles.strengthStatus}>{strengthPreview.status}</Text>
-        <Text style={styles.body}>
-          {strengthPreview.latestWorkout ?? "Log workouts to start seeing training direction."}
-        </Text>
-        <Text style={styles.body}>{strengthPreview.detail}</Text>
-        {typeof strengthPreview.latestSets === "number" ? (
-          <View style={styles.strengthMetricGrid}>
-            <View style={styles.strengthMetric}>
-              <Text style={styles.strengthMetricValue}>{strengthPreview.latestSets}</Text>
-              <Text style={styles.chartMeta}>sets</Text>
-            </View>
-            <View style={styles.strengthMetric}>
-              <Text style={styles.strengthMetricValue}>{strengthPreview.latestReps ?? 0}</Text>
-              <Text style={styles.chartMeta}>reps</Text>
-            </View>
-            <View style={styles.strengthMetric}>
-              <Text style={styles.strengthMetricValue}>{strengthPreview.latestBodyweightSets ?? 0}</Text>
-              <Text style={styles.chartMeta}>bodyweight</Text>
-            </View>
-            <View style={styles.strengthMetric}>
-              <Text style={styles.strengthMetricValue}>{strengthPreview.latestFormFocusSets ?? 0}</Text>
-              <Text style={styles.chartMeta}>form focus</Text>
-            </View>
-          </View>
-        ) : null}
-      </View>
     </Card>
   );
 }

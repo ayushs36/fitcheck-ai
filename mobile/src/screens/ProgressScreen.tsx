@@ -9,17 +9,15 @@ import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
-import { DailyLog, TodayLogDraft, UserSettings, WorkoutSession } from "../types/fitness";
+import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
 import { formatReadableDate } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
 import { getWeightUnitLabel } from "../utils/units";
 
 export function ProgressScreen() {
-  const { deleteDailyLogByDate, loadDailyLogsDescending, loadRecentWorkoutSessions,
-    loadUserSettings, upsertDailyLog } = useMobileStorage();
+  const { deleteDailyLogByDate, loadDailyLogsDescending, loadUserSettings, upsertDailyLog } = useMobileStorage();
   const [logs, setLogs] = useState<DailyLog[]>([]);
-  const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [selectedLog, setSelectedLog] = useState<DailyLog | undefined>();
   const [editDraft, setEditDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -29,14 +27,12 @@ export function ProgressScreen() {
 
   async function refreshLogs() {
     setIsLoading(true);
-    const [savedLogs, savedSettings, savedWorkouts] = await Promise.all([
+    const [savedLogs, savedSettings] = await Promise.all([
       loadDailyLogsDescending(),
       loadUserSettings(),
-      loadRecentWorkoutSessions(10),
     ]);
     setLogs(savedLogs);
     setSettings(savedSettings);
-    setWorkouts(savedWorkouts);
 
     if (selectedLog) {
       const refreshedSelectedLog = savedLogs.find((log) => log.date === selectedLog.date);
@@ -128,7 +124,7 @@ export function ProgressScreen() {
         {label: "Overview", value: "overview"}, {label: "Charts", value: "charts"}, {label: "History", value: "history"},
       ]} />
       {view === "overview" && <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />}
-      {view === "charts" && <ProgressChartsCard logs={logs} workouts={workouts} unitSystem={unitSystem} />}
+      {view === "charts" && <ProgressChartsCard logs={logs} unitSystem={unitSystem} />}
 
       {view === "history" && <Card>
         <View style={styles.headerRow}>

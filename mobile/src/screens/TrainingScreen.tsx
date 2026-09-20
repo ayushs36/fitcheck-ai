@@ -391,14 +391,19 @@ export function TrainingScreen() {
               placeholder="Bench press, pull-up, squat"
               value={exercise.name}
             />
-            <TextField
-              label="Muscle group"
-              onChangeText={(value) =>
-                updateExercise(exercise.id, { ...exercise, muscleGroup: value })
-              }
-              placeholder="Chest, back, legs"
-              value={exercise.muscleGroup}
-            />
+            <Disclosure
+              title={exercise.muscleGroup ? `Muscle group: ${exercise.muscleGroup}` : "Add muscle group"}
+              initiallyOpen={Boolean(exercise.muscleGroup)}
+            >
+              <TextField
+                label="Muscle group"
+                onChangeText={(value) =>
+                  updateExercise(exercise.id, { ...exercise, muscleGroup: value })
+                }
+                placeholder="Chest, back, legs"
+                value={exercise.muscleGroup}
+              />
+            </Disclosure>
 
             {exercisePreview ? (
               <View style={styles.exercisePreview}>

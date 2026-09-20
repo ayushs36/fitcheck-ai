@@ -3,6 +3,7 @@ import { colors } from "../theme/colors";
 import { ProgressInsights } from "../utils/progressInsights";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
+import { Disclosure } from "./Disclosure";
 
 type ProgressDashboardCardProps = {
   insights: ProgressInsights;
@@ -212,6 +213,7 @@ export function ProgressDashboardCard({
         <Text style={styles.executionAction}>{insights.goalTimeline.nextAction}</Text>
       </View>
 
+      <Disclosure title="Coaching details">
       <View style={styles.qualityBox}>
         <View style={styles.qualityHeader}>
           <View style={styles.qualityScoreWrap}>
@@ -319,6 +321,7 @@ export function ProgressDashboardCard({
           {insights.nutritionDiagnosis.biggestBlocker}.
         </Text>
       </View>
+      </Disclosure>
 
     </Card>
   );
