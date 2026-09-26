@@ -37,6 +37,7 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
   const { getDailyLogByDate, loadDailyLogsDescending, loadRecentWorkoutSessions,
     loadTodayLogDraft, loadUserSettings, saveTodayLogDraft, clearTodayLogDraft, upsertDailyLog } = useMobileStorage();
   const [draft, setDraft] = useState<TodayLogDraft>(blankTodayDraft);
+  const [baselineDraft, setBaselineDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [existingLog, setExistingLog] = useState<DailyLog | undefined>();
   const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
   const [recentLogs, setRecentLogs] = useState<DailyLog[]>([]);
@@ -70,13 +71,11 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
         setSettings(savedSettings);
         setRecentWorkouts(savedWorkouts);
         const unitSystem = savedSettings?.unitSystem ?? "imperial";
-        setDraft(
-          savedDraft
-            ? savedDraft
-            : savedTodayLog
-              ? dailyLogToDraft(savedTodayLog, unitSystem)
-            : { ...dailyLogToDraft(undefined, unitSystem), goal: savedSettings?.defaultGoal ?? "maintain" },
-        );
+        const savedBaseline = savedTodayLog
+          ? dailyLogToDraft(savedTodayLog, unitSystem)
+          : { ...dailyLogToDraft(undefined, unitSystem), goal: savedSettings?.defaultGoal ?? "maintain" };
+        setBaselineDraft(savedBaseline);
+        setDraft(savedDraft ?? savedBaseline);
         setRecentLogs(savedLogs.slice(0, 5));
       } catch {
         if (isMounted) {
@@ -128,7 +127,9 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
       }
       const sortedLogs = updatedLogs.slice().sort((a, b) => b.date.localeCompare(a.date));
       setExistingLog(dailyLog);
-      setDraft(dailyLogToDraft(dailyLog, settings?.unitSystem ?? "imperial"));
+      const savedDraft = dailyLogToDraft(dailyLog, settings?.unitSystem ?? "imperial");
+      setBaselineDraft(savedDraft);
+      setDraft(savedDraft);
       setAllLogs(sortedLogs);
       setRecentLogs(sortedLogs.slice(0, 5));
       setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
@@ -153,9 +154,7 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
   const coachInsights = calculateProgressInsights(allLogs, coachSettings);
   const unitSystem = settings?.unitSystem ?? "imperial";
   const weightUnit = getWeightUnitLabel(unitSystem);
-  const hasUnsavedChanges = existingLog
-    ? JSON.stringify(draft) !== JSON.stringify(dailyLogToDraft(existingLog, unitSystem))
-    : false;
+  const hasUnsavedChanges = JSON.stringify(draft) !== JSON.stringify(baselineDraft);
   const savedTime = lastSavedAt ?? (existingLog
     ? new Date(existingLog.updatedAt).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})
     : null);

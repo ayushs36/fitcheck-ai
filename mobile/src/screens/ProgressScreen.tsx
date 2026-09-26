@@ -22,25 +22,31 @@ export function ProgressScreen() {
   const [editDraft, setEditDraft] = useState<TodayLogDraft>(blankTodayDraft);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "charts" | "history">("overview");
   const [lastEditedDate, setLastEditedDate] = useState<string | null>(null);
 
   async function refreshLogs() {
     setIsLoading(true);
-    const [savedLogs, savedSettings] = await Promise.all([
-      loadDailyLogsDescending(),
-      loadUserSettings(),
-    ]);
-    setLogs(savedLogs);
-    setSettings(savedSettings);
+    setLoadError(null);
+    try {
+      const [savedLogs, savedSettings] = await Promise.all([
+        loadDailyLogsDescending(),
+        loadUserSettings(),
+      ]);
+      setLogs(savedLogs);
+      setSettings(savedSettings);
 
-    if (selectedLog) {
-      const refreshedSelectedLog = savedLogs.find((log) => log.date === selectedLog.date);
-      setSelectedLog(refreshedSelectedLog);
-      setEditDraft(dailyLogToDraft(refreshedSelectedLog, savedSettings?.unitSystem ?? "imperial"));
+      if (selectedLog) {
+        const refreshedSelectedLog = savedLogs.find((log) => log.date === selectedLog.date);
+        setSelectedLog(refreshedSelectedLog);
+        setEditDraft(dailyLogToDraft(refreshedSelectedLog, savedSettings?.unitSystem ?? "imperial"));
+      }
+    } catch {
+      setLoadError("Saved progress could not be loaded. Your records were not changed.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }
 
   function selectLog(log: DailyLog) {
@@ -109,7 +115,7 @@ export function ProgressScreen() {
   }
 
   useEffect(() => {
-    refreshLogs();
+    void refreshLogs();
   }, []);
 
   const insights = calculateProgressInsights(logs, settings);
@@ -123,6 +129,14 @@ export function ProgressScreen() {
       <SegmentedControl value={view} onChange={setView} options={[
         {label: "Overview", value: "overview"}, {label: "Charts", value: "charts"}, {label: "History", value: "history"},
       ]} />
+      {loadError ? (
+        <Card>
+          <Text accessibilityRole="alert" style={styles.errorText}>{loadError}</Text>
+          <Pressable accessibilityRole="button" disabled={isLoading} onPress={refreshLogs} style={styles.refreshButton}>
+            <Text style={styles.refreshText}>{isLoading ? "Retrying..." : "Retry"}</Text>
+          </Pressable>
+        </Card>
+      ) : null}
       {view === "overview" && <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />}
       {view === "charts" && <ProgressChartsCard logs={logs} unitSystem={unitSystem} />}
 
@@ -134,8 +148,8 @@ export function ProgressScreen() {
               {isLoading ? "Loading saved logs" : `${logs.length} saved ${logs.length === 1 ? "day" : "days"}`}
             </Text>
           </View>
-          <Pressable accessibilityRole="button" onPress={refreshLogs} style={styles.refreshButton}>
-            <Text style={styles.refreshText}>Refresh</Text>
+          <Pressable accessibilityRole="button" disabled={isLoading} onPress={refreshLogs} style={[styles.refreshButton, isLoading && styles.disabledButton]}>
+            <Text style={styles.refreshText}>{isLoading ? "Loading..." : "Refresh"}</Text>
           </Pressable>
         </View>
         <LogHistory
@@ -215,6 +229,14 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: 15,
     fontWeight: "800",
+  },
+  disabledButton: {
+    opacity: 0.55,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: 14,
+    lineHeight: 21,
   },
   editFooter: {
     gap: 10,

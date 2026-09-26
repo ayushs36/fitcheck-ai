@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -104,7 +105,7 @@ export function TrainingScreen() {
     loadUserSettings,
     upsertWorkoutSession,
   } = useMobileStorage();
-  const todayKey = useMemo(() => getTodayKey(), []);
+  const [todayKey, setTodayKey] = useState(() => getTodayKey());
   const [draft, setDraft] = useState<WorkoutDraft>(() =>
     createBlankWorkoutDraft(),
   );
@@ -123,6 +124,22 @@ export function TrainingScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [saving, setSaving] = useState(false);
   const [historyMonth, setHistoryMonth] = useState("");
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    function refreshDate() {
+      clearTimeout(timer);
+      setTodayKey(getTodayKey());
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      timer = setTimeout(refreshDate, midnight.getTime() - now.getTime() + 50);
+    }
+    refreshDate();
+    const subscription = AppState.addEventListener("change", state => {
+      if (state === "active") refreshDate();
+    });
+    return () => { clearTimeout(timer); subscription.remove(); };
+  }, []);
 
   async function refreshSessions() {
     const [sessions, settings] = await Promise.all([
@@ -267,13 +284,39 @@ export function TrainingScreen() {
       );
       return;
     }
-    if (!exercise.sets.some((set) => set.reps.trim())) {
+    const invalidSetIndex = exercise.sets.findIndex((set) => {
+      const trimmedReps = set.reps.trim();
+      const numericReps = Number(trimmedReps);
+      const hasSetDetails = Boolean(
+        set.weightLbs.trim() || set.isBodyweight || set.formFocus || set.notes.trim(),
+      );
+      return trimmedReps
+        ? !Number.isInteger(numericReps) || numericReps <= 0
+        : hasSetDetails;
+    });
+    if (invalidSetIndex >= 0) {
+      Alert.alert(
+        `Finish set ${invalidSetIndex + 1}`,
+        "Enter a positive whole-number rep count, or remove the unfinished set.",
+      );
+      return;
+    }
+    const completedSets = exercise.sets.filter((set) => Number(set.reps) > 0);
+    if (!completedSets.length) {
       Alert.alert(
         "Log a set",
         "Add reps for at least one set before saving this exercise.",
       );
       return;
     }
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      exercises: currentDraft.exercises.map((currentExercise) =>
+        currentExercise.id === exercise.id
+          ? { ...currentExercise, sets: completedSets }
+          : currentExercise,
+      ),
+    }));
     setSavedExerciseIds((currentIds) => new Set(currentIds).add(exercise.id));
     setActiveExerciseId(null);
   }

@@ -15,6 +15,7 @@ import { CloudAccountScreen } from "./CloudAccountScreen";
 
 export function CloudWorkspace({session}: {session: AccountSession}) {
   const [tab, setTab] = useState<MobileTab>("today");
+  const [trainingMounted, setTrainingMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [hasSettings, setHasSettings] = useState(false);
   const [status, setStatus] = useState("Restoring account");
@@ -80,6 +81,11 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
     requestSync();
   }
 
+  function selectTab(nextTab: MobileTab) {
+    if (nextTab === "training") setTrainingMounted(true);
+    setTab(nextTab);
+  }
+
   let content;
   if (!loaded) {
     content = <View style={styles.loading}>
@@ -90,11 +96,25 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
       <Pressable accessibilityRole="button" style={styles.button} onPress={() => { void session.signOut().catch(failure => setError(String(failure))); }}><Text style={styles.link}>Sign out</Text></Pressable>
     </View>;
   } else if (!hasSettings) content = <OnboardingScreen session={session} onComplete={() => { setHasSettings(true); requestSync(); }} />;
-  else if (tab === "settings") content = <CloudAccountScreen session={session} storage={storage} conflicts={conflicts} error={error} status={status} onSync={requestSync} onResolve={resolve} />;
-  else if (tab === "training") content = <TrainingScreen />;
-  else if (tab === "progress") content = <ProgressScreen />;
-  else if (tab === "goals") content = <GoalsScreen />;
-  else content = <TodayScreen onStartWorkout={() => setTab("training")} />;
+  else {
+    const activeContent = tab === "settings"
+      ? <CloudAccountScreen session={session} storage={storage} conflicts={conflicts} error={error} status={status} onSync={requestSync} onResolve={resolve} />
+      : tab === "progress"
+        ? <ProgressScreen />
+        : tab === "goals"
+          ? <GoalsScreen />
+          : tab === "today"
+            ? <TodayScreen onStartWorkout={() => selectTab("training")} />
+            : null;
+    content = <>
+      {activeContent}
+      {trainingMounted || tab === "training" ? (
+        <View style={tab === "training" ? styles.activeTabContent : styles.hiddenTabContent}>
+          <TrainingScreen />
+        </View>
+      ) : null}
+    </>;
+  }
   const showSyncNotice = loaded && status !== "Up to date";
 
   return <SafeAreaView style={styles.safe}><StorageProvider storage={storage}><View style={styles.app}>
@@ -102,11 +122,12 @@ export function CloudWorkspace({session}: {session: AccountSession}) {
       <Text style={[styles.statusText, error ? {color: colors.danger} : undefined]}>{status}</Text>
     </Pressable>}
     {content}
-    {loaded && hasSettings && <BottomTabs activeTab={tab} onChange={setTab} />}
+    {loaded && hasSettings && <BottomTabs activeTab={tab} onChange={selectTab} />}
   </View></StorageProvider></SafeAreaView>;
 }
 const styles = StyleSheet.create({
   safe: {flex: 1, backgroundColor: colors.background}, app: {flex: 1},
+  activeTabContent: {flex: 1}, hiddenTabContent: {display: "none"},
   status: {paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderColor: colors.border},
   statusText: {color: colors.textMuted, fontSize: 13, fontWeight: "600"},
   loading: {flex: 1, padding: 24, gap: 18, justifyContent: "center"},
