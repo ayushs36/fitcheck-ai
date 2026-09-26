@@ -1,5 +1,5 @@
-import {useRef, useState} from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {useState} from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
 import { DailyLog } from "../types/fitness";
 import { buildTrendSeries, TrendPoint } from "../utils/trendSeries";
@@ -21,7 +21,7 @@ function getRange(points: TrendPoint[]): { min: number; max: number } {
 
 function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; unit: string; color: string; weight: boolean }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const scroll = useRef<ScrollView>(null);
+  const [plotWidth, setPlotWidth] = useState(240);
   if (points.length === 0) {
     return (
       <View style={styles.emptyChart}>
@@ -34,38 +34,41 @@ function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; u
   const min = weight ? Math.max(0, Math.floor((range.min - 0.5) * 10) / 10) : 0;
   const max = weight ? Math.ceil((range.max + 0.5) * 10) / 10 : Math.max(4, Math.ceil(range.max / 4) * 4);
   const ticks = Array.from({length: 5}, (_, i) => max - i * (max - min) / 4);
-  const start = Date.parse(`${points[0].date}T12:00:00Z`);
-  const end = Date.parse(`${points[points.length - 1].date}T12:00:00Z`);
-  const days = Math.round((end - start) / 86400000) + 1;
   const selected = points.find(point => point.date === selectedDate) ?? points[points.length - 1];
-  const width = Math.max(240, days * 48);
+  const width = Math.max(240, plotWidth);
+  const slotWidth = width / points.length;
+  const labelInterval = Math.max(1, Math.ceil(points.length / 5));
 
   return (
     <View style={{gap: 10}}>
       <Text style={styles.chartMeta}>{selected.label}: {selected.value.toLocaleString()} {unit}</Text>
-      <View style={{flexDirection: "row", paddingTop: 10}}>
-      <View style={{width: 60, height: 160}}>
+      <View style={styles.chartLayout}>
+      <View style={styles.yAxis}>
         {ticks.map((tick, index) => <Text key={index} style={{position: "absolute", top: index * 40 - 8, right: 8, fontSize: 11, color: colors.textMuted}}>{tick.toLocaleString(undefined, {maximumFractionDigits: 1})}</Text>)}
       </View>
-      <ScrollView ref={scroll} horizontal showsHorizontalScrollIndicator onContentSizeChange={() => scroll.current?.scrollToEnd({animated: false})}>
-      <View style={{width, height: 196}}>
+      <View
+        onLayout={({nativeEvent}) => setPlotWidth(nativeEvent.layout.width)}
+        style={styles.chartPlot}
+      >
       {ticks.map((_, index) => <View key={index} style={{position: "absolute", top: index * 40, width: "100%", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border}} />)}
       {points.map((point, index) => {
         const height = (point.value - min) / (max - min) * 160;
-        const offset = Math.round((Date.parse(`${point.date}T12:00:00Z`) - start) / 86400000);
-        const showDateLabel = index === points.length - 1 || (points.length - 1 - index) % 2 === 0;
+        const showDateLabel =
+          index === 0 ||
+          index === points.length - 1 ||
+          (index % labelInterval === 0 && index < points.length - 2);
+        const barWidth = Math.max(5, Math.min(14, slotWidth * 0.55));
 
         return (
           <Pressable key={point.date} accessibilityRole="button" accessibilityLabel={`${point.label}: ${point.value} ${unit}`}
             accessibilityState={{selected: selected.date === point.date}} onPress={() => setSelectedDate(point.date)}
-            style={{position: "absolute", left: offset / days * width, width: width / days, height: 196, alignItems: "center"}}>
-            <View style={{position: "absolute", bottom: weight ? 36 + height - 5 : 36, width: weight ? 10 : 18, height: weight ? 10 : height, borderRadius: weight ? 5 : 2, backgroundColor: color, opacity: selected.date === point.date ? 1 : 0.7}} />
+            style={{position: "absolute", left: index * slotWidth, width: slotWidth, height: 196, alignItems: "center"}}>
+            <View style={{position: "absolute", bottom: weight ? 36 + height - 5 : 36, width: weight ? 10 : barWidth, height: weight ? 10 : height, borderRadius: weight ? 5 : 2, backgroundColor: color, opacity: selected.date === point.date ? 1 : 0.7}} />
             {showDateLabel ? <Text style={{position: "absolute", bottom: 10, fontSize: 10, color: colors.textMuted}}>{point.date.slice(5).replace("-", "/")}</Text> : null}
           </Pressable>
         );
       })}
       </View>
-      </ScrollView>
       </View>
       <Text style={styles.chartMeta}>Date (month/day) · {unit}{weight ? " · Adjusted weight scale" : ""}</Text>
     </View>
@@ -113,7 +116,7 @@ export function ProgressChartsCard({
   const weightSummary = getWeightTrendSummary(logs);
   const weightMovingAverage =
     typeof weightSummary.movingAverage7 === "number"
-      ? `${Math.round(convertWeightFromLbs(weightSummary.movingAverage7, unitSystem) * 10) / 10} ${weightUnit} 7-day avg`
+      ? `${Math.round(convertWeightFromLbs(weightSummary.movingAverage7, unitSystem) * 10) / 10} ${weightUnit} 7-weigh-in avg`
       : undefined;
 
   return (
@@ -147,6 +150,19 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
     lineHeight: 20,
+  },
+  chartLayout: {
+    flexDirection: "row",
+    paddingTop: 10,
+  },
+  chartPlot: {
+    flex: 1,
+    height: 196,
+    minWidth: 0,
+  },
+  yAxis: {
+    height: 160,
+    width: 52,
   },
   chartLabel: {
     color: colors.text,

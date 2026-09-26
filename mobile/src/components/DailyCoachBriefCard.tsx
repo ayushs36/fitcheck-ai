@@ -158,7 +158,7 @@ export function DailyCoachBriefCard({
 
         <Text style={styles.weeklyAction}>{insights.weeklyExecution.nextAction}</Text>
         <Text style={styles.weeklyMeta}>
-          Based on 7-day logged averages. Blank fields are skipped.
+          Based on the latest 7 valid values. Blank fields do not affect averages.
         </Text>
       </View>
 

@@ -190,7 +190,7 @@ export function ProgressDashboardCard({
 
         <View style={styles.timelineGrid}>
           <View style={styles.timelineMetric}>
-            <Text style={styles.metricLabel}>7-day avg</Text>
+            <Text style={styles.metricLabel}>7-weigh-in avg</Text>
             <Text style={styles.timelineValue}>
               {formatWeight(insights.goalTimeline.latestWeightLbs, unitSystem)}
             </Text>
@@ -260,8 +260,7 @@ export function ProgressDashboardCard({
         <Text style={styles.executionBody}>{insights.weeklyExecution.summary}</Text>
         <Text style={styles.executionAction}>{insights.weeklyExecution.nextAction}</Text>
         <Text style={styles.executionMeta}>
-          Based on 7-day logged averages. One off day is okay if the weekly average
-          stays on target.
+          Based on the latest 7 valid values. Blank fields do not lower the average.
         </Text>
         <Text style={styles.executionMeta}>{formatAverageSummary(insights.averages)}</Text>
       </View>

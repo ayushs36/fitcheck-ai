@@ -20,21 +20,19 @@ function loggedWeights(logs: DailyLog[]): number[] {
     );
 }
 
-// Matches FitCheck AI web: windows use the most recent saved log days, while
-// blank weigh-ins are excluded from each average instead of treated as zero.
+// A blank daily log must not displace a valid weigh-in from either average.
 export function getWeightTrendSummary(logs: DailyLog[]): WeightTrendSummary {
   const chronologicalLogs = logs.slice().sort((a, b) => a.date.localeCompare(b.date));
-  const last7Logs = chronologicalLogs.slice(-7);
-  const last14Logs = chronologicalLogs.slice(-14);
   const validWeightLogs = chronologicalLogs.filter(log =>
     typeof log.weightLbs === "number" && Number.isFinite(log.weightLbs) && log.weightLbs > 0,
   );
+  const recent7WeighIns = validWeightLogs.slice(-7);
   const recent14WeighIns = validWeightLogs.slice(-14);
 
   return {
-    movingAverage7: average(loggedWeights(last7Logs)),
-    movingAverage7LoggedDays: loggedWeights(last7Logs).length,
-    fourteenLogAverage: average(loggedWeights(last14Logs)),
+    movingAverage7: average(loggedWeights(recent7WeighIns)),
+    movingAverage7LoggedDays: recent7WeighIns.length,
+    fourteenLogAverage: average(loggedWeights(recent14WeighIns)),
     weeklyWeightChange:
       recent14WeighIns.length === 14
         ? (average(loggedWeights(recent14WeighIns.slice(7))) ?? 0) -

@@ -1,4 +1,5 @@
 import type { DailyLog, GoalType, UserSettings } from "../types/fitness.ts";
+import { getTodayKey as getLocalDateKey } from "./date.ts";
 import { getProteinTarget } from "./proteinTargets.ts";
 import { getWeightTrendSummary } from "./weightTrend.ts";
 
@@ -150,7 +151,7 @@ function calculateMetricAverage(
   target?: number,
   targetLabel?: string,
 ): MetricAverage {
-  const values = getNumericValues(logs, key);
+  const values = getNumericValues(logs, key).slice(0, RECENT_METRIC_AVERAGE_DAYS);
   const total = values.reduce((sum, value) => sum + value, 0);
   const average = values.length ? total / values.length : undefined;
   const status =
@@ -183,7 +184,7 @@ function daysBetween(startDate: string, endDate: string): number {
 }
 
 function formatDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return getLocalDateKey(date);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -192,17 +193,13 @@ function addDays(date: Date, days: number): Date {
   return nextDate;
 }
 
-function getTodayKey(): string {
-  return formatDateKey(new Date());
-}
-
 function hasValue(value: unknown): boolean {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 function calculateStreakDays(logsByDate: Map<string, DailyLog>): number {
   let streakDays = 0;
-  let cursor = new Date(`${getTodayKey()}T12:00:00`);
+  let cursor = new Date(`${getLocalDateKey()}T12:00:00`);
 
   while (logsByDate.has(formatDateKey(cursor))) {
     streakDays += 1;
@@ -214,7 +211,7 @@ function calculateStreakDays(logsByDate: Map<string, DailyLog>): number {
 
 function buildLoggingQuality(logs: DailyLog[]): LoggingQuality {
   const logsByDate = new Map(logs.map((log) => [log.date, log]));
-  const today = new Date(`${getTodayKey()}T12:00:00`);
+  const today = new Date(`${getLocalDateKey()}T12:00:00`);
   const recentDates = Array.from({ length: 7 }, (_, index) => formatDateKey(addDays(today, -index)));
   const recentLogs = recentDates.map((date) => logsByDate.get(date)).filter(Boolean) as DailyLog[];
 
@@ -905,7 +902,6 @@ export function calculateProgressInsights(
   logs = logs.slice().sort((a, b) => b.date.localeCompare(a.date));
   const activeGoal = getActiveGoal(logs, settings);
   const recentLogs = logs.slice(0, 14);
-  const recentMetricLogs = logs.slice(0, RECENT_METRIC_AVERAGE_DAYS);
   const loggingQuality = buildLoggingQuality(logs);
   const weightTrend = calculateWeightTrend(logs, activeGoal, settings?.weeklyGoalPaceLbs);
   const proteinTarget = getProteinTarget(
@@ -913,14 +909,14 @@ export function calculateProgressInsights(
     weightTrend.movingAverage7 ?? getLatestWeight(logs, settings),
   );
   const averages = [
-    calculateMetricAverage(recentMetricLogs, "calories", settings?.calorieTarget),
+    calculateMetricAverage(logs, "calories", settings?.calorieTarget),
     calculateMetricAverage(
-      recentMetricLogs,
+      logs,
       "proteinGrams",
       settings?.proteinTarget ?? proteinTarget.low,
       settings?.proteinTarget ? undefined : proteinTarget.range,
     ),
-    calculateMetricAverage(recentMetricLogs, "steps", settings?.stepTarget),
+    calculateMetricAverage(logs, "steps", settings?.stepTarget),
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
   const goalTimeline = buildGoalTimeline(activeGoal, logs, settings, weightTrend);
