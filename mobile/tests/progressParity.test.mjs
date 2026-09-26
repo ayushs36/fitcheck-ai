@@ -12,6 +12,10 @@ test('weekly averages use the latest seven valid entries and do not depend on im
   const result = calculateProgressInsights(logs, null);
   assert.deepEqual(result.averages.map(metric => metric.value), [Math.round((4000 + 2000 * 6) / 7), 140, 8000]);
   assert.equal(result.averages[0].loggedDays, 7);
+  assert.equal(result.nutritionDiagnosis.calorieAverage7, Math.round((4000 + 2000 * 6) / 7));
+  assert.equal(result.nutritionDiagnosis.calorieLoggedDays7, 7);
+  assert.equal(result.nutritionDiagnosis.proteinAverage7, 140);
+  assert.equal(result.nutritionDiagnosis.proteinLoggedDays7, 7);
   assert.equal(result.weightTrend.weeklyChange, 0);
   assert.deepEqual(result, calculateProgressInsights([...logs].reverse(), null));
   assert.equal(JSON.stringify(logs), original);

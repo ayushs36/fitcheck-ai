@@ -473,6 +473,16 @@ export function TrainingScreen() {
     () => loggedExercises(draft.type, recentSessions),
     [draft.type, recentSessions],
   );
+  const availableSavedExercisesForWorkout = useMemo(() => {
+    const completedNames = new Set(
+      draft.exercises
+        .filter((exercise) => savedExerciseIds.has(exercise.id))
+        .map((exercise) => normalizeExerciseName(exercise.name)),
+    );
+    return savedExercisesForWorkout.filter(
+      (exercise) => !completedNames.has(normalizeExerciseName(exercise.name)),
+    );
+  }, [draft.exercises, savedExerciseIds, savedExercisesForWorkout]);
   const isRestDay =
     draft.type.trim().toLowerCase() === "rest" &&
     !draft.exercises.some((exercise) => exercise.name.trim());
@@ -533,19 +543,19 @@ export function TrainingScreen() {
                   </Pressable>
                 </View>
 
-                {savedExercisesForWorkout.length ? (
+                {availableSavedExercisesForWorkout.length ? (
                   <View style={styles.section}>
                     <Text style={styles.label}>
                       Previously logged for {draft.type}
                     </Text>
                     <SelectMenu
                       label="Choose a saved exercise"
-                      options={savedExercisesForWorkout.map((exercise) => ({
+                      options={availableSavedExercisesForWorkout.map((exercise) => ({
                         label: exercise.name,
                         value: exercise.name,
                       }))}
                       onChange={(name) => {
-                        const exercise = savedExercisesForWorkout.find(
+                        const exercise = availableSavedExercisesForWorkout.find(
                           (item) => item.name === name,
                         );
                         if (exercise) addSavedExercise(exercise);

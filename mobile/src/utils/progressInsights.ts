@@ -708,11 +708,10 @@ function buildNutritionDiagnosis(
   fallbackProteinTarget: number,
 ): NutritionDiagnosis {
   const recentLogs = logs.slice(0, 14);
-  const recent7Logs = recentLogs.slice(0, 7);
-  const validCalorieLogs = recentLogs.filter((log) => hasValue(log.calories));
-  const validCalorieLogs7 = recent7Logs.filter((log) => hasValue(log.calories));
-  const validProteinLogs = recentLogs.filter((log) => hasValue(log.proteinGrams));
-  const validProteinLogs7 = recent7Logs.filter((log) => hasValue(log.proteinGrams));
+  const validCalorieLogs = logs.filter((log) => hasValue(log.calories)).slice(0, 14);
+  const validCalorieLogs7 = validCalorieLogs.slice(0, 7);
+  const validProteinLogs = logs.filter((log) => hasValue(log.proteinGrams)).slice(0, 14);
+  const validProteinLogs7 = validProteinLogs.slice(0, 7);
   const calorieValues = validCalorieLogs.map((log) => log.calories ?? 0);
   const calorieValues7 = validCalorieLogs7.map((log) => log.calories ?? 0);
   const proteinValues = validProteinLogs.map((log) => log.proteinGrams ?? 0);
@@ -729,7 +728,8 @@ function buildNutritionDiagnosis(
       ? validProteinLogs.filter((log) => (log.proteinGrams ?? 0) >= proteinTarget).length /
         validProteinLogs.length
       : 0;
-  const loggingCompleteness = validCalorieLogs.length / Math.min(14, Math.max(recentLogs.length, 1));
+  const recentCalorieLogs = recentLogs.filter((log) => hasValue(log.calories));
+  const loggingCompleteness = recentCalorieLogs.length / Math.min(14, Math.max(recentLogs.length, 1));
 
   if (recentLogs.length < 7 || validCalorieLogs.length < 5) {
     return {
@@ -748,7 +748,7 @@ function buildNutritionDiagnosis(
       calorieTargetHitRate,
       calorieVariance: typeof calorieVariance === "number" ? round(calorieVariance) : undefined,
       biggestBlocker: "Need more calorie logs",
-      summary: "FitCheck needs a stronger 14-log nutrition window before judging calorie execution.",
+      summary: "FitCheck needs more valid calorie entries before judging nutrition execution.",
       nextAction: "Log calories on at least 5 recent days before changing nutrition targets.",
     };
   }

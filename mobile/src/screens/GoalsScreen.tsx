@@ -151,6 +151,8 @@ export function GoalsScreen() {
   const [draft, setDraft] = useState<GoalDraft>(defaultDraft);
   const [originalSettings, setOriginalSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const weightUnit = getWeightUnitLabel(draft.unitSystem);
   const targetCoach = useMemo(() => {
@@ -178,6 +180,11 @@ export function GoalsScreen() {
           setDraft(settingsToDraft(savedSettings));
           setOriginalSettings(savedSettings);
         }
+      } catch {
+        if (isMounted) {
+          setLoadError(true);
+          Alert.alert("Goals unavailable", "Reopen Goals before changing your saved setup.");
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -200,6 +207,11 @@ export function GoalsScreen() {
   }
 
   async function saveGoalSettings() {
+    if (isLoading || saving) return;
+    if (loadError) {
+      Alert.alert("Goal not saved", "Reopen Goals to load your current setup before making changes.");
+      return;
+    }
     const settings: UserSettings = {
       unitSystem: draft.unitSystem,
       defaultGoal: draft.defaultGoal,
@@ -213,8 +225,10 @@ export function GoalsScreen() {
       updatedAt: new Date().toISOString(),
     };
 
+    setSaving(true);
     try { await saveUserSettings(settings, originalSettings); }
     catch (error) { Alert.alert("Goal not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
+    finally { setSaving(false); }
     setOriginalSettings(settings);
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Goal saved", "Your goal setup was saved.");
@@ -320,8 +334,9 @@ export function GoalsScreen() {
           />
         </View>
 
-        <Pressable accessibilityRole="button" onPress={saveGoalSettings} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save Goal Setup</Text>
+        <Pressable accessibilityRole="button" disabled={isLoading || saving || loadError} onPress={saveGoalSettings}
+          style={[styles.saveButton, (isLoading || saving || loadError) && styles.disabledButton]}>
+          <Text style={styles.saveButtonText}>{saving ? "Saving..." : "Save Goal Setup"}</Text>
         </Pressable>
 
         {lastSavedAt ? <Text style={styles.savedMeta}>Last saved at {lastSavedAt}</Text> : null}
@@ -331,8 +346,8 @@ export function GoalsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Target Coach</Text>
           <Text style={styles.body}>
-            FitCheck uses weekly logged averages, so one imperfect day is okay if the week
-            stays on target.
+            FitCheck uses your latest valid entries. Blank fields are skipped, and one
+            imperfect day does not define the trend.
           </Text>
         </View>
 
@@ -398,6 +413,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 20,
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
   grid: {
     gap: 12,

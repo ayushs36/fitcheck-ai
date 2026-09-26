@@ -279,7 +279,7 @@ export function ProgressDashboardCard({
 
         <View style={styles.nutritionGrid}>
           <View style={styles.nutritionMetric}>
-            <Text style={styles.metricLabel}>7-log calories</Text>
+            <Text style={styles.metricLabel}>7 valid calories</Text>
             <Text style={styles.timelineValue}>
               {formatValue(insights.nutritionDiagnosis.calorieAverage7, "cal/day")}
             </Text>
@@ -288,7 +288,7 @@ export function ProgressDashboardCard({
             </Text>
           </View>
           <View style={styles.nutritionMetric}>
-            <Text style={styles.metricLabel}>14-log calories</Text>
+            <Text style={styles.metricLabel}>14 valid calories</Text>
             <Text style={styles.timelineValue}>
               {formatValue(insights.nutritionDiagnosis.calorieAverage, "cal/day")}
             </Text>
@@ -297,7 +297,7 @@ export function ProgressDashboardCard({
             </Text>
           </View>
           <View style={styles.nutritionMetric}>
-            <Text style={styles.metricLabel}>7-log protein</Text>
+            <Text style={styles.metricLabel}>7 valid protein</Text>
             <Text style={styles.timelineValue}>
               {formatValue(insights.nutritionDiagnosis.proteinAverage7, "g/day")}
             </Text>
@@ -306,7 +306,7 @@ export function ProgressDashboardCard({
             </Text>
           </View>
           <View style={styles.nutritionMetric}>
-            <Text style={styles.metricLabel}>14-log protein</Text>
+            <Text style={styles.metricLabel}>14 valid protein</Text>
             <Text style={styles.timelineValue}>
               {formatValue(insights.nutritionDiagnosis.proteinAverage, "g/day")}
             </Text>
