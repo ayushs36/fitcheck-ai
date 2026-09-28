@@ -16,10 +16,61 @@ test('weekly averages use the latest seven valid entries and do not depend on im
   assert.equal(result.nutritionDiagnosis.calorieLoggedDays7, 7);
   assert.equal(result.nutritionDiagnosis.proteinAverage7, 140);
   assert.equal(result.nutritionDiagnosis.proteinLoggedDays7, 7);
+  assert.equal(result.averages[1].target, undefined);
+  assert.equal(result.averages[1].status, 'noTarget');
+  assert.notEqual(result.nutritionDiagnosis.biggestBlocker, 'Protein execution');
   assert.equal(result.weightTrend.weeklyChange, 0);
   assert.deepEqual(result, calculateProgressInsights([...logs].reverse(), null));
   assert.equal(JSON.stringify(logs), original);
   assert.equal(buildTrendSeries(logs, 'weightLbs').length, 14);
+});
+
+test('user targets are optional and FitCheck does not invent protein or goal pace targets', () => {
+  const logs = Array.from({length: 14}, (_, index) => ({
+    date: `2026-09-${String(index + 1).padStart(2, '0')}`,
+    goal: 'cut',
+    weightLbs: 150 - index * 0.2,
+    calories: 2000,
+    proteinGrams: 120,
+    steps: 9000,
+  }));
+  const settings = {
+    unitSystem: 'imperial',
+    defaultGoal: 'cut',
+    startingWeightLbs: 150,
+    targetWeightLbs: 140,
+    hasCompletedOnboarding: true,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const result = calculateProgressInsights(logs, settings);
+
+  assert.equal(result.averages[1].target, undefined);
+  assert.equal(result.averages[1].status, 'noTarget');
+  assert.equal(result.goalTimeline.status, 'needsPace');
+  assert.equal(result.goalTimeline.plannedDate, undefined);
+  assert.equal(result.weightTrend.status, 'Weight trending down on cut');
+});
+
+test('a protein target is scored only after the user saves one', () => {
+  const logs = Array.from({length: 14}, (_, index) => ({
+    date: `2026-09-${String(index + 1).padStart(2, '0')}`,
+    goal: 'maintain',
+    weightLbs: 150,
+    calories: 2000,
+    proteinGrams: 100,
+    steps: 9000,
+  }));
+  const result = calculateProgressInsights(logs, {
+    unitSystem: 'imperial',
+    defaultGoal: 'maintain',
+    proteinTarget: 140,
+    hasCompletedOnboarding: true,
+    updatedAt: new Date().toISOString(),
+  });
+
+  assert.equal(result.averages[1].target, 140);
+  assert.equal(result.averages[1].status, 'below');
 });
 
 

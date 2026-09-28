@@ -159,7 +159,10 @@ export function GoalsScreen() {
     const referenceWeightLbs =
       parseWeightToLbs(draft.startingWeight, draft.unitSystem) ??
       parseWeightToLbs(draft.targetWeight, draft.unitSystem);
-    const proteinTarget = getProteinTarget(draft.defaultGoal, referenceWeightLbs ?? 0);
+    const proteinTarget =
+      referenceWeightLbs && referenceWeightLbs > 0
+        ? getProteinTarget(draft.defaultGoal, referenceWeightLbs)
+        : null;
     const stepTarget = getStepSuggestion(draft.defaultGoal);
 
     return {
@@ -232,14 +235,6 @@ export function GoalsScreen() {
     setOriginalSettings(settings);
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Goal saved", "Your goal setup was saved.");
-  }
-
-  function useSuggestedTargets() {
-    setDraft((currentDraft) => ({
-      ...currentDraft,
-      proteinTarget: String(targetCoach.proteinTarget.target),
-      stepTarget: String(targetCoach.stepTarget),
-    }));
   }
 
   return (
@@ -344,25 +339,29 @@ export function GoalsScreen() {
 
       <Card>
         <View style={styles.header}>
-          <Text style={styles.title}>Target Coach</Text>
+          <Text style={styles.title}>Target Guidance</Text>
           <Text style={styles.body}>
-            FitCheck uses your latest valid entries. Blank fields are skipped, and one
-            imperfect day does not define the trend.
+            These references are optional. FitCheck only scores targets you choose and
+            save above. Averages use your latest valid entries and skip blank fields.
           </Text>
         </View>
 
         <View style={styles.targetGrid}>
           <View style={styles.targetItem}>
             <Text style={styles.targetLabel}>Protein</Text>
-            <Text style={styles.targetValue}>{targetCoach.proteinTarget.range}</Text>
+            <Text style={styles.targetValue}>
+              {targetCoach.proteinTarget?.range ?? "Add body weight"}
+            </Text>
             <Text style={styles.targetMeta}>
-              Suggested target: {targetCoach.proteinTarget.target}g/day
+              {targetCoach.proteinTarget
+                ? "Reference range based on goal and body weight"
+                : "Add starting or target weight for a reference range"}
             </Text>
           </View>
           <View style={styles.targetItem}>
             <Text style={styles.targetLabel}>Steps</Text>
             <Text style={styles.targetValue}>{targetCoach.stepTarget.toLocaleString()}</Text>
-            <Text style={styles.targetMeta}>Weekly average target</Text>
+            <Text style={styles.targetMeta}>Optional starting reference</Text>
           </View>
         </View>
 
@@ -376,13 +375,6 @@ export function GoalsScreen() {
           <Text style={styles.coachNoteText}>{targetCoach.calories}</Text>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={useSuggestedTargets}
-          style={styles.secondaryButton}
-        >
-          <Text style={styles.secondaryButtonText}>Use Suggested Protein + Steps</Text>
-        </Pressable>
       </Card>
     </Screen>
   );
@@ -448,19 +440,6 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 10,
-  },
-  secondaryButton: {
-    alignItems: "center",
-    borderColor: colors.border,
-    borderRadius: 15,
-    borderWidth: 1,
-    minHeight: 50,
-    justifyContent: "center",
-  },
-  secondaryButtonText: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: "800",
   },
   targetGrid: {
     flexDirection: "row",

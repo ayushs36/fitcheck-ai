@@ -1,6 +1,5 @@
 import type { DailyLog, GoalType, UserSettings } from "../types/fitness.ts";
 import { getTodayKey as getLocalDateKey } from "./date.ts";
-import { getProteinTarget } from "./proteinTargets.ts";
 import { getWeightTrendSummary } from "./weightTrend.ts";
 
 type MetricKey = "calories" | "proteinGrams" | "steps";
@@ -57,7 +56,7 @@ export type ProgressInsights = {
 };
 
 export type GoalTimeline = {
-  status: "maintaining" | "needsWeight" | "needsTarget" | "reached" | "onTrack" | "offTrack";
+  status: "maintaining" | "needsWeight" | "needsTarget" | "needsPace" | "reached" | "onTrack" | "offTrack";
   latestWeightLbs?: number;
   targetWeightLbs?: number;
   poundsRemaining?: number;
@@ -303,7 +302,16 @@ function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): 
     Math.abs(weeklyChange) < 0.1 ? "flat" : weeklyChange > 0 ? "up" : "down";
 
   if (goal === "cut") {
-    const targetPace = pace && pace > 0 ? pace : 1;
+    if (!pace || pace <= 0) {
+      const status =
+        weeklyChange < -0.1
+          ? "Weight trending down on cut"
+          : weeklyChange > 0.1
+            ? "Weight trending against cut"
+            : "Cut trend is flat";
+      return { status, weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
+    }
+    const targetPace = pace;
     if (weeklyChange <= -targetPace * 0.7) {
       return { status: "Cutting pace on track", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
     }
@@ -314,7 +322,16 @@ function calculateWeightTrend(logs: DailyLog[], goal: GoalType, pace?: number): 
   }
 
   if (goal === "bulk") {
-    const targetPace = pace && pace > 0 ? pace : 0.5;
+    if (!pace || pace <= 0) {
+      const status =
+        weeklyChange > 0.1
+          ? "Weight trending up on bulk"
+          : weeklyChange < -0.1
+            ? "Weight trending down on bulk"
+            : "Bulk trend is flat";
+      return { status, weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
+    }
+    const targetPace = pace;
     if (weeklyChange >= targetPace * 0.5) {
       return { status: "Bulk pace moving up", weeklyChange, direction, weighIns: weighIns.length, ...baseTrend };
     }
@@ -705,7 +722,6 @@ function scoreCalorieTargetExecution(calorieAverage?: number, calorieTarget?: nu
 function buildNutritionDiagnosis(
   logs: DailyLog[],
   settings: UserSettings | null,
-  fallbackProteinTarget: number,
 ): NutritionDiagnosis {
   const recentLogs = logs.slice(0, 14);
   const validCalorieLogs = logs.filter((log) => hasValue(log.calories)).slice(0, 14);
@@ -722,9 +738,9 @@ function buildNutritionDiagnosis(
   const proteinAverage7 = averageNumbers(proteinValues7);
   const calorieVariance = standardDeviation(calorieValues);
   const calorieTargetHitRate = getCalorieTargetHitRate(validCalorieLogs, settings?.calorieTarget);
-  const proteinTarget = settings?.proteinTarget ?? fallbackProteinTarget;
+  const proteinTarget = settings?.proteinTarget;
   const proteinHitRate =
-    proteinTarget > 0 && validProteinLogs.length > 0
+    typeof proteinTarget === "number" && proteinTarget > 0 && validProteinLogs.length > 0
       ? validProteinLogs.filter((log) => (log.proteinGrams ?? 0) >= proteinTarget).length /
         validProteinLogs.length
       : 0;
@@ -757,18 +773,21 @@ function buildNutritionDiagnosis(
   const calorieVarianceScore = scoreCalorieVariance(calorieVariance);
   const proteinScore = clampScore(proteinHitRate * 100);
   const loggingScore = clampScore(loggingCompleteness * 100);
+  const factors = [
+    ...(settings?.calorieTarget
+      ? [{ label: "Calorie target execution", score: calorieTargetScore, weight: 0.35 }]
+      : []),
+    { label: "Calorie consistency", score: calorieVarianceScore, weight: 0.25 },
+    ...(proteinTarget
+      ? [{ label: "Protein execution", score: proteinScore, weight: 0.25 }]
+      : []),
+    { label: "Nutrition logging", score: loggingScore, weight: 0.15 },
+  ];
+  const totalWeight = factors.reduce((sum, factor) => sum + factor.weight, 0);
   const score = clampScore(
-    calorieTargetScore * 0.35 +
-      calorieVarianceScore * 0.25 +
-      proteinScore * 0.25 +
-      loggingScore * 0.15,
+    factors.reduce((sum, factor) => sum + factor.score * factor.weight, 0) / totalWeight,
   );
-  const blockers = [
-    { label: "Calorie target execution", score: calorieTargetScore },
-    { label: "Calorie consistency", score: calorieVarianceScore },
-    { label: "Protein execution", score: proteinScore },
-    { label: "Nutrition logging", score: loggingScore },
-  ].sort((a, b) => a.score - b.score);
+  const blockers = factors.slice().sort((a, b) => a.score - b.score);
 
   return {
     score,
@@ -797,7 +816,9 @@ function buildNutritionDiagnosis(
           ? "Keep calories in a tighter range for the next 7 days."
           : blockers[0].label === "Nutrition logging"
             ? "Log calories and protein more consistently this week."
-            : "Land closer to the calorie target before adjusting the plan.",
+            : blockers[0].label === "Calorie target execution"
+              ? "Land closer to the calorie target before adjusting the plan."
+              : "Keep nutrition logging consistent before adjusting the plan.",
   };
 }
 
@@ -858,12 +879,22 @@ function buildGoalTimeline(
     };
   }
 
-  const plannedWeeklyPace =
-    typeof settings.weeklyGoalPaceLbs === "number" && settings.weeklyGoalPaceLbs > 0
-      ? settings.weeklyGoalPaceLbs
-      : goal === "cut"
-        ? 1
-        : 0.5;
+  if (
+    typeof settings.weeklyGoalPaceLbs !== "number" ||
+    !Number.isFinite(settings.weeklyGoalPaceLbs) ||
+    settings.weeklyGoalPaceLbs <= 0
+  ) {
+    return {
+      status: "needsPace",
+      latestWeightLbs,
+      targetWeightLbs,
+      poundsRemaining: round(poundsRemaining, 1),
+      summary: "Set a weekly pace to estimate the planned goal date.",
+      nextAction: "Choose your weekly pace in the Goals tab. FitCheck will not assume one for you.",
+    };
+  }
+
+  const plannedWeeklyPace = settings.weeklyGoalPaceLbs;
   const plannedDays = Math.ceil((poundsRemaining / plannedWeeklyPace) * 7);
   const plannedDate = formatDateKey(addDays(new Date(), plannedDays));
   const trendMatchesGoal =
@@ -904,23 +935,14 @@ export function calculateProgressInsights(
   const recentLogs = logs.slice(0, 14);
   const loggingQuality = buildLoggingQuality(logs);
   const weightTrend = calculateWeightTrend(logs, activeGoal, settings?.weeklyGoalPaceLbs);
-  const proteinTarget = getProteinTarget(
-    activeGoal,
-    weightTrend.movingAverage7 ?? getLatestWeight(logs, settings),
-  );
   const averages = [
     calculateMetricAverage(logs, "calories", settings?.calorieTarget),
-    calculateMetricAverage(
-      logs,
-      "proteinGrams",
-      settings?.proteinTarget ?? proteinTarget.low,
-      settings?.proteinTarget ? undefined : proteinTarget.range,
-    ),
+    calculateMetricAverage(logs, "proteinGrams", settings?.proteinTarget),
     calculateMetricAverage(logs, "steps", settings?.stepTarget),
   ];
   const goalAction = buildGoalAction(activeGoal, weightTrend, averages, loggingQuality);
   const goalTimeline = buildGoalTimeline(activeGoal, logs, settings, weightTrend);
-  const nutritionDiagnosis = buildNutritionDiagnosis(logs, settings, proteinTarget.low);
+  const nutritionDiagnosis = buildNutritionDiagnosis(logs, settings);
   const coachReview = buildCoachReview(
     activeGoal,
     weightTrend,

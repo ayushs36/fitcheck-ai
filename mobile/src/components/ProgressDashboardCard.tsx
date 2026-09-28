@@ -112,6 +112,20 @@ function formatDateLabel(dateKey?: string): string {
   });
 }
 
+function formatTimelineStatus(status: ProgressInsights["goalTimeline"]["status"]): string {
+  const labels: Record<ProgressInsights["goalTimeline"]["status"], string> = {
+    maintaining: "Maintaining",
+    needsWeight: "Add weight",
+    needsTarget: "Add target",
+    needsPace: "Add pace",
+    reached: "Reached",
+    onTrack: "On track",
+    offTrack: "Off track",
+  };
+
+  return labels[status];
+}
+
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
@@ -184,7 +198,9 @@ export function ProgressDashboardCard({
             </Text>
           </View>
           <View style={styles.timelinePill}>
-            <Text style={styles.timelinePillText}>{insights.goalTimeline.status}</Text>
+            <Text style={styles.timelinePillText}>
+              {formatTimelineStatus(insights.goalTimeline.status)}
+            </Text>
           </View>
         </View>
 

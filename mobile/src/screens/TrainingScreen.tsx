@@ -183,7 +183,6 @@ export function TrainingScreen() {
       exercises: [...currentDraft.exercises, exercise],
     }));
     setActiveExerciseId(exercise.id);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 0);
   }
 
   function addSavedExercise(
@@ -199,7 +198,6 @@ export function TrainingScreen() {
       exercises: [...currentDraft.exercises, exercise],
     }));
     setActiveExerciseId(exercise.id);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 0);
   }
 
   function removeExercise(exerciseId: string) {
@@ -418,7 +416,6 @@ export function TrainingScreen() {
     setSavedExerciseIds(new Set());
     setActiveExerciseId(null);
     setIsComposerOpen(false);
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
     Alert.alert(
       editingSession ? "Workout updated" : "Workout saved",
       editingSession

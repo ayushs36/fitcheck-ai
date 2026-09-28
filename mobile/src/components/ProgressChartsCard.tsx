@@ -58,13 +58,20 @@ function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; u
           index === points.length - 1 ||
           (index % labelInterval === 0 && index < points.length - 2);
         const barWidth = Math.max(5, Math.min(14, slotWidth * 0.55));
+        const dateLabelWidth = 44;
+        const dateLabelLeft =
+          index === 0
+            ? 0
+            : index === points.length - 1
+              ? slotWidth - dateLabelWidth
+              : (slotWidth - dateLabelWidth) / 2;
 
         return (
           <Pressable key={point.date} accessibilityRole="button" accessibilityLabel={`${point.label}: ${point.value} ${unit}`}
             accessibilityState={{selected: selected.date === point.date}} onPress={() => setSelectedDate(point.date)}
             style={{position: "absolute", left: index * slotWidth, width: slotWidth, height: 196, alignItems: "center"}}>
             <View style={{position: "absolute", bottom: weight ? 36 + height - 5 : 36, width: weight ? 10 : barWidth, height: weight ? 10 : height, borderRadius: weight ? 5 : 2, backgroundColor: color, opacity: selected.date === point.date ? 1 : 0.7}} />
-            {showDateLabel ? <Text style={{position: "absolute", bottom: 10, fontSize: 10, color: colors.textMuted}}>{point.date.slice(5).replace("-", "/")}</Text> : null}
+            {showDateLabel ? <Text numberOfLines={1} style={{position: "absolute", bottom: 10, left: dateLabelLeft, width: dateLabelWidth, textAlign: "center", fontSize: 10, color: colors.textMuted}}>{point.date.slice(5).replace("-", "/")}</Text> : null}
           </Pressable>
         );
       })}
@@ -97,7 +104,7 @@ function ChartSection({
         </Text>
       </View>
       <MiniBarChart points={points} unit={unit} weight={label === "Weight"} color={label === "Weight" ? colors.primary : label === "Calories" ? colors.warning : colors.success} />
-      <Text style={styles.chartMeta}>{points.length} logged days shown</Text>
+      <Text style={styles.chartMeta}>Latest {points.length} logged {points.length === 1 ? "day" : "days"} shown</Text>
     </View>
   );
 }
