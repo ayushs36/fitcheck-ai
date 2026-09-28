@@ -50,6 +50,7 @@ test('user targets are optional and FitCheck does not invent protein or goal pac
   assert.equal(result.goalTimeline.status, 'needsPace');
   assert.equal(result.goalTimeline.plannedDate, undefined);
   assert.equal(result.weightTrend.status, 'Weight trending down on cut');
+  assert.ok(result.weightTrend.weeklyChange < 0);
 });
 
 test('a protein target is scored only after the user saves one', () => {

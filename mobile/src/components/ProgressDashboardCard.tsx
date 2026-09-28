@@ -87,7 +87,7 @@ function formatStreak(days: number): string {
 }
 
 function formatWeeklyChange(value: number, unitSystem: UnitSystem): string {
-  const convertedValue = Math.round(convertWeightFromLbs(value, unitSystem) * 10) / 10;
+  const convertedValue = Math.round(Math.abs(convertWeightFromLbs(value, unitSystem)) * 10) / 10;
   return `${convertedValue} ${getWeightUnitLabel(unitSystem)}/week`;
 }
 

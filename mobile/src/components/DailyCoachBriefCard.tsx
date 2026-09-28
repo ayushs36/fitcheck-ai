@@ -16,8 +16,10 @@ function formatTrend(insights: ProgressInsights, unitSystem: UnitSystem): string
     return "Need more weigh-ins";
   }
 
-  const convertedChange = Math.round(convertWeightFromLbs(weeklyChange, unitSystem) * 10) / 10;
-  return `${convertedChange} ${getWeightUnitLabel(unitSystem)}/week`;
+  const convertedChange = Math.round(Math.abs(convertWeightFromLbs(weeklyChange, unitSystem)) * 10) / 10;
+  const direction = insights.weightTrend.direction;
+  const directionLabel = direction === "up" ? "Up" : direction === "down" ? "Down" : "Flat";
+  return `${directionLabel} ${convertedChange} ${getWeightUnitLabel(unitSystem)}/week`;
 }
 
 function formatQualityLabel(status: ProgressInsights["loggingQuality"]["status"]): string {
