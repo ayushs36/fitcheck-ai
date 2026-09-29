@@ -180,7 +180,7 @@ export function ProgressDashboardCard({
               : "Not enough data"}
           </Text>
           <Text style={styles.body}>
-            {insights.weightTrend.weighIns} weigh-ins used. Missing weigh-ins are skipped.
+            {insights.weightTrend.weighIns}/7 recent weigh-ins. Pace compares this week with the prior week; blanks are skipped.
           </Text>
         </View>
       </View>
@@ -206,12 +206,12 @@ export function ProgressDashboardCard({
 
         <View style={styles.timelineGrid}>
           <View style={styles.timelineMetric}>
-            <Text style={styles.metricLabel}>7-weigh-in avg</Text>
+            <Text style={styles.metricLabel}>7-day avg</Text>
             <Text style={styles.timelineValue}>
               {formatWeight(insights.goalTimeline.latestWeightLbs, unitSystem)}
             </Text>
             <Text style={styles.metricMeta}>
-              {insights.weightTrend.movingAverage7LoggedDays}/7 weigh-ins
+              {insights.weightTrend.movingAverage7LoggedDays}/7 days weighed
             </Text>
           </View>
           <View style={styles.timelineMetric}>

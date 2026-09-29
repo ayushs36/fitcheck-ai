@@ -82,15 +82,10 @@ function getLastExercisePerformance(
       continue;
     }
 
-    const setSummary = matchedExercise.sets
-      .slice(0, 4)
-      .map((set) => formatSetPreview(set, unitSystem))
-      .join(", ");
-
     return {
       dateLabel: formatReadableDate(session.date),
       muscleGroup: matchedExercise.muscleGroup || "Saved exercise",
-      setSummary: setSummary || "No sets saved",
+      sets: matchedExercise.sets,
     };
   }
 
@@ -218,7 +213,14 @@ export function TrainingScreen() {
     const exercise = draft.exercises.find((item) => item.id === exerciseId);
     if (
       !exercise?.name.trim() &&
-      !exercise?.sets.some((set) => set.reps || set.weightLbs)
+      !exercise?.sets.some(
+        (set) =>
+          set.reps ||
+          set.weightLbs ||
+          set.isBodyweight ||
+          set.formFocus ||
+          set.notes.trim(),
+      )
     ) {
       remove();
       return;
@@ -337,6 +339,13 @@ export function TrainingScreen() {
           : exercise,
       ),
     }));
+  }
+
+  function explainSetMarkers() {
+    Alert.alert(
+      "Set markers",
+      "Bodyweight records a rep-only set without external load. Form focus marks a set where technique or control was the priority, so Training Coach does not treat a lighter set as a performance drop.",
+    );
   }
 
   async function saveWorkout() {
@@ -664,7 +673,7 @@ export function TrainingScreen() {
                               {exercisePreview.muscleGroup}
                             </Text>
                             <Text style={styles.exercisePreviewBody}>
-                              {exercisePreview.setSummary}
+                              Set references are shown beside each set below.
                             </Text>
                           </View>
                         ) : null}
@@ -672,29 +681,39 @@ export function TrainingScreen() {
                         {exercise.sets.map((set, setIndex) => (
                           <View key={set.id} style={styles.setBlock}>
                             <View style={styles.exerciseHeader}>
-                              <Text style={styles.setTitle}>
-                                Set {setIndex + 1}
-                              </Text>
-                              <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel={`Remove set ${setIndex + 1}`}
-                                style={styles.removeExerciseButton}
-                                onPress={() =>
-                                  updateExercise(exercise.id, {
-                                    ...exercise,
-                                    sets: exercise.sets.filter(
-                                      (item) => item.id !== set.id,
-                                    ),
-                                  })
-                                }
-                              >
-                                <Text style={styles.removeExerciseText}>
-                                  Remove
+                              <View style={styles.setHeadingCopy}>
+                                <Text style={styles.setTitle}>
+                                  Set {setIndex + 1}
                                 </Text>
-                              </Pressable>
+                                {exercisePreview?.sets[setIndex] ? (
+                                  <Text style={styles.setReference}>
+                                    Last: {formatSetPreview(exercisePreview.sets[setIndex], unitSystem)}
+                                  </Text>
+                                ) : exercisePreview ? (
+                                  <Text style={styles.setReference}>Last: no matching set</Text>
+                                ) : null}
+                              </View>
+                              {exercise.sets.length > 1 ? (
+                                <Pressable
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Remove set ${setIndex + 1}`}
+                                  style={styles.removeSetButton}
+                                  onPress={() =>
+                                    updateExercise(exercise.id, {
+                                      ...exercise,
+                                      sets: exercise.sets.filter(
+                                        (item) => item.id !== set.id,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <Text style={styles.removeExerciseText}>Remove</Text>
+                                </Pressable>
+                              ) : null}
                             </View>
                             <View style={styles.setGrid}>
                               <TextField
+                                containerStyle={styles.setField}
                                 keyboardType="number-pad"
                                 label="Reps"
                                 onChangeText={(value) =>
@@ -711,6 +730,7 @@ export function TrainingScreen() {
                                 value={set.reps}
                               />
                               <TextField
+                                containerStyle={styles.setField}
                                 editable={!set.isBodyweight}
                                 keyboardType="decimal-pad"
                                 label="Weight"
@@ -743,7 +763,9 @@ export function TrainingScreen() {
                                             ...currentSet,
                                             isBodyweight:
                                               !currentSet.isBodyweight,
-                                            weightLbs: "",
+                                            weightLbs: currentSet.isBodyweight
+                                              ? currentSet.weightLbs
+                                              : "",
                                           }
                                         : currentSet,
                                     ),
@@ -791,6 +813,14 @@ export function TrainingScreen() {
                                 >
                                   Form focus
                                 </Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Explain bodyweight and form focus"
+                                onPress={explainSetMarkers}
+                                style={styles.infoButton}
+                              >
+                                <Text style={styles.infoButtonText}>i</Text>
                               </Pressable>
                             </View>
                           </View>
@@ -1046,6 +1076,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
   },
+  infoButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  infoButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: "900",
+  },
   exerciseBlock: {
     borderColor: colors.border,
     borderTopWidth: 1,
@@ -1140,6 +1184,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
+  removeSetButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
   saveButton: {
     alignItems: "center",
     backgroundColor: colors.primary,
@@ -1227,12 +1280,26 @@ const styles = StyleSheet.create({
   },
   setBlock: {
     backgroundColor: colors.surfaceMuted,
-    borderRadius: 16,
-    gap: 10,
-    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+    padding: 10,
+  },
+  setField: {
+    flex: 1,
   },
   setGrid: {
+    flexDirection: "row",
     gap: 10,
+  },
+  setHeadingCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  setReference: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 17,
   },
   setTitle: {
     color: colors.text,

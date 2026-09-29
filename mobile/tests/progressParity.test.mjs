@@ -4,7 +4,7 @@ import {calculateProgressInsights} from '../src/utils/progressInsights.ts';
 import {getTodayKey} from '../src/utils/date.ts';
 import {buildStrengthPreview, buildTrendSeries} from '../src/utils/trendSeries.ts';
 
-test('weekly averages use the latest seven valid entries and do not depend on import ordering', () => {
+test('weekly averages use the latest seven calendar days and do not depend on import ordering', () => {
   const logs = Array.from({length: 15}, (_, index) => ({date: `2026-09-${String(index + 1).padStart(2, '0')}`,
     goal: 'maintain', calories: index < 8 ? 4000 : index === 14 ? 0 : 2000, proteinGrams: index === 14 ? undefined : 140,
     weightLbs: index === 14 ? 0 : 140, steps: index === 14 ? 0 : 8000}));

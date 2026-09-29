@@ -25,12 +25,15 @@ export function createBlankSet(): ExerciseSetDraft {
   };
 }
 
+const DEFAULT_SET_COUNT = 3;
+
 export function createBlankExercise(): ExerciseDraft {
   return {
     id: createId("exercise"),
     name: "",
     muscleGroup: "",
-    sets: [createBlankSet()],
+    // Three rows cover the common working-set flow while remaining fully editable.
+    sets: Array.from({length: DEFAULT_SET_COUNT}, () => createBlankSet()),
   };
 }
 

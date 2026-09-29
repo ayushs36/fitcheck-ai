@@ -123,7 +123,7 @@ export function ProgressChartsCard({
   const weightSummary = getWeightTrendSummary(logs);
   const weightMovingAverage =
     typeof weightSummary.movingAverage7 === "number"
-      ? `${Math.round(convertWeightFromLbs(weightSummary.movingAverage7, unitSystem) * 10) / 10} ${weightUnit} 7-weigh-in avg`
+      ? `${Math.round(convertWeightFromLbs(weightSummary.movingAverage7, unitSystem) * 10) / 10} ${weightUnit} 7-day avg`
       : undefined;
 
   return (
