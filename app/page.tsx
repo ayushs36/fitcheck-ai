@@ -702,9 +702,6 @@ useEffect(() => {
     [sortedLogs]
   );
 
-  const last7Logs = sortedLogs.slice(-7);
-  const last14Logs = sortedLogs.slice(-14);
-
   const average = (values: number[]) =>
     values.length === 0
       ? 0
@@ -718,6 +715,25 @@ useEffect(() => {
   const latestLog = sortedLogs[sortedLogs.length - 1];
   const latestWeightLog = [...sortedLogs].reverse().find((log) => log.weight > 0);
   const latestWeight = latestWeightLog?.weight ?? 0;
+  const latestWeightDate = latestWeightLog?.date;
+  const getDateKeyOffset = (dateKey: string, offsetDays: number) => {
+    const date = new Date(`${dateKey}T12:00:00`);
+    date.setDate(date.getDate() + offsetDays);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+  const logsInWeightWindow = (endDate: string | undefined, days: number) => {
+    if (!endDate) return [];
+    const startDate = getDateKeyOffset(endDate, -(days - 1));
+    return sortedLogs.filter((log) => log.date >= startDate && log.date <= endDate);
+  };
+  const last7Logs = logsInWeightWindow(latestWeightDate, 7);
+  const previous7Logs = latestWeightDate
+    ? logsInWeightWindow(getDateKeyOffset(latestWeightDate, -7), 7)
+    : [];
+  const last14Logs = [...previous7Logs, ...last7Logs];
+  const recentWeekWeights = last7Logs.map((log) => log.weight).filter((weight) => weight > 0);
+  const previousWeekWeights = previous7Logs.map((log) => log.weight).filter((weight) => weight > 0);
+  const hasWeeklyTrendData = recentWeekWeights.length >= 3 && previousWeekWeights.length >= 3;
 
   const movingAverage =
   last7Logs.length > 0 ? loggedAverage(last7Logs.map((log) => log.weight)) : 0;
@@ -758,9 +774,9 @@ const fourteenDayAverage =
       "Your 7-day average is above your 14-day average. Treat this as possible water-weight noise first, then review calories, steps, sodium, carbs, digestion, and workout stress before assuming fat gain.";
   }
 
-  const first7Weight = last7Logs[0]?.weight ?? latestWeight;
-  const weeklyWeightChange =
-    last7Logs.length >= 2 ? latestWeight - first7Weight : 0;
+  const weeklyWeightChange = hasWeeklyTrendData
+    ? loggedAverage(recentWeekWeights) - loggedAverage(previousWeekWeights)
+    : 0;
 
   const effectiveWeight =
     movingAverage > 0 ? movingAverage : latestWeight;
@@ -817,21 +833,7 @@ const fourteenDayAverage =
       ? poundsRemaining / weeksUntilGoal
       : 0;
 
-  const weeklyAverageChange = useMemo(() => {
-  const validWeightLogs = sortedLogs.filter((log) => log.weight > 0);
-
-  if (validWeightLogs.length < 14) {
-    return 0;
-  }
-
-  const previous7Logs = validWeightLogs.slice(-14, -7);
-  const recent7Logs = validWeightLogs.slice(-7);
-
-  const previous7Average = loggedAverage(previous7Logs.map((log) => log.weight));
-  const recent7Average = loggedAverage(recent7Logs.map((log) => log.weight));
-
-  return recent7Average - previous7Average;
-}, [sortedLogs]);
+  const weeklyAverageChange = weeklyWeightChange;
 
 const trendPace = Math.abs(weeklyAverageChange);
 const trendDirection =
@@ -843,9 +845,9 @@ const trendDirection =
 const trendArrow =
   trendDirection === "up" ? "↑" : trendDirection === "down" ? "↓" : "→";
 const trendPaceLabel =
-  logs.length >= 14
+  hasWeeklyTrendData
     ? `${trendArrow} ${trendPace.toFixed(1)} lbs/week`
-    : "Need 14 logs";
+    : "Need 3 weigh-ins in each week";
 const currentPace =
   goal === "Maintaining"
     ? trendPace
