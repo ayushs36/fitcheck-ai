@@ -4,6 +4,7 @@ import { ProgressInsights } from "../utils/progressInsights";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { Card } from "./Card";
 import { Disclosure } from "./Disclosure";
+import { InfoButton } from "./InfoButton";
 
 type ProgressDashboardCardProps = {
   insights: ProgressInsights;
@@ -174,6 +175,10 @@ export function ProgressDashboardCard({
       <View style={styles.trendBox}>
         <Text style={styles.trendSymbol}>{getTrendSymbol(insights.weightTrend.direction)}</Text>
         <View style={styles.trendCopy}>
+          <View style={styles.labelRow}>
+            <Text style={styles.actionEyebrow}>Weekly pace</Text>
+            <InfoButton title="Weekly pace" message="Weekly pace compares the average weight from the latest seven calendar days with the average from the seven days before that. Missing weigh-ins are skipped, and FitCheck needs at least three weigh-ins in each week." />
+          </View>
           <Text style={styles.trendValue}>
             {typeof insights.weightTrend.weeklyChange === "number"
               ? formatWeeklyChange(insights.weightTrend.weeklyChange, unitSystem)
@@ -190,7 +195,10 @@ export function ProgressDashboardCard({
       <View style={styles.timelineBox}>
         <View style={styles.timelineHeader}>
           <View>
-            <Text style={styles.actionEyebrow}>Goal Timeline</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.actionEyebrow}>Goal Timeline</Text>
+              <InfoButton title="Goal timeline" message="The timeline starts with your current seven-day weight average, target weight, and selected weekly pace. It is an estimate, not a promise, and updates as new weigh-ins change your trend." />
+            </View>
             <Text style={styles.timelineTitle}>
               {insights.goalTimeline.projectedDate
                 ? formatDateLabel(insights.goalTimeline.projectedDate)
@@ -230,6 +238,28 @@ export function ProgressDashboardCard({
 
         <Text style={styles.executionBody}>{insights.goalTimeline.summary}</Text>
         <Text style={styles.executionAction}>{insights.goalTimeline.nextAction}</Text>
+        <Text style={styles.executionMeta}>Based on your 7-day weight average, target, and selected pace.</Text>
+      </View>
+
+      <View style={styles.weeklyCheckIn}>
+        <View style={styles.executionHeader}>
+          <View style={styles.headerCopy}>
+            <View style={styles.labelRow}>
+              <Text style={styles.actionEyebrow}>Weekly Check-in</Text>
+              <InfoButton title="Weekly check-in" message="This combines your saved calorie, protein, and step targets with the latest valid entries. Blank fields do not lower averages; they reduce data confidence instead." />
+            </View>
+            <Text style={styles.executionTitle}>{insights.weeklyExecution.status}</Text>
+          </View>
+          <View style={styles.executionScoreWrap}>
+            <Text style={styles.executionScore}>{insights.weeklyExecution.score}</Text>
+            <Text style={styles.executionScoreMeta}>/100</Text>
+          </View>
+        </View>
+        <Text style={styles.executionBody}>{insights.weeklyExecution.summary}</Text>
+        <Text style={styles.weeklyConfidence}>
+          Data confidence: {formatQualityStatus(insights.loggingQuality.status)} ({insights.loggingQuality.score}/100)
+        </Text>
+        <Text style={styles.executionAction}>{insights.weeklyExecution.nextAction}</Text>
       </View>
 
       <Disclosure title="Coaching details">
@@ -240,7 +270,10 @@ export function ProgressDashboardCard({
             <Text style={styles.qualityScoreMeta}>/100</Text>
           </View>
           <View style={styles.qualityCopy}>
-            <Text style={styles.actionEyebrow}>Logging Quality</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.actionEyebrow}>Logging Quality</Text>
+              <InfoButton title="Data confidence" message="Confidence reflects how many recent days include a saved log and how often weight, calories, protein, and steps were recorded. Missing values never become zero in an average." />
+            </View>
             <Text style={styles.qualityTitle}>
               {formatQualityStatus(insights.loggingQuality.status)}
             </Text>
@@ -263,21 +296,8 @@ export function ProgressDashboardCard({
       </View>
 
       <View style={styles.executionBox}>
-        <View style={styles.executionHeader}>
-          <View>
-            <Text style={styles.actionEyebrow}>Weekly Execution</Text>
-            <Text style={styles.executionTitle}>{insights.weeklyExecution.status}</Text>
-          </View>
-          <View style={styles.executionScoreWrap}>
-            <Text style={styles.executionScore}>{insights.weeklyExecution.score}</Text>
-            <Text style={styles.executionScoreMeta}>/100</Text>
-          </View>
-        </View>
-        <Text style={styles.executionBody}>{insights.weeklyExecution.summary}</Text>
-        <Text style={styles.executionAction}>{insights.weeklyExecution.nextAction}</Text>
-        <Text style={styles.executionMeta}>
-          Based on the latest 7 valid values. Blank fields do not lower the average.
-        </Text>
+        <Text style={styles.actionEyebrow}>Target detail</Text>
+        <Text style={styles.executionMeta}>Based on the latest 7 valid values. Blank fields do not lower the average.</Text>
         <Text style={styles.executionMeta}>{formatAverageSummary(insights.averages)}</Text>
       </View>
 
@@ -452,6 +472,11 @@ const styles = StyleSheet.create({
   headerCopy: {
     flex: 1,
     gap: 4,
+  },
+  labelRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
   },
   metricBox: {
     backgroundColor: colors.surfaceMuted,
@@ -643,6 +668,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     padding: 14,
+  },
+  weeklyCheckIn: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 7,
+    padding: 14,
+  },
+  weeklyConfidence: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 18,
   },
   trendCopy: {
     flex: 1,

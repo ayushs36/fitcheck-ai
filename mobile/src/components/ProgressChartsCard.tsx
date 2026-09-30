@@ -1,7 +1,7 @@
 import {useState} from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../theme/colors";
-import { DailyLog } from "../types/fitness";
+import { DailyLog, UserSettings } from "../types/fitness";
 import { buildTrendSeries, TrendPoint } from "../utils/trendSeries";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
 import { getWeightTrendSummary } from "../utils/weightTrend";
@@ -9,17 +9,18 @@ import { Card } from "./Card";
 
 type ProgressChartsCardProps = {
   logs: DailyLog[];
+  settings?: UserSettings | null;
   unitSystem?: UnitSystem;
 };
 
-function getRange(points: TrendPoint[]): { min: number; max: number } {
-  const values = points.map((point) => point.value);
+function getRange(points: TrendPoint[], target?: number): { min: number; max: number } {
+  const values = typeof target === "number" ? [...points.map((point) => point.value), target] : points.map((point) => point.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   return { min, max: min === max ? min + 1 : max };
 }
 
-function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; unit: string; color: string; weight: boolean }) {
+function MiniBarChart({ points, unit, color, weight, target }: { points: TrendPoint[]; unit: string; color: string; weight: boolean; target?: number }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [plotWidth, setPlotWidth] = useState(240);
   if (points.length === 0) {
@@ -30,7 +31,7 @@ function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; u
     );
   }
 
-  const range = getRange(points);
+  const range = getRange(points, target);
   const min = weight ? Math.max(0, Math.floor((range.min - 0.5) * 10) / 10) : 0;
   const max = weight ? Math.ceil((range.max + 0.5) * 10) / 10 : Math.max(4, Math.ceil(range.max / 4) * 4);
   const ticks = Array.from({length: 5}, (_, i) => max - i * (max - min) / 4);
@@ -38,6 +39,9 @@ function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; u
   const width = Math.max(240, plotWidth);
   const slotWidth = width / points.length;
   const labelInterval = Math.max(1, Math.ceil(points.length / 5));
+  const targetHeight = typeof target === "number" ? (target - min) / (max - min) * 160 : undefined;
+  const targetLabel =
+    typeof target === "number" ? `Target ${target.toLocaleString()} ${unit}` : null;
 
   return (
     <View style={{gap: 10}}>
@@ -51,6 +55,14 @@ function MiniBarChart({ points, unit, color, weight }: { points: TrendPoint[]; u
         style={styles.chartPlot}
       >
       {ticks.map((_, index) => <View key={index} style={{position: "absolute", top: index * 40, width: "100%", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border}} />)}
+      {typeof targetHeight === "number" && targetHeight >= 0 && targetHeight <= 160 && targetLabel ? (
+        <View
+          pointerEvents="none"
+          style={[styles.targetLine, {bottom: 36 + targetHeight}]}
+        >
+          <Text style={styles.targetLineLabel}>{targetLabel}</Text>
+        </View>
+      ) : null}
       {points.map((point, index) => {
         const height = (point.value - min) / (max - min) * 160;
         const showDateLabel =
@@ -87,11 +99,13 @@ function ChartSection({
   points,
   unit,
   summary,
+  target,
 }: {
   label: string;
   points: TrendPoint[];
   unit: string;
   summary?: string;
+  target?: number;
 }) {
   const latestPoint = points[points.length - 1];
 
@@ -103,7 +117,8 @@ function ChartSection({
           {summary ?? (latestPoint ? `${latestPoint.value} ${unit}` : "No data")}
         </Text>
       </View>
-      <MiniBarChart points={points} unit={unit} weight={label === "Weight"} color={label === "Weight" ? colors.primary : label === "Calories" ? colors.warning : colors.success} />
+      <MiniBarChart points={points} unit={unit} weight={label === "Weight"} color={label === "Weight" ? colors.primary : label === "Calories" ? colors.warning : colors.success} target={target} />
+      <Text style={styles.insightText}>{describeChartTrend(label, points, unit, target)}</Text>
       <Text style={styles.chartMeta}>Latest {points.length} logged {points.length === 1 ? "day" : "days"} shown</Text>
     </View>
   );
@@ -111,6 +126,7 @@ function ChartSection({
 
 export function ProgressChartsCard({
   logs,
+  settings,
   unitSystem = "imperial",
 }: ProgressChartsCardProps) {
   const weightPoints = buildTrendSeries(logs, "weightLbs").map((point) => ({
@@ -121,6 +137,9 @@ export function ProgressChartsCard({
   const stepPoints = buildTrendSeries(logs, "steps");
   const weightUnit = getWeightUnitLabel(unitSystem);
   const weightSummary = getWeightTrendSummary(logs);
+  const weightTarget = typeof settings?.targetWeightLbs === "number"
+    ? Math.round(convertWeightFromLbs(settings.targetWeightLbs, unitSystem) * 10) / 10
+    : undefined;
   const weightMovingAverage =
     typeof weightSummary.movingAverage7 === "number"
       ? `${Math.round(convertWeightFromLbs(weightSummary.movingAverage7, unitSystem) * 10) / 10} ${weightUnit} 7-day avg`
@@ -133,11 +152,41 @@ export function ProgressChartsCard({
         <Text style={styles.body}>Charts only use days where that field was logged.</Text>
       </View>
 
-      <ChartSection label="Weight" points={weightPoints} unit={weightUnit} summary={weightMovingAverage} />
-      <ChartSection label="Calories" points={caloriePoints} unit="cal" />
-      <ChartSection label="Steps" points={stepPoints} unit="steps" />
+      <ChartSection label="Weight" points={weightPoints} unit={weightUnit} summary={weightMovingAverage} target={weightTarget} />
+      <ChartSection label="Calories" points={caloriePoints} unit="cal" target={settings?.calorieTarget} />
+      <ChartSection label="Steps" points={stepPoints} unit="steps" target={settings?.stepTarget} />
     </Card>
   );
+}
+
+function describeChartTrend(label: string, points: TrendPoint[], unit: string, target?: number): string {
+  if (!points.length) {
+    return "Add this field on a daily log to see its trend.";
+  }
+
+  const latest = points[points.length - 1];
+  if (typeof target === "number") {
+    const difference = label === "Weight"
+      ? Math.round((latest.value - target) * 10) / 10
+      : Math.round(latest.value - target);
+    if (difference === 0) {
+      return `Latest entry is on the ${label.toLowerCase()} target.`;
+    }
+
+    return `Latest entry is ${Math.abs(difference).toLocaleString()} ${unit} ${difference > 0 ? "above" : "below"} the target.`;
+  }
+
+  if (points.length < 2) {
+    return "Log this field again to compare a direction.";
+  }
+
+  const change = latest.value - points[0].value;
+  if (Math.abs(change) < (label === "Weight" ? 0.1 : 1)) {
+    return `Latest logged value is steady across the displayed entries.`;
+  }
+
+  const roundedChange = label === "Weight" ? Math.round(Math.abs(change) * 10) / 10 : Math.round(Math.abs(change));
+  return `Latest logged value is ${roundedChange.toLocaleString()} ${unit} ${change > 0 ? "higher" : "lower"} than the first displayed entry.`;
 }
 
 const styles = StyleSheet.create({
@@ -180,6 +229,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     fontWeight: "800",
+  },
+  insightText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
   },
   chartRow: {
     alignItems: "flex-end",
@@ -251,5 +306,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
     fontWeight: "900",
+  },
+  targetLine: {
+    alignItems: "flex-end",
+    borderColor: colors.primary,
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    left: 0,
+    position: "absolute",
+    right: 0,
+  },
+  targetLineLabel: {
+    backgroundColor: colors.surface,
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: "900",
+    paddingLeft: 4,
   },
 });

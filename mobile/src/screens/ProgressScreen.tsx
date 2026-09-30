@@ -142,7 +142,7 @@ export function ProgressScreen() {
         <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />
         <ProgressPhotosCard />
       </>}
-      {view === "charts" && <ProgressChartsCard logs={logs} unitSystem={unitSystem} />}
+      {view === "charts" && <ProgressChartsCard logs={logs} settings={settings} unitSystem={unitSystem} />}
 
       {view === "history" && <Card>
         <View style={styles.headerRow}>
