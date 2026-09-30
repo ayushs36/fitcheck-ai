@@ -25,6 +25,28 @@ test('weekly averages use the latest seven calendar days and do not depend on im
   assert.equal(buildTrendSeries(logs, 'weightLbs').length, 14);
 });
 
+test('saving a day with omitted metrics does not change any metric average', () => {
+  const logs = Array.from({length: 14}, (_, index) => ({
+    date: `2026-09-${String(index + 1).padStart(2, '0')}`,
+    goal: 'maintain',
+    weightLbs: 140 + index,
+    calories: 2000 + index * 10,
+    proteinGrams: 130 + index,
+    steps: 8000 + index * 100,
+  }));
+  const before = calculateProgressInsights(logs, null);
+  const after = calculateProgressInsights([
+    ...logs,
+    {date: '2026-09-15', goal: 'maintain'},
+  ], null);
+
+  assert.deepEqual(after.averages, before.averages);
+  assert.equal(after.weightTrend.movingAverage7, before.weightTrend.movingAverage7);
+  assert.equal(after.weightTrend.weeklyChange, before.weightTrend.weeklyChange);
+  assert.equal(after.nutritionDiagnosis.calorieAverage7, before.nutritionDiagnosis.calorieAverage7);
+  assert.equal(after.nutritionDiagnosis.proteinAverage7, before.nutritionDiagnosis.proteinAverage7);
+});
+
 test('user targets are optional and FitCheck does not invent protein or goal pace targets', () => {
   const logs = Array.from({length: 14}, (_, index) => ({
     date: `2026-09-${String(index + 1).padStart(2, '0')}`,
