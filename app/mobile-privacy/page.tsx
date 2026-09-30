@@ -15,7 +15,7 @@ export default function MobilePrivacyPage() {
           FitCheck Coach
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Privacy Policy</h1>
-        <p className="mt-3 text-sm text-slate-500">Last updated: September 12, 2026</p>
+        <p className="mt-3 text-sm text-slate-500">Last updated: September 29, 2026</p>
 
         <div className="mt-8 space-y-6 text-sm leading-7 text-slate-700">
           <section>
@@ -23,7 +23,18 @@ export default function MobilePrivacyPage() {
             <p className="mt-2">
               FitCheck Coach stores the fitness information you enter, including account
               profile details, goals, weight logs, calories, protein, steps, workouts, exercises,
-              notes, and local backup data.
+              body measurements, notes, and local backup data.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-slate-950">Apple Health And Progress Photos</h2>
+            <p className="mt-2">
+              If you choose to use the Apple Health import button, FitCheck Coach reads only
+              your current-day step total and places it in an unsaved daily check-in for your
+              review. The app does not write data to Apple Health or read Health data in the
+              background. Progress photos are stored only on the device where you add them and
+              are not uploaded to your FitCheck Coach account.
             </p>
           </section>
 

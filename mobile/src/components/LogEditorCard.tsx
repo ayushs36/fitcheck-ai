@@ -22,6 +22,7 @@ type LogEditorCardProps = {
   statusLabel: string;
   submitLabel: string;
   weightUnit: string;
+  measurementUnit: string;
   footer?: ReactNode;
   onDraftChange: (draft: TodayLogDraft) => void;
   onStartWorkout?: () => void;
@@ -43,6 +44,7 @@ export function LogEditorCard({
   statusLabel,
   submitLabel,
   weightUnit,
+  measurementUnit,
   footer,
   onDraftChange,
   onStartWorkout,
@@ -69,27 +71,6 @@ export function LogEditorCard({
           <Text style={styles.statusText}>{statusLabel}</Text>
         </View>
       </View>
-
-      <Disclosure
-        title={draft.waistInches || draft.chestInches || draft.hipInches ? "Measurements (added)" : "Add measurements"}
-        initiallyOpen={Boolean(draft.waistInches || draft.chestInches || draft.hipInches)}
-      >
-        <Text style={styles.measurementHint}>Optional body measurements are saved with this day and are never used as a calorie target.</Text>
-        <View style={styles.inputPair}>
-          <View style={styles.inputCell}>
-            <TextField keyboardType="decimal-pad" label="Waist" placeholder="in" value={draft.waistInches}
-              onChangeText={(value) => updateDraft("waistInches", value)} />
-          </View>
-          <View style={styles.inputCell}>
-            <TextField keyboardType="decimal-pad" label="Chest" placeholder="in" value={draft.chestInches}
-              onChangeText={(value) => updateDraft("chestInches", value)} />
-          </View>
-          <View style={styles.inputCell}>
-            <TextField keyboardType="decimal-pad" label="Hips" placeholder="in" value={draft.hipInches}
-              onChangeText={(value) => updateDraft("hipInches", value)} />
-          </View>
-        </View>
-      </Disclosure>
 
       <View style={styles.section}>
         <Text style={styles.label}>Current goal</Text>
@@ -142,6 +123,27 @@ export function LogEditorCard({
           </View>
         </View>
       </View>
+
+      <Disclosure
+        title={draft.waistInches || draft.chestInches || draft.hipInches ? "Measurements (added)" : "Add measurements"}
+        initiallyOpen={Boolean(draft.waistInches || draft.chestInches || draft.hipInches)}
+      >
+        <Text style={styles.measurementHint}>Optional body measurements are saved with this day and are never used as a calorie target.</Text>
+        <View style={styles.inputPair}>
+          <View style={styles.inputCell}>
+            <TextField keyboardType="decimal-pad" label="Waist" placeholder={measurementUnit} value={draft.waistInches}
+              onChangeText={(value) => updateDraft("waistInches", value)} />
+          </View>
+          <View style={styles.inputCell}>
+            <TextField keyboardType="decimal-pad" label="Chest" placeholder={measurementUnit} value={draft.chestInches}
+              onChangeText={(value) => updateDraft("chestInches", value)} />
+          </View>
+          <View style={styles.inputCell}>
+            <TextField keyboardType="decimal-pad" label="Hips" placeholder={measurementUnit} value={draft.hipInches}
+              onChangeText={(value) => updateDraft("hipInches", value)} />
+          </View>
+        </View>
+      </Disclosure>
 
       <View style={styles.section}>
         <WorkoutNameField value={draft.workoutType} refreshKey={statusLabel}

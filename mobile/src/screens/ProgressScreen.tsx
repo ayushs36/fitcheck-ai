@@ -171,6 +171,7 @@ export function ProgressScreen() {
           onDraftChange={setEditDraft}
           onSubmit={savePastLog}
           weightUnit={weightUnit}
+          measurementUnit={unitSystem === "metric" ? "cm" : "in"}
           statusLabel="Editing past log"
           submitLabel="Update Past Log"
           footer={

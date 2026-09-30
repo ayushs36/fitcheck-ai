@@ -51,17 +51,20 @@ export function ProgressPhotosCard() {
     <View style={styles.header}>
       <View style={styles.copy}>
         <Text style={styles.title}>Progress photos</Text>
-        <Text style={styles.body}>Private to this device. Photos are not uploaded with your account data.</Text>
+        <Text style={styles.body}>Stored only on this device. Photos are never uploaded with your account data.</Text>
       </View>
       <Pressable accessibilityRole="button" disabled={adding} onPress={addPhoto} style={styles.addButton}>
         <Text style={styles.addText}>{adding ? "Adding..." : "Add photo"}</Text>
       </Pressable>
     </View>
-    {photos.length ? <View style={styles.photoRow}>
-      {photos.slice(0, 3).map((photo) => <Pressable key={photo.id} accessibilityRole="button" accessibilityLabel="Remove progress photo" onLongPress={() => removePhoto(photo)} style={styles.photoWrap}>
+    {photos.length ? <View style={styles.photoGrid}>
+      {photos.map((photo) => <View key={photo.id} style={styles.photoWrap}>
         <Image source={{ uri: photo.uri }} style={styles.photo} />
         <Text style={styles.photoDate}>{new Date(photo.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</Text>
-      </Pressable>)}
+        <Pressable accessibilityRole="button" accessibilityLabel="Remove progress photo" onPress={() => removePhoto(photo)} hitSlop={8}>
+          <Text style={styles.removeText}>Remove</Text>
+        </Pressable>
+      </View>)}
     </View> : <Text style={styles.empty}>Add a photo whenever it helps you see change beyond the scale.</Text>}
   </Card>;
 }
@@ -75,7 +78,8 @@ const styles = StyleSheet.create({
   header: { alignItems: "flex-start", flexDirection: "row", gap: 12, justifyContent: "space-between" },
   photo: { aspectRatio: 3 / 4, backgroundColor: colors.surfaceMuted, borderRadius: 8, width: "100%" },
   photoDate: { color: colors.textMuted, fontSize: 11, fontWeight: "700", textAlign: "center" },
-  photoRow: { flexDirection: "row", gap: 10 },
-  photoWrap: { flex: 1, gap: 5 },
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  photoWrap: { gap: 5, width: "31.5%" },
+  removeText: { color: colors.danger, fontSize: 11, fontWeight: "800", textAlign: "center" },
   title: { color: colors.text, fontSize: 17, fontWeight: "900" },
 });

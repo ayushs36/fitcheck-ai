@@ -195,6 +195,7 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
         onStartWorkout={onStartWorkout}
         onSubmit={saveLog}
         weightUnit={weightUnit}
+        measurementUnit={unitSystem === "metric" ? "cm" : "in"}
         statusLabel={
           isLoading
             ? "Loading today"

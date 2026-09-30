@@ -64,8 +64,8 @@ Implementation-based mapping, not a published or complete declaration:
 | --- | --- | --- |
 | Email Address | Apple-provided email in cloud authentication | App Functionality |
 | User ID | Apple-linked identity and Supabase account ID | App Functionality |
-| Health | Synced weight and nutrition records | App Functionality; review Product Personalization for goal-based guidance |
-| Fitness | Synced steps, workouts, exercises and goals | App Functionality; review Product Personalization for goal-based guidance |
+| Health | Synced weight, body-measurement, and nutrition records | App Functionality; review Product Personalization for goal-based guidance |
+| Fitness | Synced steps, workouts, exercises, and goals; optional user-initiated Apple Health step import | App Functionality; review Product Personalization for goal-based guidance |
 | Other User Content | Synced free-text notes | App Functionality |
 
 These records are linked to the account, not anonymized. No advertising tracking

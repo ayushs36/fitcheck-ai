@@ -28,6 +28,25 @@ export function parseOptionalNumber(value: string): number | undefined {
   return Number.isFinite(parsedValue) ? parsedValue : undefined;
 }
 
+function formatMeasurementFromInches(value: number | undefined, unitSystem: UnitSystem): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "";
+  }
+
+  const displayValue = unitSystem === "metric" ? value * 2.54 : value;
+  return String(Math.round(displayValue * 10) / 10);
+}
+
+function parseMeasurementToInches(value: string, unitSystem: UnitSystem): number | undefined {
+  const parsedValue = parseOptionalNumber(value);
+  if (parsedValue === undefined) {
+    return undefined;
+  }
+
+  const inches = unitSystem === "metric" ? parsedValue / 2.54 : parsedValue;
+  return Math.round(inches * 10) / 10;
+}
+
 export function dailyLogToDraft(log?: DailyLog, unitSystem: UnitSystem = "imperial"): TodayLogDraft {
   if (!log) {
     return blankTodayDraft;
@@ -39,9 +58,9 @@ export function dailyLogToDraft(log?: DailyLog, unitSystem: UnitSystem = "imperi
     calories: formatOptionalNumber(log.calories),
     proteinGrams: formatOptionalNumber(log.proteinGrams),
     steps: formatOptionalNumber(log.steps),
-    waistInches: formatOptionalNumber(log.measurements?.waistInches),
-    chestInches: formatOptionalNumber(log.measurements?.chestInches),
-    hipInches: formatOptionalNumber(log.measurements?.hipInches),
+    waistInches: formatMeasurementFromInches(log.measurements?.waistInches, unitSystem),
+    chestInches: formatMeasurementFromInches(log.measurements?.chestInches, unitSystem),
+    hipInches: formatMeasurementFromInches(log.measurements?.hipInches, unitSystem),
     workoutType: log.workoutType ?? "",
     notes: log.notes ?? "",
   };
@@ -61,9 +80,9 @@ export function createDailyLogFromDraft({
   const now = new Date().toISOString();
 
   const measurements = {
-    waistInches: parseOptionalNumber(draft.waistInches),
-    chestInches: parseOptionalNumber(draft.chestInches),
-    hipInches: parseOptionalNumber(draft.hipInches),
+    waistInches: parseMeasurementToInches(draft.waistInches, unitSystem),
+    chestInches: parseMeasurementToInches(draft.chestInches, unitSystem),
+    hipInches: parseMeasurementToInches(draft.hipInches, unitSystem),
   };
 
   return {
