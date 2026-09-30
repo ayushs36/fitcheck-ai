@@ -24,6 +24,7 @@ export type WorkoutSession = {
   type: WorkoutType;
   exercises: ExerciseLog[];
   notes?: string;
+  durationSeconds?: number;
   createdAt: string;
   updatedAt: string;
 };

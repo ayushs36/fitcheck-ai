@@ -23,6 +23,14 @@ test('bodyweight and form-focused sets validate without weights',()=>{
   workout.exercises[0].sets[0].reps=-1;
   assert.equal(isWorkoutSession(workout),false);
 });
+test('workout durations are optional positive whole seconds',()=>{
+  const workout={id:'w',date:log.date,type:'My workout',createdAt:log.createdAt,updatedAt:log.updatedAt,
+    exercises:[]};
+  assert.equal(isWorkoutSession(workout),true);
+  assert.equal(isWorkoutSession({...workout,durationSeconds:2700}),true);
+  assert.equal(isWorkoutSession({...workout,durationSeconds:0}),false);
+  assert.equal(isWorkoutSession({...workout,durationSeconds:2.5}),false);
+});
 test('goal settings require a valid unit system and goal',()=>{
   assert.equal(isUserSettings({unitSystem:'imperial',defaultGoal:'maintain'}),true);
   assert.equal(isUserSettings({unitSystem:'imperial',defaultGoal:'bulk',stepTarget:-1}),false);

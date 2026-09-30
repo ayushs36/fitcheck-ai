@@ -29,7 +29,8 @@ export function isDailyLog(value: unknown): value is DailyLog {
 export function isWorkoutSession(value: unknown): value is WorkoutSession {
   if (!object(value) || !text(value.id) || !date(value.date) || !text(value.type)
     || !timestamp(value.createdAt) || !timestamp(value.updatedAt)
-    || !optionalText(value.notes) || !Array.isArray(value.exercises)) return false;
+    || !optionalText(value.notes) || !optionalNumber(value.durationSeconds, true, true)
+    || !Array.isArray(value.exercises)) return false;
   const ids = new Set<string>();
   return value.exercises.every(exercise => {
     if (!object(exercise) || !text(exercise.id) || !text(exercise.name)

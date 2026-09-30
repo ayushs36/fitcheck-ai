@@ -102,10 +102,12 @@ export function createWorkoutSessionFromDraft({
   date,
   draft,
   unitSystem = "imperial",
+  durationSeconds,
 }: {
   date: string;
   draft: WorkoutDraft;
   unitSystem?: UnitSystem;
+  durationSeconds?: number;
 }): WorkoutSession {
   const now = new Date().toISOString();
   const exercises = draft.exercises
@@ -118,6 +120,7 @@ export function createWorkoutSessionFromDraft({
     type: draft.type.trim(),
     exercises,
     notes: draft.notes.trim() || undefined,
+    durationSeconds,
     createdAt: now,
     updatedAt: now,
   };

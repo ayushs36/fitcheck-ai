@@ -56,6 +56,17 @@ function formatSetPreview(
   return `${reps} @ ${load}${set.formFocus ? " - form focus" : ""}`;
 }
 
+function formatWorkoutDuration(durationSeconds: number) {
+  const totalMinutes = Math.floor(durationSeconds / 60);
+  if (totalMinutes < 1) return "Less than 1 min";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!hours) return `${minutes} min`;
+  if (!minutes) return `${hours} ${hours === 1 ? "hr" : "hrs"}`;
+  return `${hours} ${hours === 1 ? "hr" : "hrs"} ${minutes} min`;
+}
+
 function getLastExercisePerformance(
   exerciseName: string,
   workoutType: WorkoutType,
@@ -119,6 +130,18 @@ export function TrainingScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const [saving, setSaving] = useState(false);
   const [historyMonth, setHistoryMonth] = useState("");
+  const workoutStartedAtRef = useRef<number | null>(null);
+
+  function startWorkoutTimer() {
+    if (!editingSession && workoutStartedAtRef.current === null) {
+      workoutStartedAtRef.current = Date.now();
+    }
+  }
+
+  function getWorkoutDurationSeconds() {
+    if (workoutStartedAtRef.current === null) return undefined;
+    return Math.max(1, Math.floor((Date.now() - workoutStartedAtRef.current) / 1000));
+  }
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -157,6 +180,7 @@ export function TrainingScreen() {
   }, []);
 
   function updateExercise(exerciseId: string, nextExercise: ExerciseDraft) {
+    startWorkoutTimer();
     setActiveExerciseId(exerciseId);
     setSavedExerciseIds((currentIds) => {
       const nextIds = new Set(currentIds);
@@ -172,6 +196,7 @@ export function TrainingScreen() {
   }
 
   function addExercise() {
+    startWorkoutTimer();
     const exercise = createBlankExercise();
     setDraft((currentDraft) => ({
       ...currentDraft,
@@ -183,6 +208,7 @@ export function TrainingScreen() {
   function addSavedExercise(
     savedExercise: Pick<ExerciseDraft, "name" | "muscleGroup">,
   ) {
+    startWorkoutTimer();
     const exercise = {
       ...createBlankExercise(),
       name: savedExercise.name,
@@ -236,6 +262,7 @@ export function TrainingScreen() {
   }
 
   function selectWorkoutType(type: WorkoutType) {
+    startWorkoutTimer();
     // Naming a workout must not discard exercises already entered.
     setDraft((currentDraft) => {
       return {
@@ -246,6 +273,7 @@ export function TrainingScreen() {
   }
 
   function editWorkout(session: WorkoutSession) {
+    workoutStartedAtRef.current = null;
     const nextDraft = createWorkoutDraftFromSession(session, unitSystem);
     setEditingSession(session);
     setDraft(nextDraft);
@@ -257,6 +285,7 @@ export function TrainingScreen() {
   }
 
   function cancelEditWorkout() {
+    workoutStartedAtRef.current = null;
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft());
     setLastSavedAt(null);
@@ -267,6 +296,7 @@ export function TrainingScreen() {
   }
 
   function startWorkout() {
+    workoutStartedAtRef.current = Date.now();
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft());
     setLastSavedAt(null);
@@ -331,6 +361,7 @@ export function TrainingScreen() {
   }
 
   function addSet(exerciseId: string) {
+    startWorkoutTimer();
     setDraft((currentDraft) => ({
       ...currentDraft,
       exercises: currentDraft.exercises.map((exercise) =>
@@ -372,10 +403,14 @@ export function TrainingScreen() {
       );
       return;
     }
+    const workoutDurationSeconds = editingSession
+      ? undefined
+      : getWorkoutDurationSeconds();
     const draftedWorkoutSession = createWorkoutSessionFromDraft({
       date: editingSession?.date ?? getTodayKey(),
       draft: isRest ? { ...draft, type: "Rest", exercises: [] } : draft,
       unitSystem,
+      durationSeconds: workoutDurationSeconds,
     });
 
     if (draftedWorkoutSession.exercises.length === 0 && !isRest) {
@@ -392,6 +427,7 @@ export function TrainingScreen() {
           id: editingSession.id,
           date: editingSession.date,
           createdAt: editingSession.createdAt,
+          durationSeconds: editingSession.durationSeconds,
         }
       : draftedWorkoutSession;
     let sessions: WorkoutSession[];
@@ -425,11 +461,14 @@ export function TrainingScreen() {
     setSavedExerciseIds(new Set());
     setActiveExerciseId(null);
     setIsComposerOpen(false);
+    workoutStartedAtRef.current = null;
     Alert.alert(
       editingSession ? "Workout updated" : "Workout saved",
       editingSession
         ? "Your saved workout was updated."
-        : "Your workout was saved.",
+        : `Your workout was saved. Duration: ${formatWorkoutDuration(
+            workoutDurationSeconds ?? 0,
+          )}.`,
     );
   }
 
@@ -953,6 +992,9 @@ export function TrainingScreen() {
                           {session.exercises.length === 1
                             ? "exercise"
                             : "exercises"}
+                          {session.durationSeconds
+                            ? ` - ${formatWorkoutDuration(session.durationSeconds)}`
+                            : ""}
                         </Text>
                       </View>
                       <View style={styles.sessionActions}>
