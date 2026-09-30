@@ -67,6 +67,19 @@ function formatWorkoutDuration(durationSeconds: number) {
   return `${hours} ${hours === 1 ? "hr" : "hrs"} ${minutes} min`;
 }
 
+function formatRestTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function describeWorkoutExercises(session: WorkoutSession) {
+  if (!session.exercises.length) return "Rest day";
+  const names = session.exercises.slice(0, 3).map((exercise) => exercise.name);
+  const remaining = session.exercises.length - names.length;
+  return `${names.join(", ")}${remaining > 0 ? ` +${remaining}` : ""}`;
+}
+
 function getLastExercisePerformance(
   exerciseName: string,
   workoutType: WorkoutType,
@@ -131,6 +144,8 @@ export function TrainingScreen() {
   const [saving, setSaving] = useState(false);
   const [historyMonth, setHistoryMonth] = useState("");
   const workoutStartedAtRef = useRef<number | null>(null);
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [restSecondsLeft, setRestSecondsLeft] = useState(0);
 
   function startWorkoutTimer() {
     if (!editingSession && workoutStartedAtRef.current === null) {
@@ -158,6 +173,27 @@ export function TrainingScreen() {
     });
     return () => { clearTimeout(timer); subscription.remove(); };
   }, []);
+
+  useEffect(() => {
+    if (restEndsAt === null) {
+      setRestSecondsLeft(0);
+      return;
+    }
+    const endTime = restEndsAt;
+
+    function updateRestTimer() {
+      const seconds = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      setRestSecondsLeft(seconds);
+      if (seconds === 0) {
+        setRestEndsAt(null);
+        Alert.alert("Rest complete", "Ready for your next set.");
+      }
+    }
+
+    updateRestTimer();
+    const interval = setInterval(updateRestTimer, 500);
+    return () => clearInterval(interval);
+  }, [restEndsAt]);
 
   async function refreshSessions() {
     const [sessions, settings] = await Promise.all([
@@ -261,6 +297,56 @@ export function TrainingScreen() {
     );
   }
 
+  function moveExercise(exerciseId: string, direction: -1 | 1) {
+    startWorkoutTimer();
+    setDraft((currentDraft) => {
+      const currentIndex = currentDraft.exercises.findIndex(
+        (exercise) => exercise.id === exerciseId,
+      );
+      const nextIndex = currentIndex + direction;
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentDraft.exercises.length) {
+        return currentDraft;
+      }
+      const exercises = [...currentDraft.exercises];
+      [exercises[currentIndex], exercises[nextIndex]] = [
+        exercises[nextIndex],
+        exercises[currentIndex],
+      ];
+      return { ...currentDraft, exercises };
+    });
+  }
+
+  function duplicateExercise(exerciseId: string) {
+    startWorkoutTimer();
+    const source = draft.exercises.find((exercise) => exercise.id === exerciseId);
+    if (!source) return;
+    const duplicateId = createBlankExercise().id;
+    const duplicate: ExerciseDraft = {
+      ...source,
+      id: duplicateId,
+      sets: source.sets.map((set) => ({ ...set, id: createBlankSet().id })),
+    };
+    setDraft((currentDraft) => {
+      const sourceIndex = currentDraft.exercises.findIndex(
+        (exercise) => exercise.id === exerciseId,
+      );
+      if (sourceIndex < 0) return currentDraft;
+      const exercises = [...currentDraft.exercises];
+      exercises.splice(sourceIndex + 1, 0, duplicate);
+      return { ...currentDraft, exercises };
+    });
+    setActiveExerciseId(duplicateId);
+  }
+
+  function startRestTimer(seconds: number) {
+    startWorkoutTimer();
+    setRestEndsAt(Date.now() + seconds * 1000);
+  }
+
+  function extendRestTimer() {
+    setRestEndsAt((currentEnd) => (currentEnd ?? Date.now()) + 30_000);
+  }
+
   function selectWorkoutType(type: WorkoutType) {
     startWorkoutTimer();
     // Naming a workout must not discard exercises already entered.
@@ -274,6 +360,7 @@ export function TrainingScreen() {
 
   function editWorkout(session: WorkoutSession) {
     workoutStartedAtRef.current = null;
+    setRestEndsAt(null);
     const nextDraft = createWorkoutDraftFromSession(session, unitSystem);
     setEditingSession(session);
     setDraft(nextDraft);
@@ -286,6 +373,7 @@ export function TrainingScreen() {
 
   function cancelEditWorkout() {
     workoutStartedAtRef.current = null;
+    setRestEndsAt(null);
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft());
     setLastSavedAt(null);
@@ -297,6 +385,7 @@ export function TrainingScreen() {
 
   function startWorkout() {
     workoutStartedAtRef.current = Date.now();
+    setRestEndsAt(null);
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft());
     setLastSavedAt(null);
@@ -462,6 +551,7 @@ export function TrainingScreen() {
     setActiveExerciseId(null);
     setIsComposerOpen(false);
     workoutStartedAtRef.current = null;
+    setRestEndsAt(null);
     Alert.alert(
       editingSession ? "Workout updated" : "Workout saved",
       editingSession
@@ -568,6 +658,45 @@ export function TrainingScreen() {
               />
             </View>
 
+            {!editingSession ? (
+              <View style={styles.restTimer}>
+                <View style={styles.restTimerCopy}>
+                  <Text style={styles.restTimerTitle}>Rest timer</Text>
+                  <Text style={styles.restTimerBody}>
+                    {restEndsAt === null
+                      ? "Use between sets when you want a quick reset."
+                      : `Resting ${formatRestTime(restSecondsLeft)}`}
+                  </Text>
+                </View>
+                {restEndsAt === null ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => startRestTimer(90)}
+                    style={styles.restTimerButton}
+                  >
+                    <Text style={styles.restTimerButtonText}>Start 90 sec</Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.restTimerActions}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={extendRestTimer}
+                      style={styles.restTimerButton}
+                    >
+                      <Text style={styles.restTimerButtonText}>+30 sec</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setRestEndsAt(null)}
+                      style={styles.restTimerEndButton}
+                    >
+                      <Text style={styles.restTimerEndText}>End</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            ) : null}
+
             {isRestDay ? (
               <View style={styles.restState}>
                 <Text style={styles.restTitle}>Rest day selected</Text>
@@ -663,6 +792,38 @@ export function TrainingScreen() {
                             <Text style={styles.removeExerciseText}>
                               Delete
                             </Text>
+                          </Pressable>
+                        </View>
+
+                        <View style={styles.exerciseActions}>
+                          <Pressable
+                            accessibilityRole="button"
+                            disabled={exerciseIndex === 0}
+                            onPress={() => moveExercise(exercise.id, -1)}
+                            style={[
+                              styles.exerciseActionButton,
+                              exerciseIndex === 0 && styles.disabledActionButton,
+                            ]}
+                          >
+                            <Text style={styles.exerciseActionText}>Move up</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            disabled={exerciseIndex === draft.exercises.length - 1}
+                            onPress={() => moveExercise(exercise.id, 1)}
+                            style={[
+                              styles.exerciseActionButton,
+                              exerciseIndex === draft.exercises.length - 1 && styles.disabledActionButton,
+                            ]}
+                          >
+                            <Text style={styles.exerciseActionText}>Move down</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => duplicateExercise(exercise.id)}
+                            style={styles.exerciseActionButton}
+                          >
+                            <Text style={styles.exerciseActionText}>Duplicate</Text>
                           </Pressable>
                         </View>
 
@@ -996,6 +1157,14 @@ export function TrainingScreen() {
                             ? ` - ${formatWorkoutDuration(session.durationSeconds)}`
                             : ""}
                         </Text>
+                        <Text numberOfLines={1} style={styles.sessionExercises}>
+                          {describeWorkoutExercises(session)}
+                        </Text>
+                        {session.notes ? (
+                          <Text numberOfLines={2} style={styles.sessionNotes}>
+                            {session.notes}
+                          </Text>
+                        ) : null}
                       </View>
                       <View style={styles.sessionActions}>
                         <Text style={styles.sessionType}>{session.type}</Text>
@@ -1138,6 +1307,25 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
   },
+  exerciseActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  exerciseActionButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  exerciseActionText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+  },
   exerciseHeader: {
     alignItems: "center",
     flexDirection: "row",
@@ -1197,6 +1385,9 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     textAlignVertical: "top",
   },
+  disabledActionButton: {
+    opacity: 0.4,
+  },
   quickActions: {
     gap: 10,
   },
@@ -1207,6 +1398,62 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     padding: 16,
+  },
+  restTimer: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    justifyContent: "space-between",
+    padding: 12,
+  },
+  restTimerActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  restTimerBody: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  restTimerButton: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
+    minHeight: 38,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  restTimerButtonText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  restTimerCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  restTimerEndButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 38,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  restTimerEndText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  restTimerTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "900",
   },
   restTitle: {
     color: colors.text,
@@ -1290,6 +1537,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
   },
+  sessionExercises: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "800",
+  },
   sessionActions: {
     alignItems: "flex-end",
     maxWidth: "45%",
@@ -1313,6 +1565,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     gap: 4,
     padding: 14,
+  },
+  sessionNotes: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
   },
   sessionType: {
     color: colors.primary,
