@@ -12,6 +12,13 @@ const optionalNumber = (value: unknown, positive = false, integer = false) =>
   value === undefined || (typeof value === "number" && Number.isFinite(value)
     && (positive ? value > 0 : value >= 0) && (!integer || Number.isInteger(value)));
 const optionalBoolean = (value: unknown) => value === undefined || typeof value === "boolean";
+const optionalRir = (value: unknown) => value === undefined || (typeof value === "number"
+  && Number.isInteger(value) && value >= 0 && value <= 10);
+function validMeasurements(value: unknown) {
+  if (value === undefined) return true;
+  if (!object(value)) return false;
+  return ["waistInches", "chestInches", "hipInches"].every(key => optionalNumber(value[key], true));
+}
 function date(value: unknown) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
@@ -23,7 +30,7 @@ export function isDailyLog(value: unknown): value is DailyLog {
     && timestamp(value.createdAt) && timestamp(value.updatedAt)
     && optionalNumber(value.weightLbs, true) && optionalNumber(value.calories)
     && optionalNumber(value.proteinGrams) && optionalNumber(value.steps, false, true)
-    && optionalText(value.workoutType) && optionalText(value.notes);
+    && validMeasurements(value.measurements) && optionalText(value.workoutType) && optionalText(value.notes);
 }
 
 export function isWorkoutSession(value: unknown): value is WorkoutSession {
@@ -42,6 +49,7 @@ export function isWorkoutSession(value: unknown): value is WorkoutSession {
       if (!object(set) || !text(set.id) || sets.has(set.id as string)
         || !optionalNumber(set.reps, false, true) || !optionalNumber(set.weightLbs)
         || !optionalBoolean(set.isBodyweight) || !optionalBoolean(set.formFocus)
+        || !optionalBoolean(set.isWarmup) || !optionalRir(set.rir)
         || !optionalText(set.notes)) return false;
       sets.add(set.id as string);
       return true;

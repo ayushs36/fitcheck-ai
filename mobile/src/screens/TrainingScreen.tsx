@@ -37,6 +37,7 @@ import {
   createWorkoutDraftFromSession,
   createWorkoutSessionFromDraft,
 } from "../utils/workoutDraft";
+import { cancelRestTimerNotification, scheduleRestTimerNotification } from "../utils/restTimerNotification";
 
 function normalizeExerciseName(name: string) {
   return name.trim().toLowerCase();
@@ -53,7 +54,12 @@ function formatSetPreview(
       ? `${formatWeightFromLbs(set.weightLbs, unitSystem)} ${getWeightUnitLabel(unitSystem)}`
       : "load blank";
 
-  return `${reps} @ ${load}${set.formFocus ? " - form focus" : ""}`;
+  const markers = [
+    set.isWarmup ? "warm-up" : "",
+    set.formFocus ? "form focus" : "",
+    typeof set.rir === "number" ? `RIR ${set.rir}` : "",
+  ].filter(Boolean);
+  return `${reps} @ ${load}${markers.length ? ` - ${markers.join(", ")}` : ""}`;
 }
 
 function formatWorkoutDuration(durationSeconds: number) {
@@ -123,6 +129,9 @@ export function TrainingScreen() {
     loadWorkoutSessions,
     loadUserSettings,
     upsertWorkoutSession,
+    clearTrainingWorkoutDraft,
+    loadTrainingWorkoutDraft,
+    saveTrainingWorkoutDraft,
   } = useMobileStorage();
   const [todayKey, setTodayKey] = useState(() => getTodayKey());
   const [draft, setDraft] = useState<WorkoutDraft>(() =>
@@ -146,6 +155,8 @@ export function TrainingScreen() {
   const workoutStartedAtRef = useRef<number | null>(null);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [restSecondsLeft, setRestSecondsLeft] = useState(0);
+  const restNotificationIdRef = useRef<string | null>(null);
+  const trainingDraftLoaded = useRef(false);
 
   function startWorkoutTimer() {
     if (!editingSession && workoutStartedAtRef.current === null) {
@@ -186,6 +197,7 @@ export function TrainingScreen() {
       setRestSecondsLeft(seconds);
       if (seconds === 0) {
         setRestEndsAt(null);
+        restNotificationIdRef.current = null;
         Alert.alert("Rest complete", "Ready for your next set.");
       }
     }
@@ -214,6 +226,39 @@ export function TrainingScreen() {
       ),
     );
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadTrainingWorkoutDraft()
+      .then((saved) => {
+        if (!active || !saved) return;
+        setDraft(saved.draft);
+        setSavedExerciseIds(new Set(saved.savedExerciseIds));
+        setActiveExerciseId(saved.activeExerciseId);
+        workoutStartedAtRef.current = saved.startedAt;
+        setIsComposerOpen(true);
+      })
+      .catch(() => undefined)
+      .finally(() => { trainingDraftLoaded.current = true; });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!trainingDraftLoaded.current || editingSession || !isComposerOpen) return;
+    const hasMeaningfulDraft = Boolean(draft.type.trim() || draft.notes.trim() || draft.exercises.some((exercise) =>
+      exercise.name.trim() || exercise.sets.some((set) => set.reps || set.weightLbs || set.isBodyweight || set.formFocus || set.isWarmup || set.rir || set.notes.trim()),
+    ));
+    if (!hasMeaningfulDraft) return;
+    const timeout = setTimeout(() => {
+      void saveTrainingWorkoutDraft({
+        draft,
+        savedExerciseIds: [...savedExerciseIds],
+        activeExerciseId,
+        startedAt: workoutStartedAtRef.current,
+      }).catch(() => undefined);
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [activeExerciseId, draft, editingSession, isComposerOpen, savedExerciseIds]);
 
   function updateExercise(exerciseId: string, nextExercise: ExerciseDraft) {
     startWorkoutTimer();
@@ -281,6 +326,8 @@ export function TrainingScreen() {
           set.weightLbs ||
           set.isBodyweight ||
           set.formFocus ||
+          set.isWarmup ||
+          set.rir ||
           set.notes.trim(),
       )
     ) {
@@ -341,10 +388,21 @@ export function TrainingScreen() {
   function startRestTimer(seconds: number) {
     startWorkoutTimer();
     setRestEndsAt(Date.now() + seconds * 1000);
+    void cancelRestTimerNotification(restNotificationIdRef.current);
+    void scheduleRestTimerNotification(seconds).then((id) => { restNotificationIdRef.current = id; });
   }
 
   function extendRestTimer() {
-    setRestEndsAt((currentEnd) => (currentEnd ?? Date.now()) + 30_000);
+    const nextEnd = (restEndsAt ?? Date.now()) + 30_000;
+    setRestEndsAt(nextEnd);
+    void cancelRestTimerNotification(restNotificationIdRef.current);
+    void scheduleRestTimerNotification(Math.ceil((nextEnd - Date.now()) / 1000)).then((id) => { restNotificationIdRef.current = id; });
+  }
+
+  function endRestTimer() {
+    setRestEndsAt(null);
+    void cancelRestTimerNotification(restNotificationIdRef.current);
+    restNotificationIdRef.current = null;
   }
 
   function selectWorkoutType(type: WorkoutType) {
@@ -360,7 +418,7 @@ export function TrainingScreen() {
 
   function editWorkout(session: WorkoutSession) {
     workoutStartedAtRef.current = null;
-    setRestEndsAt(null);
+    endRestTimer();
     const nextDraft = createWorkoutDraftFromSession(session, unitSystem);
     setEditingSession(session);
     setDraft(nextDraft);
@@ -373,25 +431,27 @@ export function TrainingScreen() {
 
   function cancelEditWorkout() {
     workoutStartedAtRef.current = null;
-    setRestEndsAt(null);
+    endRestTimer();
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft());
     setLastSavedAt(null);
     setSavedExerciseIds(new Set());
     setActiveExerciseId(null);
     setIsComposerOpen(false);
+    void clearTrainingWorkoutDraft();
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 
   function startWorkout() {
     workoutStartedAtRef.current = Date.now();
-    setRestEndsAt(null);
+    endRestTimer();
     setEditingSession(null);
     setDraft(createBlankWorkoutDraft());
     setLastSavedAt(null);
     setSavedExerciseIds(new Set());
     setActiveExerciseId(null);
     setIsComposerOpen(true);
+    void clearTrainingWorkoutDraft();
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 
@@ -406,17 +466,19 @@ export function TrainingScreen() {
     const invalidSetIndex = exercise.sets.findIndex((set) => {
       const trimmedReps = set.reps.trim();
       const numericReps = Number(trimmedReps);
+      const numericRir = Number(set.rir.trim());
       const hasSetDetails = Boolean(
-        set.weightLbs.trim() || set.isBodyweight || set.formFocus || set.notes.trim(),
+        set.weightLbs.trim() || set.isBodyweight || set.formFocus || set.isWarmup || set.rir.trim() || set.notes.trim(),
       );
-      return trimmedReps
+      return (trimmedReps
         ? !Number.isInteger(numericReps) || numericReps <= 0
-        : hasSetDetails;
+        : hasSetDetails)
+        || (set.rir.trim() && (!Number.isInteger(numericRir) || numericRir < 0 || numericRir > 10));
     });
     if (invalidSetIndex >= 0) {
       Alert.alert(
         `Finish set ${invalidSetIndex + 1}`,
-        "Enter a positive whole-number rep count, or remove the unfinished set.",
+        "Enter positive whole-number reps and an RIR from 0 to 10, or remove the unfinished set.",
       );
       return;
     }
@@ -464,7 +526,7 @@ export function TrainingScreen() {
   function explainSetMarkers() {
     Alert.alert(
       "Set markers",
-      "Bodyweight records a rep-only set without external load. Form focus marks a set where technique or control was the priority, so Training Coach does not treat a lighter set as a performance drop.",
+      "Bodyweight records a rep-only set without external load. Form focus marks technique work, and warm-ups are excluded from working-set progress comparisons. RIR means reps in reserve: 0 is no further good-form reps, while higher numbers indicate more room left.",
     );
   }
 
@@ -551,7 +613,8 @@ export function TrainingScreen() {
     setActiveExerciseId(null);
     setIsComposerOpen(false);
     workoutStartedAtRef.current = null;
-    setRestEndsAt(null);
+    endRestTimer();
+    void clearTrainingWorkoutDraft();
     Alert.alert(
       editingSession ? "Workout updated" : "Workout saved",
       editingSession
@@ -687,7 +750,7 @@ export function TrainingScreen() {
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
-                      onPress={() => setRestEndsAt(null)}
+                      onPress={endRestTimer}
                       style={styles.restTimerEndButton}
                     >
                       <Text style={styles.restTimerEndText}>End</Text>
@@ -949,6 +1012,23 @@ export function TrainingScreen() {
                                 }
                                 value={set.isBodyweight ? "" : set.weightLbs}
                               />
+                              <TextField
+                                containerStyle={styles.setField}
+                                keyboardType="number-pad"
+                                label="RIR"
+                                onChangeText={(value) =>
+                                  updateExercise(exercise.id, {
+                                    ...exercise,
+                                    sets: exercise.sets.map((currentSet) =>
+                                      currentSet.id === set.id
+                                        ? { ...currentSet, rir: value }
+                                        : currentSet,
+                                    ),
+                                  })
+                                }
+                                placeholder="optional"
+                                value={set.rir}
+                              />
                             </View>
 
                             <View style={styles.toggleRow}>
@@ -1016,11 +1096,32 @@ export function TrainingScreen() {
                               </Pressable>
                               <Pressable
                                 accessibilityRole="button"
-                                accessibilityLabel="Explain bodyweight and form focus"
+                                onPress={() =>
+                                  updateExercise(exercise.id, {
+                                    ...exercise,
+                                    sets: exercise.sets.map((currentSet) =>
+                                      currentSet.id === set.id
+                                        ? { ...currentSet, isWarmup: !currentSet.isWarmup }
+                                        : currentSet,
+                                    ),
+                                  })
+                                }
+                                style={[
+                                  styles.toggleChip,
+                                  set.isWarmup && styles.activeToggleChip,
+                                ]}
+                              >
+                                <Text style={[styles.toggleText, set.isWarmup && styles.activeToggleText]}>
+                                  Warm-up
+                                </Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Explain set markers and RIR"
                                 onPress={explainSetMarkers}
                                 style={styles.infoButton}
                               >
-                                <Text style={styles.infoButtonText}>i</Text>
+                              <Text style={styles.infoButtonText}>i</Text>
                               </Pressable>
                             </View>
                           </View>

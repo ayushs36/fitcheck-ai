@@ -6,6 +6,14 @@ import {
   localTodayDraftKey,
   saveTodayDraft,
 } from "./todayDraft";
+import {
+  clearTrainingDraft,
+  loadTrainingDraft,
+  localTrainingDraftKey,
+  saveTrainingDraft,
+  SavedTrainingDraft,
+} from "./trainingDraft";
+import { loadProgressPhotos as loadStoredProgressPhotos, localProgressPhotoKey, saveProgressPhotos as saveStoredProgressPhotos, type ProgressPhoto } from "./progressPhotos";
 
 export const MOBILE_STORAGE_KEYS = {
   logs: "fitcheck-mobile:daily-logs:v1",
@@ -13,6 +21,8 @@ export const MOBILE_STORAGE_KEYS = {
   settings: "fitcheck-mobile:user-settings:v1",
   account: "fitcheck-mobile:account:v1",
   todayDraft: localTodayDraftKey,
+  trainingDraft: localTrainingDraftKey,
+  progressPhotos: localProgressPhotoKey,
 } as const;
 
 export function loadTodayLogDraft(date: string) {
@@ -25,6 +35,26 @@ export function saveTodayLogDraft(date: string, draft: TodayLogDraft) {
 
 export function clearTodayLogDraft() {
   return clearTodayDraft(AsyncStorage, MOBILE_STORAGE_KEYS.todayDraft);
+}
+
+export function loadTrainingWorkoutDraft() {
+  return loadTrainingDraft(AsyncStorage, MOBILE_STORAGE_KEYS.trainingDraft);
+}
+
+export function saveTrainingWorkoutDraft(draft: SavedTrainingDraft) {
+  return saveTrainingDraft(AsyncStorage, MOBILE_STORAGE_KEYS.trainingDraft, draft);
+}
+
+export function clearTrainingWorkoutDraft() {
+  return clearTrainingDraft(AsyncStorage, MOBILE_STORAGE_KEYS.trainingDraft);
+}
+
+export function loadProgressPhotos() {
+  return loadStoredProgressPhotos(AsyncStorage, MOBILE_STORAGE_KEYS.progressPhotos);
+}
+
+export function saveProgressPhotos(photos: ProgressPhoto[]) {
+  return saveStoredProgressPhotos(AsyncStorage, MOBILE_STORAGE_KEYS.progressPhotos, photos);
 }
 
 export async function loadDailyLogs(): Promise<DailyLog[]> {

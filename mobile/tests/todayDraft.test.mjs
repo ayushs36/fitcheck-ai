@@ -9,6 +9,9 @@ const draft = {
   calories: "2200",
   proteinGrams: "140",
   steps: "9000",
+  waistInches: "31",
+  chestInches: "40",
+  hipInches: "",
   workoutType: "Push",
   notes: "Good energy",
 };

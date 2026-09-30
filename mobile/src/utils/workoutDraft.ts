@@ -21,6 +21,8 @@ export function createBlankSet(): ExerciseSetDraft {
     weightLbs: "",
     isBodyweight: false,
     formFocus: false,
+    isWarmup: false,
+    rir: "",
     notes: "",
   };
 }
@@ -62,6 +64,8 @@ export function createWorkoutDraftFromSession(
             weightLbs: set.isBodyweight ? "" : formatWeightFromLbs(set.weightLbs, unitSystem),
             isBodyweight: Boolean(set.isBodyweight),
             formFocus: Boolean(set.formFocus),
+            isWarmup: Boolean(set.isWarmup),
+            rir: typeof set.rir === "number" ? String(set.rir) : "",
             notes: set.notes ?? "",
           }))
         : [createBlankSet()],
@@ -77,6 +81,8 @@ function setDraftToLog(setDraft: ExerciseSetDraft, unitSystem: UnitSystem): Exer
     weightLbs: setDraft.isBodyweight ? undefined : parseWeightToLbs(setDraft.weightLbs, unitSystem),
     isBodyweight: setDraft.isBodyweight,
     formFocus: setDraft.formFocus,
+    isWarmup: setDraft.isWarmup,
+    rir: parseOptionalNumber(setDraft.rir),
     notes: setDraft.notes.trim() || undefined,
   };
 }

@@ -23,6 +23,14 @@ test('bodyweight and form-focused sets validate without weights',()=>{
   workout.exercises[0].sets[0].reps=-1;
   assert.equal(isWorkoutSession(workout),false);
 });
+test('working-set markers and measurements accept only valid values',()=>{
+  assert.equal(isDailyLog({...log,measurements:{waistInches:31,chestInches:40}}),true);
+  assert.equal(isDailyLog({...log,measurements:{waistInches:0}}),false);
+  const workout={id:'w',date:log.date,type:'My workout',createdAt:log.createdAt,updatedAt:log.updatedAt,
+    exercises:[{id:'e',name:'Squat',sets:[{id:'s',reps:8,isWarmup:true,rir:3}]}]};
+  assert.equal(isWorkoutSession(workout),true);
+  assert.equal(isWorkoutSession({...workout,exercises:[{...workout.exercises[0],sets:[{...workout.exercises[0].sets[0],rir:11}]}]}),false);
+});
 test('workout durations are optional positive whole seconds',()=>{
   const workout={id:'w',date:log.date,type:'My workout',createdAt:log.createdAt,updatedAt:log.updatedAt,
     exercises:[]};

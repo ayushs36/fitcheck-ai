@@ -37,6 +37,9 @@ function copyDraft(draft: TodayLogDraft): TodayLogDraft {
     calories: draft.calories,
     proteinGrams: draft.proteinGrams,
     steps: draft.steps,
+    waistInches: typeof draft.waistInches === "string" ? draft.waistInches : "",
+    chestInches: typeof draft.chestInches === "string" ? draft.chestInches : "",
+    hipInches: typeof draft.hipInches === "string" ? draft.hipInches : "",
     workoutType: draft.workoutType,
     notes: draft.notes,
   };

@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { ProgressChartsCard } from "../components/ProgressChartsCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
+import { ProgressPhotosCard } from "../components/ProgressPhotosCard";
 import { LogHistory } from "../components/LogHistory";
 import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
@@ -137,7 +138,10 @@ export function ProgressScreen() {
           </Pressable>
         </Card>
       ) : null}
-      {view === "overview" && <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />}
+      {view === "overview" && <>
+        <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />
+        <ProgressPhotosCard />
+      </>}
       {view === "charts" && <ProgressChartsCard logs={logs} unitSystem={unitSystem} />}
 
       {view === "history" && <Card>

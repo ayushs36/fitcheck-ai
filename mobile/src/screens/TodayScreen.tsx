@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, AppState, StyleSheet, Text, View } from "react-native";
+import { Alert, AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { DailyCoachBriefCard } from "../components/DailyCoachBriefCard";
 import { LogEditorCard } from "../components/LogEditorCard";
@@ -12,6 +12,7 @@ import { formatReadableDate, getTodayKey } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
 import { formatWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
+import { readTodayAppleHealthSteps } from "../utils/healthSteps";
 
 export function TodayScreen({ onStartWorkout }: { onStartWorkout?: () => void }) {
   const [date, setDate] = useState(() => getTodayKey());
@@ -46,6 +47,7 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
   const [isLoading, setIsLoading] = useState(true);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [healthSyncing, setHealthSyncing] = useState(false);
   const saveLock = useRef(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -139,6 +141,23 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
     }
   }
 
+  async function importAppleHealthSteps() {
+    if (healthSyncing || isLoading) return;
+    setHealthSyncing(true);
+    try {
+      const steps = await readTodayAppleHealthSteps();
+      updateDraft({ ...draft, steps: String(steps) });
+      Alert.alert("Steps imported", `${steps.toLocaleString()} steps are ready to save in today's check-in.`);
+    } catch (error) {
+      Alert.alert(
+        "Apple Health unavailable",
+        error instanceof Error ? error.message : "Allow FitCheck Coach to read Steps in Apple Health, then try again.",
+      );
+    } finally {
+      setHealthSyncing(false);
+    }
+  }
+
   const coachSettings: UserSettings = {
     unitSystem: settings?.unitSystem ?? "imperial",
     defaultGoal: draft.goal,
@@ -190,9 +209,13 @@ function TodayLogScreen({todayKey, onStartWorkout}: {todayKey: string; onStartWo
               : "New daily check-in"
         }
         submitLabel={saving ? "Saving..." : existingLog ? "Update Today" : "Save Today"}
-        footer={
-          existingLog && savedTime ? <Text accessibilityLiveRegion="polite" style={styles.savedMeta}>Saved at {savedTime}</Text> : null
-        }
+        footer={<View style={styles.footer}>
+          <Pressable accessibilityRole="button" disabled={healthSyncing} onPress={importAppleHealthSteps} style={styles.healthButton}>
+            <Text style={styles.healthButtonText}>{healthSyncing ? "Importing steps..." : "Import steps from Apple Health"}</Text>
+          </Pressable>
+          <Text style={styles.healthHint}>Apple Health is read only and imports only today's step total when you tap this button.</Text>
+          {existingLog && savedTime ? <Text accessibilityLiveRegion="polite" style={styles.savedMeta}>Saved at {savedTime}</Text> : null}
+        </View>}
       />
       </View>
 
@@ -263,6 +286,27 @@ function buildWorkoutPerformancePreview(
 }
 
 const styles = StyleSheet.create({
+  footer: {
+    gap: 8,
+  },
+  healthButton: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 46,
+  },
+  healthButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  healthHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   cardHeader: {
     gap: 4,
   },

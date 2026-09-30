@@ -70,6 +70,27 @@ export function LogEditorCard({
         </View>
       </View>
 
+      <Disclosure
+        title={draft.waistInches || draft.chestInches || draft.hipInches ? "Measurements (added)" : "Add measurements"}
+        initiallyOpen={Boolean(draft.waistInches || draft.chestInches || draft.hipInches)}
+      >
+        <Text style={styles.measurementHint}>Optional body measurements are saved with this day and are never used as a calorie target.</Text>
+        <View style={styles.inputPair}>
+          <View style={styles.inputCell}>
+            <TextField keyboardType="decimal-pad" label="Waist" placeholder="in" value={draft.waistInches}
+              onChangeText={(value) => updateDraft("waistInches", value)} />
+          </View>
+          <View style={styles.inputCell}>
+            <TextField keyboardType="decimal-pad" label="Chest" placeholder="in" value={draft.chestInches}
+              onChangeText={(value) => updateDraft("chestInches", value)} />
+          </View>
+          <View style={styles.inputCell}>
+            <TextField keyboardType="decimal-pad" label="Hips" placeholder="in" value={draft.hipInches}
+              onChangeText={(value) => updateDraft("hipInches", value)} />
+          </View>
+        </View>
+      </Disclosure>
+
       <View style={styles.section}>
         <Text style={styles.label}>Current goal</Text>
         <SegmentedControl
@@ -240,6 +261,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: "800",
+  },
+  measurementHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
   },
   notesInput: {
     minHeight: 92,

@@ -7,6 +7,9 @@ export const blankTodayDraft: TodayLogDraft = {
   calories: "",
   proteinGrams: "",
   steps: "",
+  waistInches: "",
+  chestInches: "",
+  hipInches: "",
   workoutType: "",
   notes: "",
 };
@@ -36,6 +39,9 @@ export function dailyLogToDraft(log?: DailyLog, unitSystem: UnitSystem = "imperi
     calories: formatOptionalNumber(log.calories),
     proteinGrams: formatOptionalNumber(log.proteinGrams),
     steps: formatOptionalNumber(log.steps),
+    waistInches: formatOptionalNumber(log.measurements?.waistInches),
+    chestInches: formatOptionalNumber(log.measurements?.chestInches),
+    hipInches: formatOptionalNumber(log.measurements?.hipInches),
     workoutType: log.workoutType ?? "",
     notes: log.notes ?? "",
   };
@@ -54,6 +60,12 @@ export function createDailyLogFromDraft({
 }): DailyLog {
   const now = new Date().toISOString();
 
+  const measurements = {
+    waistInches: parseOptionalNumber(draft.waistInches),
+    chestInches: parseOptionalNumber(draft.chestInches),
+    hipInches: parseOptionalNumber(draft.hipInches),
+  };
+
   return {
     id: existingLog?.id ?? date,
     date,
@@ -62,6 +74,9 @@ export function createDailyLogFromDraft({
     calories: parseOptionalNumber(draft.calories),
     proteinGrams: parseOptionalNumber(draft.proteinGrams),
     steps: parseOptionalNumber(draft.steps),
+    measurements: Object.values(measurements).some(value => typeof value === "number")
+      ? measurements
+      : undefined,
     workoutType: draft.workoutType.trim().toLowerCase() === "rest" ? "Rest" : draft.workoutType.trim() || undefined,
     notes: draft.notes.trim() || undefined,
     createdAt: existingLog?.createdAt ?? now,

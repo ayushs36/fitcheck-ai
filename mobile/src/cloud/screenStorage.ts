@@ -2,6 +2,8 @@ import type { MobileStorage } from "../storage/StorageProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { accountStorageKey } from "../storage/accountStorage.ts";
 import { accountTodayDraftKey, clearTodayDraft, loadTodayDraft, saveTodayDraft } from "../storage/todayDraft.ts";
+import { accountTrainingDraftKey, clearTrainingDraft, loadTrainingDraft, saveTrainingDraft } from "../storage/trainingDraft.ts";
+import { accountProgressPhotoKey, loadProgressPhotos, saveProgressPhotos } from "../storage/progressPhotos.ts";
 import type { AccountSession } from "./session.ts";
 
 // No method falls back to legacy storage. Unsupported bulk operations fail closed
@@ -9,6 +11,8 @@ import type { AccountSession } from "./session.ts";
 export function createAccountScreenStorage(session: AccountSession, onSaved: () => void): MobileStorage {
   const data = session.data;
   const draftKey = accountTodayDraftKey(accountStorageKey(session.userId));
+  const trainingDraftKey = accountTrainingDraftKey(accountStorageKey(session.userId));
+  const progressPhotoKey = accountProgressPhotoKey(accountStorageKey(session.userId));
   const changed = async <T>(operation: Promise<T>) => {
     const result = await operation;
     onSaved();
@@ -19,6 +23,11 @@ export function createAccountScreenStorage(session: AccountSession, onSaved: () 
     loadTodayLogDraft: date => loadTodayDraft(AsyncStorage, draftKey, date),
     saveTodayLogDraft: (date, draft) => saveTodayDraft(AsyncStorage, draftKey, date, draft),
     clearTodayLogDraft: () => clearTodayDraft(AsyncStorage, draftKey),
+    loadTrainingWorkoutDraft: () => loadTrainingDraft(AsyncStorage, trainingDraftKey),
+    saveTrainingWorkoutDraft: draft => saveTrainingDraft(AsyncStorage, trainingDraftKey, draft),
+    clearTrainingWorkoutDraft: () => clearTrainingDraft(AsyncStorage, trainingDraftKey),
+    loadProgressPhotos: () => loadProgressPhotos(AsyncStorage, progressPhotoKey),
+    saveProgressPhotos: photos => saveProgressPhotos(AsyncStorage, progressPhotoKey, photos),
     loadDailyLogs: data.loadDailyLogs,
     saveDailyLogs: unavailable,
     loadDailyLogsDescending: async () => (await data.loadDailyLogs()).reverse(),

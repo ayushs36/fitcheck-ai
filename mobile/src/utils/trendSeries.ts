@@ -73,11 +73,12 @@ function getWorkoutVolume(session: WorkoutSession): {
 } {
   return session.exercises.reduce(
     (total, exercise) => {
-      const exerciseSets = exercise.sets.length;
-      const exerciseReps = exercise.sets.reduce((sum, set) => sum + (set.reps ?? 0), 0);
-      const weightedSets = exercise.sets.filter((set) => !set.isBodyweight && set.weightLbs).length;
-      const bodyweightSets = exercise.sets.filter((set) => set.isBodyweight).length;
-      const formFocusSets = exercise.sets.filter((set) => set.formFocus).length;
+      const workingSets = exercise.sets.filter((set) => !set.isWarmup);
+      const exerciseSets = workingSets.length;
+      const exerciseReps = workingSets.reduce((sum, set) => sum + (set.reps ?? 0), 0);
+      const weightedSets = workingSets.filter((set) => !set.isBodyweight && set.weightLbs).length;
+      const bodyweightSets = workingSets.filter((set) => set.isBodyweight).length;
+      const formFocusSets = workingSets.filter((set) => set.formFocus).length;
 
       return {
         sets: total.sets + exerciseSets,
@@ -104,7 +105,7 @@ function getExerciseScore(exercise: WorkoutSession["exercises"][number]): {
   topWeightLbs?: number;
   formFocusRatio: number;
 } {
-  const totals = exercise.sets.reduce(
+  const totals = exercise.sets.filter((set) => !set.isWarmup).reduce(
     (total, set) => {
       const reps = set.reps ?? 0;
       const weightedVolume = !set.isBodyweight && set.weightLbs ? reps * set.weightLbs : 0;

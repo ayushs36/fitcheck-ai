@@ -8,6 +8,8 @@ export type ExerciseSet = {
   weightLbs?: number;
   isBodyweight?: boolean;
   formFocus?: boolean;
+  isWarmup?: boolean;
+  rir?: number;
   notes?: string;
 };
 
@@ -37,6 +39,11 @@ export type DailyLog = {
   calories?: number;
   proteinGrams?: number;
   steps?: number;
+  measurements?: {
+    waistInches?: number;
+    chestInches?: number;
+    hipInches?: number;
+  };
   workoutType?: WorkoutType;
   notes?: string;
   createdAt: string;
@@ -72,6 +79,9 @@ export type TodayLogDraft = {
   calories: string;
   proteinGrams: string;
   steps: string;
+  waistInches: string;
+  chestInches: string;
+  hipInches: string;
   workoutType: WorkoutType;
   notes: string;
 };
@@ -82,6 +92,8 @@ export type ExerciseSetDraft = {
   weightLbs: string;
   isBodyweight: boolean;
   formFocus: boolean;
+  isWarmup: boolean;
+  rir: string;
   notes: string;
 };
 
