@@ -18,15 +18,28 @@ function getDateKeyOffset(dateKey: string, offsetDays: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function validWeight(log: DailyLog | undefined): number | undefined {
-  return typeof log?.weightLbs === "number" && Number.isFinite(log.weightLbs) && log.weightLbs > 0
-    ? log.weightLbs
+type TrendMetric = "weightLbs" | "calories" | "steps";
+
+function validWeight(log: DailyLog | undefined, key: TrendMetric = "weightLbs"): number | undefined {
+  const value = log?.[key];
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
     : undefined;
 }
 
-function weightsInWindow(logsByDate: Map<string, DailyLog>, endDate: string, days: number): number[] {
-  return Array.from({length: days}, (_, index) => validWeight(logsByDate.get(getDateKeyOffset(endDate, -index))))
+function weightsInWindow(logsByDate: Map<string, DailyLog>, endDate: string, days: number, key: TrendMetric = "weightLbs"): number[] {
+  return Array.from({length: days}, (_, index) => validWeight(logsByDate.get(getDateKeyOffset(endDate, -index)), key))
     .filter((weight): weight is number => typeof weight === "number");
+}
+
+export function getSevenDayMetricAverage(logs: DailyLog[], key: TrendMetric): number | undefined {
+  const logsByDate = new Map(logs.map(log => [log.date, log]));
+  const latestDate = [...logsByDate.values()]
+    .filter(log => validWeight(log, key) !== undefined)
+    .map(log => log.date)
+    .sort()
+    .at(-1);
+  return latestDate ? average(weightsInWindow(logsByDate, latestDate, 7, key)) : undefined;
 }
 
 // Weight is a seven-calendar-day average. Missing entries are not treated as zero.

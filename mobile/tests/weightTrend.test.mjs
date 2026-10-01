@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {getWeightTrendSummary} from "../src/utils/weightTrend.ts";
+import {getSevenDayMetricAverage, getWeightTrendSummary} from "../src/utils/weightTrend.ts";
 
 function log(day, weightLbs) {
   return {
@@ -47,4 +47,25 @@ test("weekly pace compares the latest seven calendar days with the previous seve
 test("weekly pace needs at least three weigh-ins in each calendar week", () => {
   const logs = [log(1, 130), log(3, 131), log(6, 132), log(10, 133), log(12, 134)];
   assert.equal(getWeightTrendSummary(logs).weeklyWeightChange, undefined);
+});
+
+test("chart averages use each metric's latest seven calendar days and skip missing values", () => {
+  const logs = [
+    {...log(1), calories: 9000, steps: 30000},
+    {...log(8), calories: 1800, steps: 8000},
+    {...log(10), calories: 2200},
+    {...log(14), steps: 12000},
+    log(15),
+  ];
+  assert.equal(getSevenDayMetricAverage(logs, "calories"), 2000);
+  assert.equal(getSevenDayMetricAverage(logs, "steps"), 10000);
+  assert.equal(getSevenDayMetricAverage(logs.reverse(), "steps"), 10000);
+  assert.equal(getSevenDayMetricAverage([], "calories"), undefined);
+  assert.equal(getSevenDayMetricAverage([{...log(15), calories: NaN}], "calories"), undefined);
+});
+
+test("weekly loss pace is the difference between valid weekly means", () => {
+  const logs = [log(1, 150), log(3, 151), log(6, 149), log(8, 149), log(10, 150), log(14, 148), log(15)];
+  assert.equal(getWeightTrendSummary(logs).weeklyWeightChange, -1);
+  assert.equal(getSevenDayMetricAverage(logs, "weightLbs"), 149);
 });

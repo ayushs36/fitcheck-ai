@@ -4,7 +4,7 @@ import { colors } from "../theme/colors";
 import { DailyLog, UserSettings } from "../types/fitness";
 import { buildTrendSeries, TrendPoint } from "../utils/trendSeries";
 import { convertWeightFromLbs, getWeightUnitLabel, UnitSystem } from "../utils/units";
-import { getWeightTrendSummary } from "../utils/weightTrend";
+import { getSevenDayMetricAverage, getWeightTrendSummary } from "../utils/weightTrend";
 import { Card } from "./Card";
 
 type ProgressChartsCardProps = {
@@ -137,6 +137,8 @@ export function ProgressChartsCard({
   const stepPoints = buildTrendSeries(logs, "steps");
   const weightUnit = getWeightUnitLabel(unitSystem);
   const weightSummary = getWeightTrendSummary(logs);
+  const calorieAverage = getSevenDayMetricAverage(logs, "calories");
+  const stepAverage = getSevenDayMetricAverage(logs, "steps");
   const weightTarget = typeof settings?.targetWeightLbs === "number"
     ? Math.round(convertWeightFromLbs(settings.targetWeightLbs, unitSystem) * 10) / 10
     : undefined;
@@ -153,8 +155,8 @@ export function ProgressChartsCard({
       </View>
 
       <ChartSection label="Weight" points={weightPoints} unit={weightUnit} summary={weightMovingAverage} target={weightTarget} />
-      <ChartSection label="Calories" points={caloriePoints} unit="cal" target={settings?.calorieTarget} />
-      <ChartSection label="Steps" points={stepPoints} unit="steps" target={settings?.stepTarget} />
+      <ChartSection label="Calories" points={caloriePoints} unit="cal" summary={calorieAverage === undefined ? "No data" : `${Math.round(calorieAverage).toLocaleString()} cal 7-day avg`} target={settings?.calorieTarget} />
+      <ChartSection label="Steps" points={stepPoints} unit="steps" summary={stepAverage === undefined ? "No data" : `${Math.round(stepAverage).toLocaleString()} steps 7-day avg`} target={settings?.stepTarget} />
     </Card>
   );
 }
@@ -270,6 +272,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     alignItems: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
   },
