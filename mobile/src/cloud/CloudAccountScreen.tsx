@@ -1,19 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, Linking, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { Screen } from "../components/Screen";
-import { SelectMenu } from "../components/SelectMenu";
 import { colors } from "../theme/colors";
 import type { AccountSession } from "./session";
 import type { MobileStorage } from "../storage/StorageProvider";
 import type { SyncConflict } from "./reconcile";
 import { describeRecord } from "./recordDescription";
 import { confirmAppleAccountDeletion } from "./appleAuth";
-import {
-  DailyReminder,
-  disableDailyReminder,
-  loadDailyReminder,
-  scheduleDailyReminder,
-} from "../utils/dailyReminder";
 
 const SUPPORT_URL = "https://fitcheck-ai-psi.vercel.app/mobile-support";
 const PRIVACY_URL = "https://fitcheck-ai-psi.vercel.app/mobile-privacy";
@@ -24,29 +17,9 @@ type Props = {
   onResolve: (conflict: SyncConflict, choice: "local" | "remote") => Promise<void>;
 };
 
-const REMINDER_TIMES = [18, 19, 20, 21].map((hour) => ({
-  value: String(hour),
-  label: `${hour > 12 ? hour - 12 : hour}:00 ${hour >= 12 ? "PM" : "AM"}`,
-}));
-
-function formatReminderTime(hour: number) {
-  return REMINDER_TIMES.find((time) => Number(time.value) === hour)?.label ?? "8:00 PM";
-}
-
 export function CloudAccountScreen({session, storage, conflicts, error, status, onSync, onResolve}: Props) {
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [reminder, setReminder] = useState<DailyReminder | null>(null);
-  const [reminderHour, setReminderHour] = useState("20");
-  useEffect(() => {
-    let active = true;
-    void loadDailyReminder(session.userId).then((savedReminder) => {
-      if (!active) return;
-      setReminder(savedReminder);
-      setReminderHour(String(savedReminder.hour));
-    });
-    return () => { active = false; };
-  }, [session.userId]);
   async function perform(action: () => Promise<void>) {
     if (working) return;
     setWorking(true); setMessage(null);
@@ -68,16 +41,6 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
       throw new Error("This link could not be opened on this device.");
     }
     await Linking.openURL(url);
-  }
-  async function enableReminder() {
-    const nextReminder = await scheduleDailyReminder(session.userId, Number(reminderHour));
-    setReminder(nextReminder);
-    setMessage(`Daily reminder set for ${formatReminderTime(nextReminder.hour)}.`);
-  }
-  async function turnOffReminder() {
-    await disableDailyReminder(session.userId);
-    setReminder({ enabled: false, hour: Number(reminderHour) });
-    setMessage("Daily reminder turned off on this device.");
   }
   return <Screen title="Account">
     <View style={styles.section}>
@@ -105,15 +68,6 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
       })}><Text style={styles.link}>Export account records</Text></Pressable>
     </View>
     <View style={styles.section}>
-      <Text style={styles.title}>Daily Check-in Reminder</Text>
-      <Text style={styles.body}>Optional local reminder to log your check-in. It stays on this device and can be changed in iPhone Settings.</Text>
-      <SelectMenu label="Reminder time" value={reminderHour} options={REMINDER_TIMES} onChange={setReminderHour} />
-      <Pressable accessibilityRole="button" disabled={working} style={styles.button} onPress={() => void perform(enableReminder)}>
-        <Text style={styles.link}>{reminder?.enabled ? "Update daily reminder" : "Turn on daily reminder"}</Text>
-      </Pressable>
-      {reminder?.enabled ? <Pressable accessibilityRole="button" disabled={working} style={styles.button} onPress={() => void perform(turnOffReminder)}><Text style={styles.link}>Turn off daily reminder</Text></Pressable> : null}
-    </View>
-    <View style={styles.section}>
       <Text style={styles.title}>Help & Support</Text>
       <Text style={styles.body}>Find setup, backup, privacy, and troubleshooting help for FitCheck Coach.</Text>
       <Pressable accessibilityRole="link" disabled={working} style={styles.button} onPress={() => void perform(() => openExternal(SUPPORT_URL))}><Text style={styles.link}>Open support</Text></Pressable>
@@ -122,7 +76,6 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
     <Pressable accessibilityRole="button" disabled={working} style={styles.button} onPress={() => {
       Alert.alert("Sign out?", "Account records on this device will be retained. Unsynced edits are not yet backed up to the cloud.", [
         {text: "Cancel", style: "cancel"}, {text: "Sign out", onPress: () => void perform(async () => {
-          await disableDailyReminder(session.userId);
           await session.signOut();
         })},
       ]);
@@ -134,7 +87,6 @@ export function CloudAccountScreen({session, storage, conflicts, error, status, 
           try {
             const result = await session.deleteAccount(userId => confirmAppleAccountDeletion(userId, true));
             if (result === "deleted") {
-              await disableDailyReminder(session.userId);
               Alert.alert("Account deleted", "Your cloud account and active device cache were deleted. Original device logs and saved backups were not changed.");
             }
           } catch (failure) {

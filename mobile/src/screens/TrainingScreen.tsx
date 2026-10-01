@@ -37,7 +37,6 @@ import {
   createWorkoutDraftFromSession,
   createWorkoutSessionFromDraft,
 } from "../utils/workoutDraft";
-import { cancelRestTimerNotification, scheduleRestTimerNotification } from "../utils/restTimerNotification";
 
 function normalizeExerciseName(name: string) {
   return name.trim().toLowerCase();
@@ -155,7 +154,6 @@ export function TrainingScreen() {
   const workoutStartedAtRef = useRef<number | null>(null);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [restSecondsLeft, setRestSecondsLeft] = useState(0);
-  const restNotificationIdRef = useRef<string | null>(null);
   const trainingDraftLoaded = useRef(false);
 
   function startWorkoutTimer() {
@@ -197,7 +195,6 @@ export function TrainingScreen() {
       setRestSecondsLeft(seconds);
       if (seconds === 0) {
         setRestEndsAt(null);
-        restNotificationIdRef.current = null;
         Alert.alert("Rest complete", "Ready for your next set.");
       }
     }
@@ -388,21 +385,15 @@ export function TrainingScreen() {
   function startRestTimer(seconds: number) {
     startWorkoutTimer();
     setRestEndsAt(Date.now() + seconds * 1000);
-    void cancelRestTimerNotification(restNotificationIdRef.current);
-    void scheduleRestTimerNotification(seconds).then((id) => { restNotificationIdRef.current = id; });
   }
 
   function extendRestTimer() {
     const nextEnd = (restEndsAt ?? Date.now()) + 30_000;
     setRestEndsAt(nextEnd);
-    void cancelRestTimerNotification(restNotificationIdRef.current);
-    void scheduleRestTimerNotification(Math.ceil((nextEnd - Date.now()) / 1000)).then((id) => { restNotificationIdRef.current = id; });
   }
 
   function endRestTimer() {
     setRestEndsAt(null);
-    void cancelRestTimerNotification(restNotificationIdRef.current);
-    restNotificationIdRef.current = null;
   }
 
   function selectWorkoutType(type: WorkoutType) {

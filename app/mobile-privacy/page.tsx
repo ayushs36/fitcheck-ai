@@ -28,13 +28,10 @@ export default function MobilePrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-slate-950">Apple Health And Progress Photos</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Progress Photos</h2>
             <p className="mt-2">
-              If you choose to use the Apple Health import button, FitCheck Coach reads only
-              your current-day step total and places it in an unsaved daily check-in for your
-              review. The app does not write data to Apple Health or read Health data in the
-              background. Progress photos are stored only on the device where you add them and
-              are not uploaded to your FitCheck Coach account.
+              Progress photos are stored only on the device where you add them and are not
+              uploaded to your FitCheck Coach account.
             </p>
           </section>
 

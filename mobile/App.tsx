@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
-import * as Notifications from "expo-notifications";
 import { BottomTabs, MobileTab } from "./src/components/BottomTabs";
 import { AccountScreen } from "./src/screens/AccountScreen";
 import { GoalsScreen } from "./src/screens/GoalsScreen";
@@ -12,15 +11,6 @@ import { TrainingScreen } from "./src/screens/TrainingScreen";
 import { loadMobileAccount, loadUserSettings } from "./src/storage/mobileStorage";
 import { colors } from "./src/theme/colors";
 import { MobileAccount, UserSettings } from "./src/types/fitness";
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 function renderScreen(
   activeTab: MobileTab,
