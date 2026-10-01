@@ -36,6 +36,7 @@ import {
   createBlankWorkoutDraft,
   createWorkoutDraftFromSession,
   createWorkoutSessionFromDraft,
+  hasLoggedSet,
 } from "../utils/workoutDraft";
 
 function normalizeExerciseName(name: string) {
@@ -149,6 +150,8 @@ export function TrainingScreen() {
   );
   const saveLock = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
+  const composerOffsetRef = useRef(0);
+  const exerciseOffsetsRef = useRef(new Map<string, number>());
   const [saving, setSaving] = useState(false);
   const [historyMonth, setHistoryMonth] = useState("");
   const workoutStartedAtRef = useRef<number | null>(null);
@@ -165,6 +168,23 @@ export function TrainingScreen() {
   function getWorkoutDurationSeconds() {
     if (workoutStartedAtRef.current === null) return undefined;
     return Math.max(1, Math.floor((Date.now() - workoutStartedAtRef.current) / 1000));
+  }
+
+  function keepExerciseInView(exerciseId: string) {
+    const exerciseOffset = exerciseOffsetsRef.current.get(exerciseId);
+    if (exerciseOffset === undefined) return;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, composerOffsetRef.current + exerciseOffset - 12),
+        animated: false,
+      });
+    });
+  }
+
+  function returnToTrainingStart() {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
   }
 
   useEffect(() => {
@@ -258,7 +278,9 @@ export function TrainingScreen() {
   }, [activeExerciseId, draft, editingSession, isComposerOpen, savedExerciseIds]);
 
   function updateExercise(exerciseId: string, nextExercise: ExerciseDraft) {
-    startWorkoutTimer();
+    if (hasLoggedSet(nextExercise)) {
+      startWorkoutTimer();
+    }
     setActiveExerciseId(exerciseId);
     setSavedExerciseIds((currentIds) => {
       const nextIds = new Set(currentIds);
@@ -274,7 +296,6 @@ export function TrainingScreen() {
   }
 
   function addExercise() {
-    startWorkoutTimer();
     const exercise = createBlankExercise();
     setDraft((currentDraft) => ({
       ...currentDraft,
@@ -286,7 +307,6 @@ export function TrainingScreen() {
   function addSavedExercise(
     savedExercise: Pick<ExerciseDraft, "name" | "muscleGroup">,
   ) {
-    startWorkoutTimer();
     const exercise = {
       ...createBlankExercise(),
       name: savedExercise.name,
@@ -342,7 +362,6 @@ export function TrainingScreen() {
   }
 
   function moveExercise(exerciseId: string, direction: -1 | 1) {
-    startWorkoutTimer();
     setDraft((currentDraft) => {
       const currentIndex = currentDraft.exercises.findIndex(
         (exercise) => exercise.id === exerciseId,
@@ -361,7 +380,6 @@ export function TrainingScreen() {
   }
 
   function duplicateExercise(exerciseId: string) {
-    startWorkoutTimer();
     const source = draft.exercises.find((exercise) => exercise.id === exerciseId);
     if (!source) return;
     const duplicateId = createBlankExercise().id;
@@ -383,7 +401,6 @@ export function TrainingScreen() {
   }
 
   function startRestTimer(seconds: number) {
-    startWorkoutTimer();
     setRestEndsAt(Date.now() + seconds * 1000);
   }
 
@@ -397,7 +414,6 @@ export function TrainingScreen() {
   }
 
   function selectWorkoutType(type: WorkoutType) {
-    startWorkoutTimer();
     // Naming a workout must not discard exercises already entered.
     setDraft((currentDraft) => {
       return {
@@ -481,6 +497,7 @@ export function TrainingScreen() {
       );
       return;
     }
+    startWorkoutTimer();
     setDraft((currentDraft) => ({
       ...currentDraft,
       exercises: currentDraft.exercises.map((currentExercise) =>
@@ -491,6 +508,7 @@ export function TrainingScreen() {
     }));
     setSavedExerciseIds((currentIds) => new Set(currentIds).add(exercise.id));
     setActiveExerciseId(null);
+    keepExerciseInView(exercise.id);
   }
 
   function editExercise(exerciseId: string) {
@@ -503,7 +521,6 @@ export function TrainingScreen() {
   }
 
   function addSet(exerciseId: string) {
-    startWorkoutTimer();
     setDraft((currentDraft) => ({
       ...currentDraft,
       exercises: currentDraft.exercises.map((exercise) =>
@@ -606,6 +623,7 @@ export function TrainingScreen() {
     workoutStartedAtRef.current = null;
     endRestTimer();
     void clearTrainingWorkoutDraft();
+    returnToTrainingStart();
     Alert.alert(
       editingSession ? "Workout updated" : "Workout saved",
       editingSession
@@ -688,7 +706,12 @@ export function TrainingScreen() {
 
   return (
     <Screen title="Training" scrollRef={scrollRef}>
-      <View pointerEvents={saving ? "none" : "auto"}>
+      <View
+        pointerEvents={saving ? "none" : "auto"}
+        onLayout={(event) => {
+          composerOffsetRef.current = event.nativeEvent.layout.y;
+        }}
+      >
         {isComposerOpen ? (
           <Card>
             <View style={styles.header}>
@@ -809,6 +832,12 @@ export function TrainingScreen() {
                 return (
                   <View
                     key={exercise.id}
+                    onLayout={(event) => {
+                      exerciseOffsetsRef.current.set(
+                        exercise.id,
+                        event.nativeEvent.layout.y,
+                      );
+                    }}
                     style={
                       isSavedExercise && !isExpanded
                         ? styles.savedExerciseBlock
@@ -1165,8 +1194,10 @@ export function TrainingScreen() {
 
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ disabled: saving }}
+              disabled={saving}
               onPress={saveWorkout}
-              style={styles.saveButton}
+              style={[styles.saveButton, saving && styles.disabledSaveButton]}
             >
               <Text style={styles.saveButtonText}>
                 {saving
@@ -1580,6 +1611,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     minHeight: 54,
     justifyContent: "center",
+  },
+  disabledSaveButton: {
+    opacity: 0.6,
   },
   saveButtonText: {
     color: colors.surface,

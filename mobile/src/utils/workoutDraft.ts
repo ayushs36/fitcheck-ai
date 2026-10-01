@@ -29,6 +29,13 @@ export function createBlankSet(): ExerciseSetDraft {
 
 const DEFAULT_SET_COUNT = 3;
 
+export function hasLoggedSet(exercise: ExerciseDraft) {
+  return exercise.sets.some((set) => {
+    const reps = Number(set.reps.trim());
+    return Number.isInteger(reps) && reps > 0;
+  });
+}
+
 export function createBlankExercise(): ExerciseDraft {
   return {
     id: createId("exercise"),
