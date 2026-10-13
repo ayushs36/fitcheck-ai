@@ -15,11 +15,11 @@ const features = [
   },
   {
     title: "Follow the trend",
-    body: "See weight, calorie, and step history with goal-aware progress signals built around your real logged data.",
+    body: "See weight, calorie, and step history with rolling trends, completed-week reviews, and goal-aware progress signals built around your real logged data.",
   },
   {
     title: "Train with context",
-    body: "Review prior performance for repeat exercises, including bodyweight and form-focused work, before your next session.",
+    body: "Review comparable performance and save optional rep or weight targets for repeat exercises, including bodyweight and form-focused work.",
   },
   {
     title: "Keep control of your data",
@@ -52,10 +52,15 @@ export default function FitCheckCoachPage() {
               A focused iPhone app for people who want to log nutrition and training, understand their trend, and stay aligned with a cutting, maintaining, or bulking goal.
             </p>
             <div className="mt-8 flex flex-wrap gap-3 text-sm font-semibold">
-              <a href="#features" className="rounded-[8px] bg-[#1769a8] px-5 py-3 text-white hover:bg-[#12598f]">Explore features</a>
+              <a
+                href="https://apps.apple.com/us/app/fitcheck-coach/id6810485632"
+                className="rounded-[8px] bg-[#1769a8] px-5 py-3 text-white hover:bg-[#12598f]"
+              >
+                Download on the App Store
+              </a>
               <Link href="/mobile-support" className="rounded-[8px] border border-[#d5e1ec] px-5 py-3 text-[#102a4c] hover:border-[#1769a8]">Get support</Link>
             </div>
-            <p className="mt-5 text-sm leading-6 text-[#5f738b]">Coming soon to the App Store.</p>
+            <p className="mt-5 text-sm leading-6 text-[#5f738b]">Available for iPhone on the App Store.</p>
           </div>
 
           <div className="justify-self-center">

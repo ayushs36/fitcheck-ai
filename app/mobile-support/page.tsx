@@ -19,8 +19,12 @@ const supportItems = [
     body: "Use Account to export a backup before changing devices, testing reset, or reinstalling the app.",
   },
   {
-    title: "Privacy",
-    body: "Apple-linked accounts keep fitness logs private and sync them between your devices.",
+    title: "Weekly Reviews And Goals",
+    body: "Rolling pace updates with each weigh-in. The weekly review compares completed weeks, so it may differ from the rolling trend. Goal phases keep prior cut, maintenance, and bulk targets understandable over time.",
+  },
+  {
+    title: "Account And Deletion",
+    body: "Sign in with Apple to sync your records between your devices. In Account, choose Delete account to remove your cloud account and synced records. Signing out only ends the session.",
   },
 ];
 

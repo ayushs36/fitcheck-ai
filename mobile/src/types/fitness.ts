@@ -61,6 +61,44 @@ export type UserSettings = {
   stepTarget?: number;
   hasCompletedOnboarding?: boolean;
   updatedAt?: string;
+  goalPhases?: GoalPhase[];
+  weeklyReviews?: WeeklyReviewDecision[];
+  exerciseTargets?: ExerciseTarget[];
+};
+
+export type PhaseTargets = Pick<UserSettings, "defaultGoal" | "startingWeightLbs" | "targetWeightLbs" | "weeklyGoalPaceLbs" | "calorieTarget" | "proteinTarget" | "stepTarget">;
+
+export type GoalPhase = {
+  id: string;
+  startDate: string;
+  endDate?: string;
+  initialTargets: PhaseTargets;
+  targets: PhaseTargets;
+  startAverageLbs?: number;
+  endAverageLbs?: number;
+  loggedDays?: number;
+};
+
+export type WeeklyReviewDecision = {
+  id: string;
+  phaseId?: string;
+  reviewedAt: string;
+  baselineStart: string;
+  baselineEnd: string;
+  goal: GoalType;
+  action: string;
+  status: "accepted" | "dismissed";
+  baselineWeight?: number;
+  baselineWeighIns: number;
+  outcome?: "helped" | "notYet" | "skipped";
+};
+
+export type ExerciseTarget = {
+  key: string;
+  name: string;
+  mode: "weighted" | "bodyweight";
+  reps: number;
+  weightLbs?: number;
 };
 
 export type MobileAccount = {

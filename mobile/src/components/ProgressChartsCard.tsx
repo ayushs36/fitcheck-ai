@@ -11,6 +11,7 @@ type ProgressChartsCardProps = {
   logs: DailyLog[];
   settings?: UserSettings | null;
   unitSystem?: UnitSystem;
+  currentPhaseStartDate?: string;
 };
 
 function getRange(points: TrendPoint[], target?: number): { min: number; max: number } {
@@ -40,8 +41,6 @@ function MiniBarChart({ points, unit, color, weight, target }: { points: TrendPo
   const slotWidth = width / points.length;
   const labelInterval = Math.max(1, Math.ceil(points.length / 5));
   const targetHeight = typeof target === "number" ? (target - min) / (max - min) * 160 : undefined;
-  const targetLabel =
-    typeof target === "number" ? `Target ${target.toLocaleString()} ${unit}` : null;
 
   return (
     <View style={{gap: 10}}>
@@ -55,13 +54,11 @@ function MiniBarChart({ points, unit, color, weight, target }: { points: TrendPo
         style={styles.chartPlot}
       >
       {ticks.map((_, index) => <View key={index} style={{position: "absolute", top: index * 40, width: "100%", borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border}} />)}
-      {typeof targetHeight === "number" && targetHeight >= 0 && targetHeight <= 160 && targetLabel ? (
+      {typeof targetHeight === "number" && targetHeight >= 0 && targetHeight <= 160 ? (
         <View
           pointerEvents="none"
           style={[styles.targetLine, {bottom: 36 + targetHeight}]}
-        >
-          <Text style={styles.targetLineLabel}>{targetLabel}</Text>
-        </View>
+        />
       ) : null}
       {points.map((point, index) => {
         const height = (point.value - min) / (max - min) * 160;
@@ -113,9 +110,14 @@ function ChartSection({
     <View style={styles.chartSection}>
       <View style={styles.sectionHeader}>
         <Text style={styles.chartLabel}>{label}</Text>
-        <Text style={styles.chartMeta}>
-          {summary ?? (latestPoint ? `${latestPoint.value} ${unit}` : "No data")}
-        </Text>
+        <View style={styles.sectionMeta}>
+          <Text style={styles.chartMeta}>
+            {summary ?? (latestPoint ? `${latestPoint.value} ${unit}` : "No data")}
+          </Text>
+          {typeof target === "number" ? <View style={styles.targetChip}>
+            <Text style={styles.targetChipText}>Target {target.toLocaleString()} {unit}</Text>
+          </View> : null}
+        </View>
       </View>
       <MiniBarChart points={points} unit={unit} weight={label === "Weight"} color={label === "Weight" ? colors.primary : label === "Calories" ? colors.warning : colors.success} target={target} />
       <Text style={styles.insightText}>{describeChartTrend(label, points, unit, target)}</Text>
@@ -128,6 +130,7 @@ export function ProgressChartsCard({
   logs,
   settings,
   unitSystem = "imperial",
+  currentPhaseStartDate,
 }: ProgressChartsCardProps) {
   const weightPoints = buildTrendSeries(logs, "weightLbs").map((point) => ({
     ...point,
@@ -139,7 +142,10 @@ export function ProgressChartsCard({
   const weightSummary = getWeightTrendSummary(logs);
   const calorieAverage = getSevenDayMetricAverage(logs, "calories");
   const stepAverage = getSevenDayMetricAverage(logs, "steps");
-  const weightTarget = typeof settings?.targetWeightLbs === "number"
+  const showsCurrentPhaseWeightOnly = !currentPhaseStartDate || weightPoints.every(point => point.date >= currentPhaseStartDate);
+  const showsCurrentPhaseCaloriesOnly = !currentPhaseStartDate || caloriePoints.every(point => point.date >= currentPhaseStartDate);
+  const showsCurrentPhaseStepsOnly = !currentPhaseStartDate || stepPoints.every(point => point.date >= currentPhaseStartDate);
+  const weightTarget = showsCurrentPhaseWeightOnly && typeof settings?.targetWeightLbs === "number"
     ? Math.round(convertWeightFromLbs(settings.targetWeightLbs, unitSystem) * 10) / 10
     : undefined;
   const weightMovingAverage =
@@ -151,12 +157,12 @@ export function ProgressChartsCard({
     <Card>
       <View style={styles.header}>
         <Text style={styles.title}>Trends</Text>
-        <Text style={styles.body}>Charts only use days where that field was logged.</Text>
+        <Text style={styles.body}>Charts use logged days only. A subtle target reference appears once the displayed entries belong to your current phase.</Text>
       </View>
 
       <ChartSection label="Weight" points={weightPoints} unit={weightUnit} summary={weightMovingAverage} target={weightTarget} />
-      <ChartSection label="Calories" points={caloriePoints} unit="cal" summary={calorieAverage === undefined ? "No data" : `${Math.round(calorieAverage).toLocaleString()} cal 7-day avg`} target={settings?.calorieTarget} />
-      <ChartSection label="Steps" points={stepPoints} unit="steps" summary={stepAverage === undefined ? "No data" : `${Math.round(stepAverage).toLocaleString()} steps 7-day avg`} target={settings?.stepTarget} />
+      <ChartSection label="Calories" points={caloriePoints} unit="cal" summary={calorieAverage === undefined ? "No data" : `${Math.round(calorieAverage).toLocaleString()} cal 7-day avg`} target={showsCurrentPhaseCaloriesOnly ? settings?.calorieTarget : undefined} />
+      <ChartSection label="Steps" points={stepPoints} unit="steps" summary={stepAverage === undefined ? "No data" : `${Math.round(stepAverage).toLocaleString()} steps 7-day avg`} target={showsCurrentPhaseStepsOnly ? settings?.stepTarget : undefined} />
     </Card>
   );
 }
@@ -276,6 +282,10 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: "space-between",
   },
+  sectionMeta: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
   strengthBox: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: 16,
@@ -311,19 +321,25 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   targetLine: {
-    alignItems: "flex-end",
     borderColor: colors.primary,
     borderTopWidth: 1,
     borderStyle: "dashed",
     left: 0,
+    opacity: 0.65,
     position: "absolute",
     right: 0,
   },
-  targetLineLabel: {
-    backgroundColor: colors.surface,
+  targetChip: {
+    alignItems: "center",
+    backgroundColor: colors.primarySoft,
+    borderRadius: 8,
+    minHeight: 24,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  targetChipText: {
     color: colors.primary,
-    fontSize: 10,
-    fontWeight: "900",
-    paddingLeft: 4,
+    fontSize: 11,
+    fontWeight: "800",
   },
 });

@@ -4,6 +4,7 @@ import { Card } from "../components/Card";
 import { ProgressChartsCard } from "../components/ProgressChartsCard";
 import { LogEditorCard } from "../components/LogEditorCard";
 import { ProgressDashboardCard } from "../components/ProgressDashboardCard";
+import { WeeklyReviewCard } from "../components/WeeklyReviewCard";
 import { ProgressPhotosCard } from "../components/ProgressPhotosCard";
 import { LogHistory } from "../components/LogHistory";
 import { Screen } from "../components/Screen";
@@ -14,6 +15,7 @@ import { DailyLog, TodayLogDraft, UserSettings } from "../types/fitness";
 import { formatReadableDate } from "../utils/date";
 import { blankTodayDraft, createDailyLogFromDraft, dailyLogToDraft } from "../utils/logDraft";
 import { calculateProgressInsights } from "../utils/progressInsights";
+import { activePhase, logsForActivePhase } from "../utils/goalPhases";
 import { getWeightUnitLabel } from "../utils/units";
 
 export function ProgressScreen() {
@@ -119,7 +121,9 @@ export function ProgressScreen() {
     void refreshLogs();
   }, []);
 
-  const insights = calculateProgressInsights(logs, settings);
+  // Current coaching should not blend a completed cut or bulk into a new phase.
+  // Charts and the history tab still show every saved record.
+  const insights = calculateProgressInsights(logsForActivePhase(logs, settings), settings);
   const unitSystem = settings?.unitSystem ?? "imperial";
   const weightUnit = getWeightUnitLabel(unitSystem);
 
@@ -140,9 +144,10 @@ export function ProgressScreen() {
       ) : null}
       {view === "overview" && <>
         <ProgressDashboardCard insights={insights} unitSystem={unitSystem} />
+        {!isLoading && <WeeklyReviewCard logs={logs} settings={settings} onSaved={setSettings} />}
         <ProgressPhotosCard />
       </>}
-      {view === "charts" && <ProgressChartsCard logs={logs} settings={settings} unitSystem={unitSystem} />}
+      {view === "charts" && <ProgressChartsCard logs={logs} settings={settings} unitSystem={unitSystem} currentPhaseStartDate={activePhase(settings)?.startDate} />}
 
       {view === "history" && <Card>
         <View style={styles.headerRow}>

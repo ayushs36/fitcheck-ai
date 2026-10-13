@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
+import { GoalPhaseHistory } from "../components/GoalPhaseHistory";
 import { Screen } from "../components/Screen";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
 import { useMobileStorage } from "../storage/StorageProvider";
 import { colors } from "../theme/colors";
-import { GoalType, UserSettings } from "../types/fitness";
+import { DailyLog, GoalType, UserSettings } from "../types/fitness";
 import { parseOptionalNumber } from "../utils/logDraft";
 import { getProteinTarget } from "../utils/proteinTargets";
+import { savePhaseSettings } from "../utils/goalPhases";
+import { getTodayKey } from "../utils/date";
 import {
   convertWeightFromLbs,
   formatWeightFromLbs,
@@ -147,9 +150,11 @@ function getCalorieSuggestion(goal: GoalType): string {
 }
 
 export function GoalsScreen() {
-  const { loadUserSettings, saveUserSettings } = useMobileStorage();
+  const { loadDailyLogsDescending, loadUserSettings, saveUserSettings } = useMobileStorage();
   const [draft, setDraft] = useState<GoalDraft>(defaultDraft);
   const [originalSettings, setOriginalSettings] = useState<UserSettings | null>(null);
+  const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [startNewPhase, setStartNewPhase] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -178,10 +183,14 @@ export function GoalsScreen() {
 
     async function loadSettings() {
       try {
-        const savedSettings = await loadUserSettings();
+        const [savedSettings, savedLogs] = await Promise.all([
+          loadUserSettings(),
+          loadDailyLogsDescending(),
+        ]);
         if (isMounted) {
           setDraft(settingsToDraft(savedSettings));
           setOriginalSettings(savedSettings);
+          setLogs(savedLogs);
         }
       } catch {
         if (isMounted) {
@@ -209,13 +218,14 @@ export function GoalsScreen() {
     }));
   }
 
-  async function saveGoalSettings() {
+  async function persistGoalSettings() {
     if (isLoading || saving) return;
     if (loadError) {
       Alert.alert("Goal not saved", "Reopen Goals to load your current setup before making changes.");
       return;
     }
-    const settings: UserSettings = {
+    const nextValues: UserSettings = {
+      ...(originalSettings ?? {}),
       unitSystem: draft.unitSystem,
       defaultGoal: draft.defaultGoal,
       startingWeightLbs: parseWeightToLbs(draft.startingWeight, draft.unitSystem),
@@ -229,12 +239,44 @@ export function GoalsScreen() {
     };
 
     setSaving(true);
-    try { await saveUserSettings(settings, originalSettings); }
+    let settings: UserSettings;
+    try {
+      settings = savePhaseSettings(
+        originalSettings,
+        nextValues,
+        logs,
+        getTodayKey(),
+        `phase-${Date.now()}`,
+        startNewPhase,
+      );
+      await saveUserSettings(settings, originalSettings);
+    }
     catch (error) { Alert.alert("Goal not saved", error instanceof Error ? error.message : "Please try again. Your draft was kept."); return; }
     finally { setSaving(false); }
     setOriginalSettings(settings);
     setLastSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
     Alert.alert("Goal saved", "Your goal setup was saved.");
+    setStartNewPhase(false);
+  }
+
+  function saveGoalSettings() {
+    if (isLoading || saving || loadError) {
+      return;
+    }
+    const activeGoal = originalSettings?.goalPhases?.find((phase) => !phase.endDate)?.targets.defaultGoal;
+    const startsAnotherPhase = startNewPhase || (activeGoal !== undefined && activeGoal !== draft.defaultGoal);
+    if (startsAnotherPhase) {
+      Alert.alert(
+        "Start a new goal phase?",
+        "Today begins a new phase. Your completed phase and its saved targets will remain in Goal phases.",
+        [
+          { text: "Keep editing", style: "cancel" },
+          { text: "Start new phase", onPress: () => { void persistGoalSettings(); } },
+        ],
+      );
+      return;
+    }
+    void persistGoalSettings();
   }
 
   return (
@@ -304,6 +346,21 @@ export function GoalsScreen() {
             value={draft.weeklyGoalPaceLbs}
           />
         </View>
+
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: startNewPhase }}
+          onPress={() => setStartNewPhase((value) => !value)}
+          style={styles.phaseToggle}
+        >
+          <View style={[styles.checkbox, startNewPhase && styles.checkboxSelected]}>
+            {startNewPhase ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <View style={styles.phaseToggleCopy}>
+            <Text style={styles.phaseToggleTitle}>Start a new phase today</Text>
+            <Text style={styles.phaseToggleBody}>Use this when moving between cut, maintenance, or bulk. Current targets remain editable without starting a phase.</Text>
+          </View>
+        </Pressable>
 
         <View style={styles.grid}>
           <TextField
@@ -376,6 +433,8 @@ export function GoalsScreen() {
         </View>
 
       </Card>
+
+      <GoalPhaseHistory settings={originalSettings} logs={logs} />
     </Screen>
   );
 }
@@ -406,6 +465,25 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     lineHeight: 20,
   },
+  checkbox: {
+    alignItems: "center",
+    borderColor: colors.border,
+    borderRadius: 4,
+    borderWidth: 1,
+    height: 22,
+    justifyContent: "center",
+    marginTop: 1,
+    width: 22,
+  },
+  checkboxMark: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   disabledButton: {
     opacity: 0.55,
   },
@@ -419,6 +497,25 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: "800",
+  },
+  phaseToggle: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 10,
+  },
+  phaseToggleBody: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  phaseToggleCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  phaseToggleTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
   },
   saveButton: {
     alignItems: "center",

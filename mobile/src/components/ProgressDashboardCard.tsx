@@ -176,8 +176,8 @@ export function ProgressDashboardCard({
         <Text style={styles.trendSymbol}>{getTrendSymbol(insights.weightTrend.direction)}</Text>
         <View style={styles.trendCopy}>
           <View style={styles.labelRow}>
-            <Text style={styles.actionEyebrow}>Weekly pace</Text>
-            <InfoButton title="Weekly pace" message="Weekly pace compares the average weight from the latest seven calendar days with the average from the seven days before that. Missing weigh-ins are skipped, and FitCheck needs at least three weigh-ins in each week." />
+            <Text style={styles.actionEyebrow}>Rolling 7-day pace</Text>
+            <InfoButton title="Rolling 7-day pace" message="This compares the latest seven calendar days ending on your latest weigh-in with the seven days before that. Missing weigh-ins are skipped, and FitCheck needs at least three weigh-ins in each window." />
           </View>
           <Text style={styles.trendValue}>
             {typeof insights.weightTrend.weeklyChange === "number"
@@ -185,7 +185,7 @@ export function ProgressDashboardCard({
               : "Not enough data"}
           </Text>
           <Text style={styles.body}>
-            {insights.weightTrend.weighIns}/7 recent weigh-ins. Pace compares this week with the prior week; blanks are skipped.
+            {insights.weightTrend.weighIns}/7 recent weigh-ins. This rolling view updates with each new weigh-in; blanks are skipped.
           </Text>
         </View>
       </View>
@@ -239,27 +239,6 @@ export function ProgressDashboardCard({
         <Text style={styles.executionBody}>{insights.goalTimeline.summary}</Text>
         <Text style={styles.executionAction}>{insights.goalTimeline.nextAction}</Text>
         <Text style={styles.executionMeta}>Based on your 7-day weight average, target, and selected pace.</Text>
-      </View>
-
-      <View style={styles.weeklyCheckIn}>
-        <View style={styles.executionHeader}>
-          <View style={styles.headerCopy}>
-            <View style={styles.labelRow}>
-              <Text style={styles.actionEyebrow}>Weekly Check-in</Text>
-              <InfoButton title="Weekly check-in" message="This combines your saved calorie, protein, and step targets with the latest valid entries. Blank fields do not lower averages; they reduce data confidence instead." />
-            </View>
-            <Text style={styles.executionTitle}>{insights.weeklyExecution.status}</Text>
-          </View>
-          <View style={styles.executionScoreWrap}>
-            <Text style={styles.executionScore}>{insights.weeklyExecution.score}</Text>
-            <Text style={styles.executionScoreMeta}>/100</Text>
-          </View>
-        </View>
-        <Text style={styles.executionBody}>{insights.weeklyExecution.summary}</Text>
-        <Text style={styles.weeklyConfidence}>
-          Data confidence: {formatQualityStatus(insights.loggingQuality.status)} ({insights.loggingQuality.score}/100)
-        </Text>
-        <Text style={styles.executionAction}>{insights.weeklyExecution.nextAction}</Text>
       </View>
 
       <Disclosure title="Coaching details">

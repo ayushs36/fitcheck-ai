@@ -12,6 +12,7 @@ import { Card } from "../components/Card";
 import { Screen } from "../components/Screen";
 import { TextField } from "../components/TextField";
 import { TrainingAnalyticsCard } from "../components/TrainingAnalyticsCard";
+import { ExerciseProgression } from "../components/ExerciseProgression";
 import { useMobileStorage } from "../storage/StorageProvider";
 import { SelectMenu } from "../components/SelectMenu";
 import { Disclosure } from "../components/Disclosure";
@@ -120,6 +121,20 @@ function getLastExercisePerformance(
   }
 
   return null;
+}
+
+function getComparableSetReference(
+  currentSets: ExerciseDraft["sets"],
+  currentIndex: number,
+  priorSets: WorkoutSession["exercises"][number]["sets"],
+) {
+  const current = currentSets[currentIndex];
+  const sameKind = (set: { isBodyweight?: boolean; isWarmup?: boolean; formFocus?: boolean }) =>
+    Boolean(set.isBodyweight) === Boolean(current.isBodyweight)
+    && Boolean(set.isWarmup) === Boolean(current.isWarmup)
+    && Boolean(set.formFocus) === Boolean(current.formFocus);
+  const ordinal = currentSets.slice(0, currentIndex + 1).filter(sameKind).length - 1;
+  return priorSets.filter(sameKind)[ordinal];
 }
 
 export function TrainingScreen() {
@@ -961,6 +976,15 @@ export function TrainingScreen() {
                           </View>
                         ) : null}
 
+                        {exercise.name.trim() ? (
+                          <ExerciseProgression
+                            name={exercise.name}
+                            sessions={recentSessions}
+                            unitSystem={unitSystem}
+                            beforeDate={editingSession?.date}
+                          />
+                        ) : null}
+
                         {exercise.sets.map((set, setIndex) => (
                           <View key={set.id} style={styles.setBlock}>
                             <View style={styles.exerciseHeader}>
@@ -968,9 +992,9 @@ export function TrainingScreen() {
                                 <Text style={styles.setTitle}>
                                   Set {setIndex + 1}
                                 </Text>
-                                {exercisePreview?.sets[setIndex] ? (
+                                {exercisePreview && getComparableSetReference(exercise.sets, setIndex, exercisePreview.sets) ? (
                                   <Text style={styles.setReference}>
-                                    Last: {formatSetPreview(exercisePreview.sets[setIndex], unitSystem)}
+                                    Last: {formatSetPreview(getComparableSetReference(exercise.sets, setIndex, exercisePreview.sets)!, unitSystem)}
                                   </Text>
                                 ) : exercisePreview ? (
                                   <Text style={styles.setReference}>Last: no matching set</Text>

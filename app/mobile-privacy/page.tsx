@@ -15,15 +15,16 @@ export default function MobilePrivacyPage() {
           FitCheck Coach
         </p>
         <h1 className="mt-2 text-3xl font-semibold">Privacy Policy</h1>
-        <p className="mt-3 text-sm text-slate-500">Last updated: September 29, 2026</p>
+        <p className="mt-3 text-sm text-slate-500">Last updated: October 13, 2026</p>
 
         <div className="mt-8 space-y-6 text-sm leading-7 text-slate-700">
           <section>
             <h2 className="text-lg font-semibold text-slate-950">What The App Stores</h2>
             <p className="mt-2">
               FitCheck Coach stores the fitness information you enter, including account
-              profile details, goals, weight logs, calories, protein, steps, workouts, exercises,
-              body measurements, notes, and local backup data.
+              profile details, goals and goal phases, weight logs, calories, protein, steps,
+              workouts, exercises, saved exercise targets, weekly-review decisions, body
+              measurements, notes, and local backup data.
             </p>
           </section>
 
@@ -49,9 +50,10 @@ export default function MobilePrivacyPage() {
             <h2 className="text-lg font-semibold text-slate-950">Cloud Accounts And Use Of Data</h2>
             <p className="mt-2">
               Cloud accounts use your Apple-linked identifier and the email address Apple
-              provides, which may be a private-relay address. Fitness logs, goals, workout
-              records, and notes you save in that account are sent to the mobile backend for
-              storage and synchronization. Authentication state is stored using the
+              provides, which may be a private-relay address. Fitness logs, goals, goal-phase
+              history, workout records, optional exercise targets, weekly-review decisions, and
+              notes you save in that account are sent to the mobile backend for storage and
+              synchronization. Authentication state is stored using the
               device&apos;s secure storage. Service providers process connection and operational
               information to run these services. FitCheck Coach does not sell your data or
               use third-party advertising trackers. Mobile records are separate from the
